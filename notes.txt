@@ -1,0 +1,14 @@
+Make responsive nav bar: https://blog.logrocket.com/create-responsive-navbar-react-css/
+Deploy to AWS via github actions: https://medium.com/cloud-native-daily/mastering-ci-cd-deploying-a-react-js-app-to-aws-s3-with-github-actions-and-hosting-it-b1ce82360331
+
+STEP 1: Aili will build a basic React JS front-end application for GovRes. This item covers under-the-hood project set-up, including selecting core libraries, creating the infrastructure for automated testing, and building a deployment pipeline.
+
+STEP 2: Basic header and footer
+
+STEP 3: App welcome screen [need text]
+
+STEP 4: Resume upload
+
+STEP 5: USAJOBS URL receiver
+
+STEP 6: Career coach - with loops.
