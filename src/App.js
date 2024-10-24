@@ -1,26 +1,45 @@
 import React, { Fragment } from "react";
 import Header from "./Header";
+import Footer from "./Footer";
+import Home from "./Home";
 import GlobalStyle from "./styles/globalStyles";
+
+import { createBrowserRouter, Outlet, RouterProvider } from "react-router-dom";
+
+const AppLayout = () => {
+  return (
+    <>
+      <main>
+        <Header />
+        <Outlet />
+        <Footer />
+      </main>
+    </>
+  );
+};
+
+const router = createBrowserRouter([
+  {
+    element: <AppLayout />,
+    children: [
+      {
+        path: "/",
+        element: <Home />,
+        // errorElement: <Error404 />,
+      },
+      // {
+      //   path: "/about",
+      //   element: <About />,
+      // },
+    ],
+  },
+]);
 function App() {
   return (
     <Fragment>
       <GlobalStyle />
       <div className="App">
-        <Header />
-        <header className="App-header">
-          <h1>FedREs</h1>
-          <p>
-            Edit <code>src/App.js</code> and save to reload.
-          </p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-        </header>
+        <RouterProvider router={router} />
       </div>
     </Fragment>
   );

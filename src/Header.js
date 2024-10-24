@@ -1,3 +1,5 @@
+import NavBar from "./NavBar";
+
 export default function Header() {
-  return <header>Test content here</header>;
+  return <NavBar />;
 }
