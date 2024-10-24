@@ -14,7 +14,7 @@ const Home = () => {
   return (
     <Container>
       <Banner>
-        <a href="#">Try two weeks for free!</a>
+        <a href="/">Try two weeks for free!</a>
       </Banner>
     </Container>
   );
