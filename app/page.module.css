@@ -6,6 +6,6 @@
   padding: 0.35em;
 }
 
-.banner.a {
+.banner a {
   color: var(--white);
 }
