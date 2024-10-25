@@ -1,40 +1,18 @@
-import { createGlobalStyle, styled } from "styled-components";
-
-const size = {
-  mobileS: "320px",
-  mobileM: "375px",
-  mobileL: "425px",
-  tablet: "768px",
-  laptop: "1024px",
-  laptopL: "1440px",
-  desktop: "2560px",
-};
-export const device = {
-  mobileS: `(min-width: ${size.mobileS})`,
-  mobileM: `(min-width: ${size.mobileM})`,
-  mobileL: `(min-width: ${size.mobileL})`,
-  tablet: `(min-width: ${size.tablet})`,
-  laptop: `(min-width: ${size.laptop})`,
-  laptopL: `(min-width: ${size.laptopL})`,
-  desktop: `(min-width: ${size.desktop})`,
-  desktopL: `(min-width: ${size.desktop})`,
-};
-const GlobalStyle = createGlobalStyle`
 * {
- box-sizing: border-box;
- padding: 0;
- margin: 0;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
 }
 
- :root {
-//  colors
+:root {
+  /* colors */
   --blue-dark: #014662;
   --blue-med: #025f84;
   --green-med: #538a6e;
   --red-med: #bc282a;
   --white: #ffffff;
   --body-color: #fffffff;
-  // fonts
+  /* fonts */
   --body-font: "Roboto Condensed", sans-serif;
   --font-regular-weight: 300;
   --font-semi-bold: 600;
@@ -42,11 +20,10 @@ const GlobalStyle = createGlobalStyle`
   --header-font: "Special Elite", system-ui;
   --header-height: 3.5rem;
   --small-font-size: 0.813rem;
-  // layers
+  /* layers */
   --z-fixed: 100;
   --z-tooltip: 10;
-  //sizing for layout
-
+  /* sizing for layout */
 }
 
 body {
@@ -58,22 +35,57 @@ body {
   font-weight: var(--font-regular-weight);
 }
 
+header {
+  position: fixed;
+  width: 100%;
+  top: 0;
+  left: 0;
+  background-color: var(--blue-dark);
+  z-index: var(--z-fixed);
+}
+footer {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--blue-med);
+  color: var(--white);
+  padding: 1em;
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  z-index: var(--z-fixed);
+}
+nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  height: var(--header-height);
+  margin: 1em;
+  padding-top: 0.25em;
+
+  @media (min-width: 1024px) {
+    height: calc(var(--header-height) + 1em);
+  }
+}
+
 ul {
- list-style: none;
+  list-style: none;
 }
 
 a {
- text-decoration: none;
+  text-decoration: none;
 }
 
-  h1{
+h1 {
   font-family: var(--header-font);
   font-weight: var(--font-semi-bold);
   font-style: normal;
   color: var(--red-med);
-  }
+}
 
-  .header {
+.header {
   background-color: var(--blue-med);
   padding: 10px 20px;
   color: white;
@@ -82,12 +94,13 @@ a {
   align-items: center;
 }
 
-`;
-
-export const Container = styled.div`
+.container {
   margin-top: calc(var(--header-height) + 2rem);
-  @media ${device.laptop} {
+  @media (min-width: 1024px) {
     margin-top: calc(var(--header-height) + 3.03rem);
   }
-`;
-export default GlobalStyle;
+}
+
+.content {
+  padding: 1rem;
+}

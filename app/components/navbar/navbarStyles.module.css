@@ -1,16 +1,4 @@
-import styled from "styled-components";
-import { NavLink } from "react-router-dom";
-import { device } from "./globalStyles";
-export const Header = styled.header`
-  position: fixed;
-  width: 100%;
-  top: 0;
-  left: 0;
-  background-color: var(--blue-dark);
-  z-index: var(--z-fixed);
-`;
-
-export const StyledNavLink = styled(NavLink)`
+.navLink {
   color: var(--red-med);
   font-weight: var(--font-semi-bold);
   font-family: var(--header-font);
@@ -19,37 +7,24 @@ export const StyledNavLink = styled(NavLink)`
   &:hover {
     color: var(--white);
   }
-`;
+}
 
-export const NavToggle = styled.div`
+.navToggle {
   font-size: 1.5rem;
   color: var(--red-med);
   cursor: pointer;
-  @media ${device.laptop} {
+  @media (min-width: 1024px) {
     display: none;
   }
-`;
-export const NavClose = styled(NavToggle)`
+}
+
+.navClose {
   position: absolute;
   top: 1rem;
   right: 1.5rem;
-`;
+}
 
-export const NavContainer = styled.nav`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: relative;
-  height: var(--header-height);
-  margin: 1em;
-  padding-top: 0.25em;
-
-  @media ${device.laptop} {
-    height: calc(var(--header-height) + 1em);
-  }
-`;
-
-export const NavCta = styled(StyledNavLink)`
+.navCta {
   background-color: var(--blue-dark);
   color: var(--white);
   border: none;
@@ -57,33 +32,30 @@ export const NavCta = styled(StyledNavLink)`
   cursor: pointer;
   transition: background-color 0.3s ease;
   padding: 0.75rem 1.5rem;
-`;
+}
 
-export const NavItem = styled.li``;
-export const NavList = styled.ul`
+.navList {
   display: flex;
   flex-direction: column;
   row-gap: 2.5rem;
   list-style-type: none;
   padding: 0;
-  @media ${device.laptop} {
+  @media (min-width: 1024px) {
     flex-direction: row;
     column-gap: 2.5rem;
   }
-`;
+}
 
-export const NavLogo = styled(NavLink)`
+.navLogo {
   color: var(--red-med);
   transition: color 0.4s;
   font-size: 4.2rem;
   font-family: var(--header-font);
-`;
+}
 
-export const NavMenu = styled.div.attrs((props) => ({
-  className: props.className,
-}))`
+.navMenu {
   display: flex;
-  align-items: center;
+
   justify-content: space-between;
   position: fixed;
   top: 0;
@@ -95,16 +67,18 @@ export const NavMenu = styled.div.attrs((props) => ({
   height: 100%;
   padding: 6rem 2rem 0;
   transition: right 0.4s;
-  &.show-menu {
-    right: 0;
-  }
 
-  @media ${device.laptop} {
+  @media (min-width: 1024px) {
     position: relative;
     height: var(--header-height);
     margin: 0 1rem;
     top: auto;
     right: auto;
     padding: 1rem;
+    align-items: center;
   }
-`;
+}
+
+.showMenu {
+  right: 0;
+}

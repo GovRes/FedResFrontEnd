@@ -1,0 +1,10 @@
+.banner {
+  color: var(--white);
+  background-color: var(--red-med);
+  font-family: var(--header-font);
+  font-size: 3rem;
+  padding: 0.35em;
+  a {
+    color: var(--white);
+  }
+}
