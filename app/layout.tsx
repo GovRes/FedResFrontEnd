@@ -1,9 +1,9 @@
-import Header from "./components/Header";
+import { Roboto, Special_Elite } from "next/font/google";
 import Footer from "./components/Footer";
+import Header from "./components/Header";
 import "./globals.css";
-import { Roboto_Condensed, Special_Elite } from "next/font/google";
 
-const robotoCondensed = Roboto_Condensed({
+const roboto = Roboto({
   weight: ["400", "700"],
   style: ["normal", "italic"],
   subsets: ["latin"],
@@ -27,9 +27,7 @@ export default function RootLayout(props: React.PropsWithChildren) {
         />
         <title>GovRes</title>
       </head>
-      <body
-        className={`${robotoCondensed.className} ${specialElite.className}`}
-      >
+      <body className={`${roboto.className} ${specialElite.className}`}>
         <Header />
         <div className="container">{props.children}</div>
         <Footer />
