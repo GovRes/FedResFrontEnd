@@ -63,6 +63,15 @@ const Navbar = () => {
             </li>
             <li>
               <Link
+                className={styles.navLink}
+                href="/ally"
+                onClick={closeMenuOnMobile}
+              >
+                Ally
+              </Link>
+            </li>
+            <li>
+              <Link
                 className={`${styles.navLink} ${styles.navCta}`}
                 href="/login"
                 onClick={closeMenuOnMobile}
