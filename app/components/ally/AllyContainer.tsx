@@ -8,11 +8,7 @@ import { useSendJsonMessage } from "../../utils/api";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 import { WEB_SOCKET_URL, TEST_WEB_SOCKET_URL } from "@/app/constants";
 const socketUrl = TEST_WEB_SOCKET_URL;
-export default function AllyContainer({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AllyContainer() {
   const {
     email,
     jobDescription,
