@@ -8,14 +8,6 @@ on:
 
 jobs:
   build:
-    uses: actions/cache@v4
-    with:
-      path: |
-        ~/.npm
-        ../.next/cache
-      key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
-      restore-keys: |
-        ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -28,6 +20,17 @@ jobs:
 
       - name: Install dependencies
         run: npm install --legacy-peer-deps
+
+      - name: Cache Primes
+      id: cache-primes
+      uses: actions/cache@v4.1.2
+      with:
+        path: |
+          ~/.npm
+          .next/cache
+        key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
+        restore-keys: |
+        ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
 
       - name: Build app
         run: npm run build
