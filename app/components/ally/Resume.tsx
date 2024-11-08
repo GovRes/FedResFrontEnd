@@ -1,44 +1,42 @@
 import { FormEvent, useState } from "react";
+import styles from "./ally.module.css";
+import Uploader from "../forms/Uploader";
 import BaseForm from "../forms/BaseForm";
-import { Text } from "../forms/Inputs";
+import { TextArea, SubmitButton } from "../forms/Inputs";
 export default function Resume({
   name,
-  setName,
+  setResume,
   setStep,
 }: {
   name: string | undefined;
-  setName: (name: string) => void;
+  setResume: (resume: string) => void;
   setStep: (step: number) => void;
 }) {
   async function onSubmitResume(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    // setEmail(
-    //   (event.currentTarget.elements.namedItem("email") as HTMLInputElement)
-    //     .value
-    // );
+    setResume(
+      (event.currentTarget.elements.namedItem("resume") as HTMLInputElement)
+        .value
+    );
     setStep(2);
   }
-
   return (
     <div>
-      <p>
-        {name && <>Great to meet you, {name}.</>} Let's start by uploading your
-        resumes. You can upload up to five resumes. In the future, we'll even
-        let you select ones that you had uploaded in the past.{" "}
-      </p>
-      <p>
-        TK RESUME UPLOADER THING LIKE THIS:
-        https://dev.to/aws-builders/how-to-upload-files-to-amazon-s3-with-react-and-aws-sdk-b0n
-        AND THEN SEND THE URL TO THE BACKEND OR Do we just want the user to
-        paste the job description?
-      </p>
+      <div className={`${styles.allyChatContainer}`}>
+        <p className={styles.fade}>
+          While we work on getting the ability to directly upload resumes,
+          please copy and paste your resume here. Don't worry about formatting.
+        </p>
+      </div>
+      <div
+        className={`${styles.userChatContainer} ${styles.fade}`}
+        style={{ animationDelay: `1s` }}
+      >
+        <BaseForm onSubmit={onSubmitResume}>
+          <TextArea name="resume" />
+          <SubmitButton type="submit">Submit</SubmitButton>
+        </BaseForm>
+      </div>
     </div>
   );
 }
-
-// Obj shape for back end
-//         {
-//           email: {email},
-//           step: {step} || 1,
-//           usalJobsUrl: {usalJobsUrl},
-//         }

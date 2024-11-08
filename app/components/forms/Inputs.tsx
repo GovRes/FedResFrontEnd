@@ -30,11 +30,12 @@ export const Email = ({ name }: { name: string }) => {
   return (
     <>
       <input
+        autoFocus
+        className="invalid:bg-red-200 invalid:text-red-800"
+        name={name}
+        onChange={handleEmailChange}
         type="email"
         value={email}
-        name={name}
-        className="invalid:bg-red-200 invalid:text-red-800"
-        onChange={handleEmailChange}
       ></input>
       {error && (
         <div>
@@ -47,11 +48,11 @@ export const Email = ({ name }: { name: string }) => {
 };
 
 export const Text = ({ name }: { name: string }) => {
-  return <input type="text" name={name} />;
+  return <input autoFocus name={name} type="text" />;
 };
 
 export const TextArea = ({ name }: { name: string }) => {
-  return <textarea name={name} rows={30} cols={100} />;
+  return <textarea autoFocus cols={100} name={name} rows={30} />;
 };
 
 export const Url = ({ name }: { name: string }) => {
@@ -77,11 +78,12 @@ export const Url = ({ name }: { name: string }) => {
   return (
     <>
       <input
+        autoFocus
+        className="invalid:bg-red-200 invalid:text-red-800"
+        name={name}
+        onChange={handleUrlChange}
         type="url"
         value={url}
-        name={name}
-        className="invalid:bg-red-200 invalid:text-red-800"
-        onChange={handleUrlChange}
       ></input>
       {error && (
         <div>

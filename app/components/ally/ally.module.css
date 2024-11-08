@@ -1,46 +1,65 @@
 .ally {
-  max-width: 80%;
+  max-width: 100%;
   margin: 0 auto;
-}
-.typewritertwo {
-  display: none;
-  overflow: hidden; /* Ensures the content is not revealed until the animation */
-  &.show {
-    display: block;
-    border-right: 0.15em solid orange; /* The typwriter cursor */
-    white-space: nowrap; /* Keeps the content on a single line */
-    margin: 0 auto; /* Gives that scrolling effect as the typing happens */
-    letter-spacing: 0.15em; /* Adjust as needed */
-    animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
+  min-height: 100vh;
+  display: grid;
+  place-content: flex-start;
+  gap: 20px;
+  font-family: system-ui, sans-serif;
+  font-size: 20px;
+  @media (min-width: 1024px) {
+    max-width: 60%;
   }
 }
 
-.typewriter {
-  overflow: hidden; /* Ensures the content is not revealed until the animation */
-  border-right: 0.15em solid orange; /* The typwriter cursor */
-  white-space: nowrap; /* Keeps the content on a single line */
-  margin: 0 auto; /* Gives that scrolling effect as the typing happens */
-  letter-spacing: 0.15em; /* Adjust as needed */
-  animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
+.allyChatContainer {
+  --r: 1em; /* the radius */
+  --t: 1.5em; /* the size of the tail */
+  background: linear-gradient(135deg, var(--blue-light), var(--blue-dark))
+    border-box;
+  border-inline: var(--t) solid #0000;
+  border-radius: calc(var(--r) + var(--t)) / var(--r);
+  border-bottom-left-radius: 0 0;
+  color: #fff;
+  margin: 10px;
+  mask: radial-gradient(100% 100% at 0 0, #0000 99%, #000 102%) 0 100% /
+      var(--t) var(--t) no-repeat,
+    linear-gradient(#000 0 0) padding-box;
+  padding: 1em;
+  place-self: start;
+  width: 80%;
 }
 
-/* The typing effect */
-@keyframes typing {
-  from {
-    width: 0;
-  }
-  to {
-    width: 100%;
-  }
+.userChatContainer {
+  --r: 1em; /* the radius */
+  --t: 1.5em; /* the size of the tail */
+  background: linear-gradient(135deg, var(--blue-dark), var(--blue-light))
+    border-box;
+  border-inline: var(--t) solid #0000;
+  border-radius: calc(var(--r) + var(--t)) / var(--r);
+  border-bottom-right-radius: 0 0;
+  color: #fff;
+  margin: 10px;
+  mask: radial-gradient(100% 100% at 100% 0, #0000 99%, #000 102%) 100% 100% /
+      var(--t) var(--t) no-repeat,
+    linear-gradient(#000 0 0) padding-box;
+  padding: 1em;
+  place-self: end;
+  width: 80%;
 }
 
-/* The typewriter cursor effect */
-@keyframes blink-caret {
-  from,
-  to {
-    border-color: transparent;
+.fade {
+  opacity: 0;
+  animation: fadeIn 5s;
+  animation-fill-mode: forwards;
+  -webkit-animation-fill-mode: forwards;
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
   }
-  50% {
-    border-color: orange;
+  100% {
+    opacity: 1;
   }
 }

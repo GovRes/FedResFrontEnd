@@ -6,11 +6,13 @@ export interface AllyContextType {
   email?: string;
   jobDescription?: string;
   name?: string;
+  resume?: string;
   step?: number;
   url?: string;
   setEmail: (step: string) => void;
   setJobDescription: (jobDescription: string) => void;
   setName: (name: string) => void;
+  setResume: (resume: string) => void;
   setStep: (step: number) => void;
   setUrl: (url: string) => void;
 }
@@ -23,6 +25,7 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
   const [email, setEmail] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [name, setName] = useState("");
+  const [resume, setResume] = useState("");
   const [step, setStep] = useState(0);
   const [url, setUrl] = useState("");
 
@@ -32,11 +35,13 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
         email,
         jobDescription,
         name,
+        resume,
         step,
         url,
         setEmail,
         setJobDescription,
         setName,
+        setResume,
         setStep,
         setUrl,
       }}
