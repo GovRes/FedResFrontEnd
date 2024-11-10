@@ -26,7 +26,7 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
   const [jobDescription, setJobDescription] = useState("");
   const [name, setName] = useState("");
   const [resume, setResume] = useState("");
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(3);
   const [url, setUrl] = useState("");
 
   return (

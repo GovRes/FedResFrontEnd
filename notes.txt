@@ -1,7 +1,5 @@
-STEP 4: Resume upload - in process - waiting on S3 access
+STEP 4: Resume upload - in process - S3 still blocked, but unclear why
 
-STEP 5: USAJOBS URL receiver - in process - waiting on clarity, do we want to just pass the url or ask user to copy and paste?
+STEP 5: USAJOBS URL receiver - in process - currently set up for copy + paste job descriptions (we should probably develop some instructions around this). eventually switch to paste URL and fetch from USA JOBS api
 
 STEP 6: Career coach - with loops.
-
-** consider using some of these ideas to make this feel more "chat bot": https://www.scaledrone.com/blog/tutorial-build-a-reactjs-chat-app/

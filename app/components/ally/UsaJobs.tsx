@@ -45,7 +45,6 @@ export default function UsaJobs({
   }
 
   let allyStatements = [
-    "Can you tell me the url of the USAJOBS posting we're working on today?",
     "While we work on getting the ability to talk directly to USAJOBS, here's a temporary solution. Can you paste your job description here? (instructions about how)",
   ];
 

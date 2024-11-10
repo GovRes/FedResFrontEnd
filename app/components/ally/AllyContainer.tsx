@@ -1,5 +1,6 @@
 "use client";
 import React, { useContext, useEffect } from "react";
+import CareerCoach from "./CareerCoach";
 import Resume from "./Resume";
 import TempRegister from "./TempRegister";
 import UsaJobs from "./UsaJobs";
@@ -8,6 +9,11 @@ import { useSendJsonMessage } from "../../utils/api";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 import { WEB_SOCKET_URL, TEST_WEB_SOCKET_URL } from "@/app/constants";
 const socketUrl = TEST_WEB_SOCKET_URL;
+export interface Qualification {
+  id: number;
+  name: string;
+  description: string;
+}
 export default function AllyContainer() {
   const {
     email,
@@ -24,6 +30,23 @@ export default function AllyContainer() {
     setUrl,
   } = useContext(AllyContext) as AllyContextType;
 
+  const tempQualifications = {
+    unmetQualifications: [
+      { id: 1, name: "Python", description: "" },
+      { id: 2, name: "Java", description: "" },
+      { id: 3, name: "C++", description: "" },
+    ],
+    metQualifications: [
+      { id: 4, name: "JavaScript", description: "was once a barista" },
+      {
+        id: 5,
+        name: "React",
+        description: "Wrote a complex front-end web application",
+      },
+      { id: 6, name: "Node.js", description: "Built a server" },
+    ],
+  };
+
   const { readyState, sendJsonMessage, lastJsonMessage, lastMessage } =
     useWebSocket(socketUrl, { share: true });
   const connectionStatus = {
@@ -35,7 +58,6 @@ export default function AllyContainer() {
   }[readyState];
 
   useEffect(() => {
-    console.log("Connection Status: ", connectionStatus);
     if (
       readyState === ReadyState.OPEN &&
       email &&
@@ -75,6 +97,16 @@ export default function AllyContainer() {
           setStep={setStep}
           setUrl={setUrl}
           setJobDescription={setJobDescription}
+        />
+      );
+    case 3:
+      // actually, qualifications will be lastJsonMessage probably but I'm making a temp object here.
+      return (
+        <CareerCoach
+          email={email}
+          qualifications={tempQualifications}
+          setStep={setStep}
+          step={step}
         />
       );
     default:

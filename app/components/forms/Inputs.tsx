@@ -1,12 +1,44 @@
 import React, { ChangeEvent, useEffect, useState } from "react";
+import styles from "./forms.module.css";
 
-export const SubmitButton = ({
-  children,
+export const Checkbox = ({ name }: { name: string }) => {
+  return <input name={name} type="checkbox" />;
+};
+export const Checkboxes = ({
+  additionalClassName,
+  options,
 }: {
-  type: string;
-  children: string;
+  additionalClassName: string;
+  options: { id: number; name: string }[];
 }) => {
-  return <button type="submit">{children}</button>;
+  const [checkedState, setCheckedState] = useState(
+    new Array(options.length).fill(false)
+  );
+
+  const handleOnChange = (position: number) => {
+    const updatedCheckedState = checkedState.map((item, index) =>
+      index === position ? !item : item
+    );
+
+    setCheckedState(updatedCheckedState);
+  };
+  return (
+    <div className={`${styles.checkboxWrapper} ${styles[additionalClassName]}`}>
+      {options.map((option, index) => (
+        <div key={index}>
+          <input
+            id={`checkbox-${index}`}
+            name={option.name}
+            type="checkbox"
+            value={option.id}
+            checked={checkedState[index]}
+            onChange={() => handleOnChange(index)}
+          />
+          <label htmlFor={`checkbox-${index}`}>{option.name}</label>
+        </div>
+      ))}
+    </div>
+  );
 };
 export const Email = ({ name }: { name: string }) => {
   const [email, setEmail] = useState("");
@@ -47,6 +79,50 @@ export const Email = ({ name }: { name: string }) => {
   );
 };
 
+export const RadioSelect = ({
+  additionalClassName,
+  name,
+  options,
+}: {
+  additionalClassName: string;
+  name: string;
+  options: { id: number; name: string }[];
+}) => {
+  const [checkedState, setCheckedState] = useState(
+    new Array(options.length).fill(false)
+  );
+
+  const handleOnChange = (position: number) => {
+    const updatedCheckedState = checkedState.map((item, index) =>
+      index === position ? !item : item
+    );
+    setCheckedState(updatedCheckedState);
+  };
+  return (
+    <div className={`${styles.checkboxWrapper} ${styles[additionalClassName]}`}>
+      {options.map((option, index) => (
+        <div key={index}>
+          <input
+            id={`radio-${index}`}
+            name={name}
+            type="radio"
+            value={option.id}
+            onChange={() => handleOnChange(index)}
+          />
+          <label htmlFor={`radio-${index}`}>{option.name}</label>
+        </div>
+      ))}
+    </div>
+  );
+};
+export const SubmitButton = ({
+  children,
+}: {
+  type: string;
+  children: string;
+}) => {
+  return <button type="submit">{children}</button>;
+};
 export const Text = ({ name }: { name: string }) => {
   return <input autoFocus name={name} type="text" />;
 };
