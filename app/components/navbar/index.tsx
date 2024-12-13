@@ -4,12 +4,15 @@ import React, { useState } from "react";
 import Link from "next/link";
 
 import { IoClose, IoMenu } from "react-icons/io5";
+import Login from "@/app/login/page";
 
 const Navbar = () => {
   const [showMenu, setShowMenu] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
   const toggleMenu = () => {
     setShowMenu(!showMenu);
   };
+  const toggleLogin = () => {setShowLogin(!showLogin)}
 
   const closeMenuOnMobile = () => {
     if (window.innerWidth <= 1150) {
@@ -71,13 +74,15 @@ const Navbar = () => {
               </Link>
             </li>
             <li>
+              {/* <Login /> */}
               <Link
                 className={`${styles.navLink} ${styles.navCta}`}
-                href="/login"
-                onClick={closeMenuOnMobile}
-              >
+                href="#"
+                onClick={toggleLogin}
+                >
                 Login/Sign Up
-              </Link>
+                </Link>
+                {showLogin ? <Login /> : "Login/Sign Up"}
             </li>
           </ul>
           <div

@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 import styles from "./ally.module.css";
-import Uploader from "../forms/Uploader";
+import {Uploader} from "../forms/Uploader";
 import BaseForm from "../forms/BaseForm";
 import { TextArea, SubmitButton } from "../forms/Inputs";
 export default function Resume({
@@ -23,20 +23,30 @@ export default function Resume({
   return (
     <div>
       <div className={`${styles.allyChatContainer}`}>
-        <p className={styles.fade}>
-          While we work on getting the ability to directly upload resumes,
-          please copy and paste your resume here. Don't worry about formatting.
-        </p>
+         <p className={styles.fade}>
+           Please upload your resume. It needs to be in PDF format.
+         </p>
+       </div>
+       <Uploader />
       </div>
-      <div
-        className={`${styles.userChatContainer} ${styles.fade}`}
-        style={{ animationDelay: `1s` }}
-      >
-        <BaseForm onSubmit={onSubmitResume}>
-          <TextArea name="resume" />
-          <SubmitButton type="submit">Submit</SubmitButton>
-        </BaseForm>
-      </div>
-    </div>
-  );
+  )
+//   return (
+//     <div>
+//       <div className={`${styles.allyChatContainer}`}>
+//         <p className={styles.fade}>
+//           While we work on getting the ability to directly upload resumes,
+//           please copy and paste your resume here. Don't worry about formatting.
+//         </p>
+//       </div>
+//       <div
+//         className={`${styles.userChatContainer} ${styles.fade}`}
+//         style={{ animationDelay: `1s` }}
+//       >
+//         <BaseForm onSubmit={onSubmitResume}>
+//           <TextArea name="resume" />
+//           <SubmitButton type="submit">Submit</SubmitButton>
+//         </BaseForm>
+//       </div>
+//     </div>
+//   );
 }
