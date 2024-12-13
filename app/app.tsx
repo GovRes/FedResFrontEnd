@@ -5,7 +5,7 @@ import outputs from "../amplify_outputs.json";
 import Header from './components/Header';
 import Footer from './components/Footer';
 
-Amplify.configure(outputs);
+Amplify.configure(outputs, {ssr: true});
 
 export default function App(props: React.PropsWithChildren) {
 return (
