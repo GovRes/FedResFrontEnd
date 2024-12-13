@@ -1,8 +1,5 @@
 "use client"
-import type { WithAuthenticatorProps } from '@aws-amplify/ui-react';
-import { withAuthenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
-import ConfigureAmplifyClientSide from '../ConfigureAmplify';
 
 import { Authenticator } from '@aws-amplify/ui-react';
 import styles from "./loginStyles.module.css";
@@ -10,7 +7,7 @@ import styles from "./loginStyles.module.css";
 export default function Login() {
 
     return (
-<><ConfigureAmplifyClientSide />
+<>
         <Authenticator signUpAttributes={[
             'email',
             'given_name',
