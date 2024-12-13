@@ -1,16 +1,19 @@
 import React, { useState } from "react";
-
 import { FileUploader } from '@aws-amplify/ui-react-storage';
 import '@aws-amplify/ui-react/styles.css';
+import ConfigureAmplifyClientSide from "@/app/ConfigureAmplify";
 
 export const Uploader = () => {
   return (
+    <>
+<ConfigureAmplifyClientSide />
     <FileUploader
       acceptedFileTypes={['application/pdf']}
       path="resumes/"
       maxFileCount={1}
       isResumable
-    />
+      />
+      </>
   );
 };
 // function Uploader() {
