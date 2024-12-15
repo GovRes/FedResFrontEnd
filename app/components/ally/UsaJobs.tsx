@@ -3,6 +3,7 @@ import styles from "./ally.module.css";
 import BaseForm from "../forms/BaseForm";
 import { SubmitButton, TextArea, Url } from "../forms/Inputs";
 import { delayAllyChat } from "@/app/utils/allyChat";
+
 export default function UsaJobs({
   email,
   jobDescription,
@@ -32,7 +33,7 @@ export default function UsaJobs({
         .value
     );
   }
-
+  
   async function onSubmitUsaJobsDescription(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setJobDescription(
@@ -42,6 +43,7 @@ export default function UsaJobs({
         ) as HTMLInputElement
       ).value
     );
+    setStep(3)
   }
 
   let allyStatements = [

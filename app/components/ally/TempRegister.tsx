@@ -1,8 +1,10 @@
 import { FormEvent, useEffect, useState } from "react";
 import styles from "./ally.module.css";
 import BaseForm from "../forms/BaseForm";
-import { Text, Email } from "../forms/Inputs";
+import { Text, Email, SubmitButton, Button } from "../forms/Inputs";
 import { delayAllyChat } from "../../utils/allyChat";
+import { registrationPrompt } from "../prompts/registrationPrompts";
+import { sendMessages } from "@/app/utils/api";
 export default function TempRegister({
   email,
   name,
@@ -17,6 +19,8 @@ export default function TempRegister({
   setStep: (step: number) => void;
 }) {
   const [registrationStep, setRegistrationStep] = useState(0);
+  const [allyAIStatements, setAllyAIStatements] = useState([]);
+  
   async function onSubmitName(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setName(
@@ -30,7 +34,14 @@ export default function TempRegister({
       (event.currentTarget.elements.namedItem("email") as HTMLInputElement)
         .value
     );
-    setStep(1);
+    setRegistrationStep(2);
+    // setStep(1);
+  }
+  async function onSubmitAIChat(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const messages = [registrationPrompt, { role: "user", content: (event.currentTarget.elements.namedItem("ai-prompt") as HTMLInputElement).value }];
+    let res = await sendMessages({ messages });
+    setAllyAIStatements([res?.message]);
   }
   let allyStatements = [
     "Hi! I'm Ally. Nice to meet you.",
@@ -74,6 +85,29 @@ export default function TempRegister({
             </BaseForm>
           </div>
         </>
+      )}
+      {registrationStep === 2 && (
+        <>
+        <div className={styles.allyChatContainer}>
+          {allyAIStatements.length > 0 ? (allyAIStatements.map((statement, index) => (
+            <p key={index} className={styles.fade}>{statement}</p>
+          ))) : 
+          <p className={styles.fade}>
+            Let's chat a little bit. Can you ask me a really hard question?
+          </p>
+          }
+        </div>
+        <div
+          className={`${styles.userChatContainer} ${styles.fade}`}
+          style={{ animationDelay: `1s` }}
+        >
+          <BaseForm onSubmit={onSubmitAIChat}>
+          <Text name="ai-prompt" />
+          </BaseForm>
+
+          <button onClick={() => setStep(1)}>I'm bored with this and ready to move on</button>
+        </div>
+      </>
       )}
     </>
   );

@@ -71,7 +71,7 @@ export default function AllyContainer() {
       console.log("last message received", lastMessage);
     }
   }, [readyState, email, jobDescription, resume, name, step]);
-
+ 
   switch (step) {
     case 0:
       return (

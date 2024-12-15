@@ -1,6 +1,7 @@
 import useWebSocket, { ReadyState } from "react-use-websocket";
 import { useEffect } from "react";
 import { WEB_SOCKET_URL, TEST_WEB_SOCKET_URL } from "@/app/constants";
+import { ChatCompletionMessage } from "openai/resources/index.mjs";
 const socketUrl = TEST_WEB_SOCKET_URL;
 
 export function useSendJsonMessage({ data }: { data: object }) {
@@ -22,4 +23,15 @@ export function useSendJsonMessage({ data }: { data: object }) {
     }
   }, [readyState, data]);
   return lastMessage;
+}
+
+export async function sendMessages({ messages }: { messages: ChatCompletionMessage[] }) {
+  // console.log(29, JSON.stringify({ messages }));
+  const res = await fetch("/api/ai", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages })
+  })
+  const data = await res.json();
+    return data;
 }
