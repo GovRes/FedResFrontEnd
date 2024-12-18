@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import styles from "./ally.module.css";
 import BaseForm from "../forms/BaseForm";
-import { Text, Email, SubmitButton, Button } from "../forms/Inputs";
+import { Text, Email } from "../forms/Inputs";
 import { delayAllyChat } from "../../utils/allyChat";
 import { registrationPrompt } from "../prompts/registrationPrompts";
 import { sendMessages } from "@/app/utils/api";
