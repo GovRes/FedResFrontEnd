@@ -5,6 +5,7 @@ import { Text, Email } from "../forms/Inputs";
 import { delayAllyChat } from "../../utils/allyChat";
 import { registrationPrompt } from "../prompts/registrationPrompts";
 import { sendMessages } from "@/app/utils/api";
+import { ChatCompletionMessage, ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam } from "openai/resources/index.mjs";
 export default function TempRegister({
   email,
   name,
@@ -19,7 +20,7 @@ export default function TempRegister({
   setStep: (step: number) => void;
 }) {
   const [registrationStep, setRegistrationStep] = useState(0);
-  const [allyAIStatements, setAllyAIStatements] = useState([]);
+  const [allyAIStatements, setAllyAIStatements] = useState<string[]>([]);
   
   async function onSubmitName(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -39,9 +40,14 @@ export default function TempRegister({
   }
   async function onSubmitAIChat(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const messages = [registrationPrompt, { role: "user", content: (event.currentTarget.elements.namedItem("ai-prompt") as HTMLInputElement).value }];
+    const userMessage: ChatCompletionUserMessageParam = { role: "user", content: (event.currentTarget.elements.namedItem("ai-prompt") as HTMLInputElement).value, 
+    }
+    const messages: (ChatCompletionUserMessageParam|ChatCompletionSystemMessageParam)[] = [
+      userMessage,
+      registrationPrompt
+    ];
     let res = await sendMessages({ messages });
-    setAllyAIStatements([res?.message]);
+    setAllyAIStatements([res.message]);
   }
   let allyStatements = [
     "Hi! I'm Ally. Nice to meet you.",

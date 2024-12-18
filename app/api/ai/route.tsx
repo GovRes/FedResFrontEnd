@@ -1,6 +1,5 @@
 import OpenAI from "openai";
 import { type NextRequest } from 'next/server'
-import { ChatCompletionRole, ChatCompletionMessage } from "openai/resources/index.mjs";
 
 const openai = new OpenAI();
 const runtime = "nodejs";
