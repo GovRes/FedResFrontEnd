@@ -5,7 +5,6 @@ import Resume from "./Resume";
 import TempRegister from "./TempRegister";
 import UsaJobs from "./UsaJobs";
 import { AllyContext, AllyContextType } from "../../providers";
-import { useSendJsonMessage } from "../../utils/api";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 import { WEB_SOCKET_URL, TEST_WEB_SOCKET_URL } from "@/app/constants";
 const socketUrl = TEST_WEB_SOCKET_URL;
