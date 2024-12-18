@@ -22,3 +22,6 @@ frontend:
     paths:
       - .next/cache/**/*
       - .npm/**/*
+appSettings:
+      environment:
+        NEXT_PUBLIC_API_URL: /api
