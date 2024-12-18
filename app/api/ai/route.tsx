@@ -2,8 +2,8 @@ import OpenAI from "openai";
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { ChatCompletionRole, ChatCompletionMessage } from "openai/resources/index.mjs";
 
-export const openai = new OpenAI();
-export const runtime = "nodejs";
+const openai = new OpenAI();
+const runtime = "nodejs";
 
 export async function POST(req: NextApiRequest, res: NextApiResponse) {
     const data = await req.json();
