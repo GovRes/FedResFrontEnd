@@ -12,6 +12,7 @@ frontend:
         - npm ci --cache .npm --prefer-offline
     build:
       commands:
+        - echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> .env
         - npm run build
   artifacts:
     baseDirectory: .next

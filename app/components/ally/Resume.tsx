@@ -1,8 +1,11 @@
 import { FormEvent, useState } from "react";
 import styles from "./ally.module.css";
 import {Uploader} from "../forms/Uploader";
-import BaseForm from "../forms/BaseForm";
-import { TextArea, SubmitButton } from "../forms/Inputs";
+import { generateClient } from 'aws-amplify/data';
+import type { Schema } from '../../../amplify/data/resource'; // Path to your backend resource definition
+
+const client = generateClient<Schema>();
+
 export default function Resume({
   name,
   setResume,
@@ -12,12 +15,23 @@ export default function Resume({
   setResume: (resume: string) => void;
   setStep: (step: number) => void;
 }) {
-  async function onSubmitResume(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setResume(
-      (event.currentTarget.elements.namedItem("resume") as HTMLInputElement)
-        .value
+  async function onSubmitResume({fileName}: {fileName: string}) {
+    const { errors, data: newResume } = await client.models.Resume.create(
+      {
+        fileName,
+      },
+      {
+        authMode: 'userPool',
+      }
     );
+    if (errors) {
+      console.error(errors);
+      return;
+    }
+    if (newResume){
+      const resumeId = newResume.id;
+      setResume(resumeId);
+    }
     setStep(2);
   }
   return (
@@ -27,7 +41,7 @@ export default function Resume({
            Please upload your resume. It needs to be in PDF format.
          </p>
        </div>
-       <Uploader />
+       <Uploader onSuccess={onSubmitResume} />
       </div>
   )
 //   return (

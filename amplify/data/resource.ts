@@ -12,6 +12,10 @@ const schema = a.schema({
       content: a.string(),
     })
     .authorization((allow) => [allow.guest()]),
+
+  Resume: a.model({
+    fileName: a.string(),
+  }).authorization((allow) => [allow.owner()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;
@@ -22,6 +26,7 @@ export const data = defineData({
     defaultAuthorizationMode: 'iam',
   },
 });
+
 
 /*== STEP 2 ===============================================================
 Go to your frontend source code. From your client-side code, generate a
