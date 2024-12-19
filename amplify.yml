@@ -25,3 +25,8 @@ frontend:
 appSettings:
       environment:
         NEXT_PUBLIC_API_URL: /api
+customHeaders:
+      - pattern: "/api/*"
+        headers:
+          - key: "Cache-Control"
+            value: "no-store"

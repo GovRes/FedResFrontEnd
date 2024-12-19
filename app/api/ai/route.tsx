@@ -2,7 +2,6 @@ import OpenAI from "openai";
 import { type NextRequest } from 'next/server'
 
 const openai = new OpenAI();
-const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
     const data = await req.json();
