@@ -1,24 +1,14 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useContext, useEffect, useState } from "react";
 import styles from "./ally.module.css";
 import BaseForm from "../forms/BaseForm";
 import { Text, Email } from "../forms/Inputs";
 import { delayAllyChat } from "../../utils/allyChat";
-import { registrationPrompt } from "../prompts/registrationPrompts";
+import { registrationPrompt } from "../../prompts/registration";
 import { sendMessages } from "@/app/utils/api";
 import { ChatCompletionMessage, ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam } from "openai/resources/index.mjs";
-export default function TempRegister({
-  email,
-  name,
-  setEmail,
-  setName,
-  setStep,
-}: {
-  email: string | undefined;
-  name: string | undefined;
-  setEmail: (email: string) => void;
-  setName: (name: string) => void;
-  setStep: (step: number) => void;
-}) {
+import { AllyContext, AllyContextType, StepType } from "@/app/providers";
+export default function TempRegister() {
+   const {email, name, setEmail, setName, setStep} = useContext(AllyContext) as AllyContextType;
   const [registrationStep, setRegistrationStep] = useState(0);
   const [allyAIStatements, setAllyAIStatements] = useState<string[]>([]);
   
@@ -111,7 +101,7 @@ export default function TempRegister({
           <Text name="ai-prompt" />
           </BaseForm>
 
-          <button onClick={() => setStep(1)}>I'm bored with this and ready to move on</button>
+          <button onClick={() => setStep("resume")}>I'm bored with this and ready to move on</button>
         </div>
       </>
       )}

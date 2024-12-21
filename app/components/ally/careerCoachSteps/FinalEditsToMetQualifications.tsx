@@ -3,28 +3,23 @@ import styles from "../ally.module.css";
 import BaseForm from "../../forms/BaseForm";
 import { RadioSelect, TextArea, SubmitButton } from "../../forms/Inputs";
 import { delayAllyChat } from "@/app/utils/allyChat";
-import { Qualification } from "../AllyContainer";
-export default function CareerCoachStep1({
+import { QualificationType } from "@/app/utils/responseSchemas";
+import { CareerCoachStepType } from "../CareerCoach";
+export default function MakeChangesToMetQualifications({
   metQualifications,
   setCareerCoachStep,
-  setQualificationFeedback,
+  
 }: {
-  metQualifications: Qualification[];
-  setQualificationFeedback: ({
-    qualification,
-    feedback,
-  }: {
-    qualification: Qualification;
-    feedback: string;
-  }) => void;
-  setCareerCoachStep: (step: number) => void;
+  metQualifications: QualificationType[];
+  
+  setCareerCoachStep: (step: CareerCoachStepType) => void;
 }) {
   const allyStatements = [
     "Here's what I've got for your qualifications. Would you like to make any changes at all?",
   ];
   const { allyFormattedGraphs, delay } = delayAllyChat({ allyStatements });
   const [currentQualification, setCurrentQualification] =
-    useState<Qualification | null>(null);
+    useState<QualificationType | null>(null);
   const [currentQualificationId, setCurrentQualificationId] = useState<
     number | null
   >(null);
@@ -34,10 +29,10 @@ export default function CareerCoachStep1({
     event.preventDefault();
     let response = event.currentTarget.qualificationResponse.value;
     if (response && currentQualification) {
-      setQualificationFeedback({
-        qualification: currentQualification,
-        feedback: response,
-      });
+      // setQualificationFeedback({
+      //   qualification: currentQualification,
+      //   feedback: response,
+      // });
       event.currentTarget.qualificationResponse.value = "";
       setCurrentQualification(null);
       setCurrentQualificationId(null);
@@ -50,9 +45,9 @@ export default function CareerCoachStep1({
     console.log(response);
     if (response) {
       console.log(response);
-      setCurrentQualificationId(parseInt(response));
+      setCurrentQualificationId(response);
       setCurrentQualification(
-        metQualifications.find((q) => q.id === parseInt(response)) || null
+        metQualifications.find((q) => q.id === response) || null
       );
     }
   };
@@ -64,7 +59,7 @@ export default function CareerCoachStep1({
           className={`${styles.fade}`}
           style={{ animationDelay: `${delay}s` }}
         >
-          {metQualifications.map((qualification: Qualification, index) => (
+          {metQualifications.map((qualification: QualificationType, index) => (
             <li key={qualification.id}>
               {qualification.name} - {qualification.description}
             </li>
@@ -78,7 +73,7 @@ export default function CareerCoachStep1({
         >
           <button
             className={styles.positive}
-            onClick={() => setCareerCoachStep(4)}
+            onClick={() => setCareerCoachStep("pause")}
           >
             Looks good
           </button>

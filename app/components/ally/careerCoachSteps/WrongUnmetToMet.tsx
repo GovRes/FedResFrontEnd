@@ -1,42 +1,50 @@
 import { FormEvent, useState } from "react";
 import styles from "../ally.module.css";
-import { Qualification } from "../AllyContainer";
+import { QualificationType } from "@/app/utils/responseSchemas";
 import BaseForm from "../../forms/BaseForm";
 import { Checkboxes, TextArea, SubmitButton } from "../../forms/Inputs";
 import { delayAllyChat } from "@/app/utils/allyChat";
 import { getCheckboxValues } from "@/app/utils/formUtils";
-export default function CareerCoachStep0({
+import { CareerCoachStepType } from "../CareerCoach";
+export default function WrongUnmetToMet({
   metQualifications,
   setCareerCoachStep,
   unmetQualifications,
   setMetQualifications,
+  setReviewedUnmetQualifications,
   setUnmetQualifications,
 }: {
-  metQualifications: Qualification[];
-  unmetQualifications: Qualification[];
-  setCareerCoachStep: (step: number) => void;
-  setMetQualifications: (metQualifications: Qualification[]) => void;
-  setUnmetQualifications: (unmetQualifications: Qualification[]) => void;
+  metQualifications: QualificationType[];
+  unmetQualifications: QualificationType[];
+  setCareerCoachStep: (step: CareerCoachStepType) => void;
+  setMetQualifications: (metQualifications: QualificationType[]) => void;
+  setReviewedUnmetQualifications: (reviewedUnmetQualifications: boolean) => void;
+  setUnmetQualifications: (unmetQualifications: QualificationType[]) => void;
 }) {
   let allyStatements = [
-    "I've reviewed your resume and job description. Here are some of the qualifications you meet.",
+    "I've reviewed your resume and job description. Here are some of the qualifications you don't seem to meet.",
   ];
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const values = getCheckboxValues(event);
-    setCareerCoachStep(1);
-    let objs: Qualification[] = values
+    setReviewedUnmetQualifications(true);
+    setCareerCoachStep("edit_met_qualifications");
+    let objs: QualificationType[] = values
       .map((value) => {
-        let item = metQualifications.find((obj) => obj.id === parseInt(value));
+        let item = unmetQualifications.find(
+          (obj) => obj.id === value
+        );
         if (item) {
-          let index = metQualifications.indexOf(item);
-          setMetQualifications(metQualifications.filter((_, i) => i !== index));
+          let index = unmetQualifications.indexOf(item);
+          setUnmetQualifications(
+            unmetQualifications.filter((_, i) => i !== index)
+          );
         }
         return item;
       })
-      .filter((obj): obj is Qualification => obj !== undefined);
+      .filter((obj): obj is QualificationType=> obj !== undefined);
     if (objs.length > 0) {
-      setUnmetQualifications([...unmetQualifications, ...objs]);
+      setMetQualifications([...metQualifications, ...objs]);
     }
   };
   let { allyFormattedGraphs, delay } = delayAllyChat({ allyStatements });
@@ -48,7 +56,7 @@ export default function CareerCoachStep0({
           className={`${styles.fade}`}
           style={{ animationDelay: `${delay}s` }}
         >
-          {metQualifications.map((qualification: Qualification) => (
+          {unmetQualifications.map((qualification: QualificationType) => (
             <li key={qualification.id}>{qualification.name}</li>
           ))}
         </ul>
@@ -56,25 +64,18 @@ export default function CareerCoachStep0({
           className={`${styles.fade}`}
           style={{ animationDelay: `${delay + 0.5}s` }}
         >
-          I'm going to ask you a little bit about each of these to see if you
-          can expand on your experience.
-        </p>
-        <p
-          className={`${styles.fade}`}
-          style={{ animationDelay: `${delay + 1}s` }}
-        >
-          First of all, could you please check any qualifications that you don't
-          think you actually meet?
+          Could you please check any qualifications that you think
+          you actually meet?
         </p>
       </div>
       <div
         className={`${styles.userChatContainer} ${styles.fade}`}
-        style={{ animationDelay: `${delay + 1.5}s` }}
+        style={{ animationDelay: `${delay + 1}s` }}
       >
         <BaseForm onSubmit={onSubmit}>
           <Checkboxes
-            additionalClassName="negative"
-            options={metQualifications}
+            additionalClassName="positive"
+            options={unmetQualifications}
           />
           <SubmitButton type="submit">Submit</SubmitButton>
         </BaseForm>

@@ -1,0 +1,13 @@
+
+.circle {
+  position: relative;
+  aspect-ratio: 1;
+}
+
+.letter {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  font-family: "Rubik Mono One", sans-serif;
+  color: #e91e27;
+}
