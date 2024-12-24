@@ -32,7 +32,7 @@ export default function WrongMetToUnmet({
     if (unmetQualifications.length){
       return "wrong_unmet_to_met"
     } else {
-      return "edit_met_qualifications"
+      return "qualifications_final_review"
     }
   }
    const onSubmit = (event: FormEvent<HTMLFormElement>) => {

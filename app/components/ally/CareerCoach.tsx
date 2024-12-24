@@ -7,9 +7,10 @@ import { AllyContext, AllyContextType, StepType } from "@/app/providers";
 import { QualificationType } from "@/app/utils/responseSchemas";
 import { qualificationsRecommender } from "../aiProcessing/qualificationsReviewer";
 import { sendMessages } from "@/app/utils/api";
+import QualificationsFinalReview from "./careerCoachSteps/QualificationsFinalReview";
 
 //this maps to the order I think it should happen in.
-export type CareerCoachStepType =  "wrong_met_to_unmet" | "wrong_unmet_to_met" | "edit_met_qualifications" | "make_changes_to_met_qualifications" | "pause"
+export type CareerCoachStepType =  "wrong_met_to_unmet" | "wrong_unmet_to_met" | "edit_met_qualifications" | "make_changes_to_met_qualifications" | "qualifications_final_review" | "pause"
 export default function CareerCoach() {
   interface QualifcationFeedback {
     qualification: QualificationType | null;
@@ -46,7 +47,8 @@ export default function CareerCoach() {
     } else if (unmetQualifications.length){
       return "wrong_unmet_to_met"
     } else {
-      return "pause"
+      return "qualifications_final_review"
+      // return "pause"
     }
   }
 
@@ -84,25 +86,34 @@ export default function CareerCoach() {
           />
         </div>
       );
-    case "edit_met_qualifications":
-      return (
+    case "qualifications_final_review":
+      return(
         <div>
-          <EditMetQualifications
-            metQualifications={metQualifications}
-            recommendation={recommendation}
-            setCareerCoachStep={setCareerCoachStep}
-          />
+          <QualificationsFinalReview 
+          metQualifications={metQualifications}
+          recommendation={recommendation}
+          unmetQualifications={unmetQualifications}/>
         </div>
-      );
-    case "make_changes_to_met_qualifications":
-      return (
-        <div>
-          <MakeChangesToMetQualifications
-            metQualifications={metQualifications}
-            setCareerCoachStep={setCareerCoachStep}
-          />
-        </div>
-      );
+      )
+    // case "edit_met_qualifications":
+    //   return (
+    //     <div>
+    //       <EditMetQualifications
+    //         metQualifications={metQualifications}
+    //         recommendation={recommendation}
+    //         setCareerCoachStep={setCareerCoachStep}
+    //       />
+    //     </div>
+    //   );
+    // case "make_changes_to_met_qualifications":
+    //   return (
+    //     <div>
+    //       <MakeChangesToMetQualifications
+    //         metQualifications={metQualifications}
+    //         setCareerCoachStep={setCareerCoachStep}
+    //       />
+    //     </div>
+      // );
     default:
       return <div>Nothing to see here</div>;
   }

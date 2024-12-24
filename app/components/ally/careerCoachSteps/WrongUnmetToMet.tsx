@@ -28,7 +28,7 @@ export default function WrongUnmetToMet({
     event.preventDefault();
     const values = getCheckboxValues(event);
     setReviewedUnmetQualifications(true);
-    setCareerCoachStep("edit_met_qualifications");
+    setCareerCoachStep("qualifications_final_review");
     let objs: QualificationType[] = values
       .map((value) => {
         let item = unmetQualifications.find(
