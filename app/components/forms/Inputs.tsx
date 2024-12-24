@@ -9,7 +9,7 @@ export const Checkboxes = ({
   options,
 }: {
   additionalClassName: string;
-  options: { id: number; name: string }[];
+  options: { id: number | string; name: string }[];
 }) => {
   const [checkedState, setCheckedState] = useState(
     new Array(options.length).fill(false)
@@ -86,7 +86,7 @@ export const RadioSelect = ({
 }: {
   additionalClassName: string;
   name: string;
-  options: { id: number; name: string }[];
+  options: { id: number | string ; name: string }[];
 }) => {
   const [checkedState, setCheckedState] = useState(
     new Array(options.length).fill(false)

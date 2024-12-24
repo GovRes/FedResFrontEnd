@@ -1,45 +1,59 @@
 import { FormEvent, useState } from "react";
 import styles from "../ally.module.css";
-import { Qualification } from "../AllyContainer";
+import { QualificationType } from "@/app/utils/responseSchemas";
 import BaseForm from "../../forms/BaseForm";
 import { Checkboxes, TextArea, SubmitButton } from "../../forms/Inputs";
 import { delayAllyChat } from "@/app/utils/allyChat";
 import { getCheckboxValues } from "@/app/utils/formUtils";
-export default function CareerCoachStep0({
+import {CareerCoachStepType} from "../CareerCoach"
+export default function WrongMetToUnmet({
   metQualifications,
+  recommendation,
   setCareerCoachStep,
   unmetQualifications,
   setMetQualifications,
+  setReviewedMetQualifications,
   setUnmetQualifications,
 }: {
-  metQualifications: Qualification[];
-  unmetQualifications: Qualification[];
-  setCareerCoachStep: (step: number) => void;
-  setMetQualifications: (metQualifications: Qualification[]) => void;
-  setUnmetQualifications: (unmetQualifications: Qualification[]) => void;
+  metQualifications: QualificationType[];
+  recommendation: string;
+  unmetQualifications: QualificationType[];
+  setCareerCoachStep: (step: CareerCoachStepType) => void;
+  setMetQualifications: (metQualifications: QualificationType[]) => void;
+  setReviewedMetQualifications: (reviewedMetQualifications: boolean) => void;
+  setUnmetQualifications: (unmetQualifications: QualificationType[]) => void;
 }) {
   let allyStatements = [
+    `Our reviewer ${recommendation === "Do not recommend" ? "does not recommend" : "recommends"} that you apply for this job. We'll deal with this in a later version.`,
     "I've reviewed your resume and job description. Here are some of the qualifications you meet.",
   ];
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+  let { allyFormattedGraphs, delay } = delayAllyChat({ allyStatements });
+  function selectNextStep() {
+    if (unmetQualifications.length){
+      return "wrong_unmet_to_met"
+    } else {
+      return "qualifications_final_review"
+    }
+  }
+   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const values = getCheckboxValues(event);
-    setCareerCoachStep(1);
-    let objs: Qualification[] = values
+    setCareerCoachStep(selectNextStep());
+    setReviewedMetQualifications(true);
+    let objs: QualificationType[] = values
       .map((value) => {
-        let item = metQualifications.find((obj) => obj.id === parseInt(value));
+        let item = metQualifications.find((obj) => obj.id === value);
         if (item) {
           let index = metQualifications.indexOf(item);
           setMetQualifications(metQualifications.filter((_, i) => i !== index));
         }
         return item;
       })
-      .filter((obj): obj is Qualification => obj !== undefined);
+      .filter((obj): obj is QualificationType => obj !== undefined);
     if (objs.length > 0) {
       setUnmetQualifications([...unmetQualifications, ...objs]);
     }
   };
-  let { allyFormattedGraphs, delay } = delayAllyChat({ allyStatements });
   return (
     <div>
       <div className={`${styles.allyChatContainer}`}>
@@ -48,7 +62,7 @@ export default function CareerCoachStep0({
           className={`${styles.fade}`}
           style={{ animationDelay: `${delay}s` }}
         >
-          {metQualifications.map((qualification: Qualification) => (
+          {metQualifications.map((qualification: QualificationType) => (
             <li key={qualification.id}>{qualification.name}</li>
           ))}
         </ul>

@@ -1,112 +1,64 @@
 "use client";
-import React, { useContext, useEffect } from "react";
+import React, { useContext, useEffect, useState } from "react";
+import { ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam } from "openai/resources/index.mjs";
 import CareerCoach from "./CareerCoach";
 import Resume from "./Resume";
 import TempRegister from "./TempRegister";
 import UsaJobs from "./UsaJobs";
-import { AllyContext, AllyContextType } from "../../providers";
-import useWebSocket, { ReadyState } from "react-use-websocket";
-import { WEB_SOCKET_URL, TEST_WEB_SOCKET_URL } from "@/app/constants";
-const socketUrl = TEST_WEB_SOCKET_URL;
-export interface Qualification {
-  id: number;
-  name: string;
-  description: string;
-}
+import {TextSpinnerLoader} from "../loader/Loader";
+import { AllyContext, AllyContextType } from "@/app/providers";
+import { jobDescriptionReviewer } from "../aiProcessing/jobDescriptionReviewer";
+import { qualificationsReviewerPrompt } from "@/app/prompts/qualificationsReviewer";
+import { sendMessages } from "@/app/utils/api";
+import { advancedQualificationsReviewerPrompt } from "@/app/prompts/advancedQualificationsReviewer";
+import { qualificationsReviewer } from "../aiProcessing/qualificationsReviewer";
+
 export default function AllyContainer() {
   const {
-    email,
     jobDescription,
+    keywords,
+    loading,
     resume,
-    name,
     step,
-    url,
-    setEmail,
-    setJobDescription,
-    setResume,
-    setName,
+    setKeywords,
+    setLoading,
+    setQualifications,
+    setRecommendation,
     setStep,
-    setUrl,
   } = useContext(AllyContext) as AllyContextType;
 
-  const tempQualifications = {
-    unmetQualifications: [
-      { id: 1, name: "Python", description: "" },
-      { id: 2, name: "Java", description: "" },
-      { id: 3, name: "C++", description: "" },
-    ],
-    metQualifications: [
-      { id: 4, name: "JavaScript", description: "was once a barista" },
-      {
-        id: 5,
-        name: "React",
-        description: "Wrote a complex front-end web application",
-      },
-      { id: 6, name: "Node.js", description: "Built a server" },
-    ],
-  };
-
-  const { readyState, sendJsonMessage, lastJsonMessage, lastMessage } =
-    useWebSocket(socketUrl, { share: true });
-  const connectionStatus = {
-    [ReadyState.CONNECTING]: "Connecting",
-    [ReadyState.OPEN]: "Open",
-    [ReadyState.CLOSING]: "Closing",
-    [ReadyState.CLOSED]: "Closed",
-    [ReadyState.UNINSTANTIATED]: "Uninstantiated",
-  }[readyState];
-
   useEffect(() => {
-    if (
-      readyState === ReadyState.OPEN &&
-      email &&
-      jobDescription &&
-      resume &&
-      name &&
-      step
-    ) {
-      console.log("sending message");
-      sendJsonMessage({ email, jobDescription, resume, name, step });
-      console.log("last message received", lastMessage);
+    if (jobDescription) jobDescriptionReviewer({ jobDescription, setKeywords, setLoading, setStep });
+  }, [jobDescription]);
+//need to make some kind of failsafe that will give it an opprtunity to get any of these that are missing.
+  useEffect(() => {
+    if (resume && keywords && jobDescription && resume !== '' && keywords.length && jobDescription !== '') {
+      qualificationsReviewer({jobDescription, keywords, resume, sendMessages, setLoading, setQualifications, setRecommendation})
     }
-  }, [readyState, email, jobDescription, resume, name, step]);
- 
+  }, [
+    jobDescription,
+    keywords,
+    resume,
+  ]);
+  
+  if(loading) {
+    return <TextSpinnerLoader text={"talking to the ai"} />
+  }
+
   switch (step) {
-    case 0:
+    case "temp_registration":
       return (
-        <TempRegister
-          email={email}
-          name={name}
-          setEmail={setEmail}
-          setName={setName}
-          setStep={setStep}
-        />
+        <TempRegister />
       );
-    case 1:
-      return <Resume name={name} setResume={setResume} setStep={setStep} />;
-    case 2:
+    case "resume":
+      return <Resume />;
+    case "usa_jobs":
       return (
-        <UsaJobs
-          email={email}
-          jobDescription={jobDescription}
-          name={name}
-          resume={resume}
-          step={step}
-          url={url}
-          setStep={setStep}
-          setUrl={setUrl}
-          setJobDescription={setJobDescription}
-        />
+        <UsaJobs />
       );
-    case 3:
-      // actually, qualifications will be lastJsonMessage probably but I'm making a temp object here.
+    case "career_coach":
       return (
-        <CareerCoach
-          email={email}
-          qualifications={tempQualifications}
-          setStep={setStep}
-          step={step}
-        />
+        <CareerCoach />
       );
     default:
       return <div>Nothing for the group</div>;

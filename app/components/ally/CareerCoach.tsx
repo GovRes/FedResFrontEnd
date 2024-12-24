@@ -1,122 +1,119 @@
-import { FormEvent, useEffect, useState } from "react";
-import styles from "./ally.module.css";
-import { Qualification } from "./AllyContainer";
-import CareerCoachStep0 from "./careerCoachSteps/CareerCoachStep0";
-import CareerCoachStep1 from "./careerCoachSteps/CareerCoachStep1";
-import CareerCoachStep2 from "./careerCoachSteps/CareerCoachStep2";
-import CareerCoachStep3 from "./careerCoachSteps/CareerCoachStep3";
-import BaseForm from "../forms/BaseForm";
-import { TextArea, SubmitButton } from "../forms/Inputs";
-import { delayAllyChat } from "@/app/utils/allyChat";
-import useWebSocket, { ReadyState } from "react-use-websocket";
-import { WEB_SOCKET_URL, TEST_WEB_SOCKET_URL } from "@/app/constants";
-const socketUrl = TEST_WEB_SOCKET_URL;
-export default function CareerCoach({
-  email,
-  qualifications,
-  step,
-  setStep,
-}: {
-  email?: string;
-  qualifications: {
-    unmetQualifications: Qualification[];
-    metQualifications: Qualification[];
-  };
-  step: number;
-  setStep: (step: number) => void;
-}) {
+import { useContext, useEffect, useMemo, useState } from "react";
+import MakeChangesToMetQualifications from "./careerCoachSteps/FinalEditsToMetQualifications";
+import EditMetQualifications from "./careerCoachSteps/EditMetQualifications";
+import WrongMetToUnmet from "./careerCoachSteps/WrongMetToUnmet";
+import WrongUnmetToMet from "./careerCoachSteps/WrongUnmetToMet";
+import { AllyContext, AllyContextType, StepType } from "@/app/providers";
+import { QualificationType } from "@/app/utils/responseSchemas";
+import { qualificationsRecommender } from "../aiProcessing/qualificationsReviewer";
+import { sendMessages } from "@/app/utils/api";
+import QualificationsFinalReview from "./careerCoachSteps/QualificationsFinalReview";
+
+//this maps to the order I think it should happen in.
+export type CareerCoachStepType =  "wrong_met_to_unmet" | "wrong_unmet_to_met" | "edit_met_qualifications" | "make_changes_to_met_qualifications" | "qualifications_final_review" | "pause"
+export default function CareerCoach() {
   interface QualifcationFeedback {
-    qualification: Qualification | null;
+    qualification: QualificationType | null;
     feedback: string;
   }
+  const {jobDescription, keywords, qualifications, recommendation, resume, setLoading, setRecommendation} = useContext(AllyContext) as AllyContextType;
   const [metQualifications, setMetQualifications] = useState(
-    qualifications.metQualifications
+    qualifications?.metQualifications ?? []
+  );
+  const [unmetQualifications, setUnmetQualifications] = useState(
+    qualifications?.unmetQualifications ?? []
   );
 
-  const [qualificationFeedback, setQualificationFeedback] =
-    useState<QualifcationFeedback>({
-      qualification: null,
-      feedback: "",
-    });
-  const [unmetQualifications, setUnmetQualifications] = useState(
-    qualifications.unmetQualifications
-  );
-  const [careerCoachStep, setCareerCoachStep] = useState(0);
+  const metQualificationsStartLength = useMemo( () => metQualifications.length, [metQualifications]);
+  const unmetQualificationsStartLength = useMemo( () => unmetQualifications.length, [unmetQualifications]);
+
+  const [reviewedMetQualifications, setReviewedMetQualifications] = useState(false)
+  const [reviewedUnmetQualifications, setReviewedUnmetQualifications] = useState(false)
+  
+  const [careerCoachStep, setCareerCoachStep] = useState<CareerCoachStepType>(setStartingStep());
   let allyStatements = [
     "I've reviewed your resume and job description. Here are some of the qualifications you meet.",
   ];
 
-  const { readyState, sendJsonMessage, lastJsonMessage, lastMessage } =
-    useWebSocket(socketUrl, { share: true });
-  const connectionStatus = {
-    [ReadyState.CONNECTING]: "Connecting",
-    [ReadyState.OPEN]: "Open",
-    [ReadyState.CLOSING]: "Closing",
-    [ReadyState.CLOSED]: "Closed",
-    [ReadyState.UNINSTANTIATED]: "Uninstantiated",
-  }[readyState];
+  useEffect(() => {
+    if (metQualificationsStartLength !== metQualifications.length || unmetQualificationsStartLength !== unmetQualifications.length && resume && keywords && jobDescription && resume !== '' && keywords.length && jobDescription !== '') {
+      qualificationsRecommender({jobDescription: jobDescription!, keywords: keywords ?? [], resume: resume!, sendMessages, setLoading, setRecommendation})
+    }
+  }, [reviewedMetQualifications, reviewedUnmetQualifications]);
+
+  function setStartingStep() {
+    if (metQualifications.length) {
+      return "wrong_met_to_unmet"
+    } else if (unmetQualifications.length){
+      return "wrong_unmet_to_met"
+    } else {
+      return "qualifications_final_review"
+      // return "pause"
+    }
+  }
 
   useEffect(() => {
-    if (readyState === ReadyState.OPEN) {
-      console.log("sending message");
-      sendJsonMessage({ email, step, qualificationFeedback });
-      console.log("last message received", lastMessage);
-    }
-  }, [
-    readyState,
-    qualificationFeedback.qualification,
-    qualificationFeedback.feedback,
-  ]);
-  useEffect(() => {
-    if (careerCoachStep > 3) {
-      setStep(4);
-    }
-  }, [careerCoachStep, setStep]);
+    console.log(54, careerCoachStep)
+    console.log(qualifications)
+
+  }, [careerCoachStep])
+
   switch (careerCoachStep) {
-    case 0:
+    case "wrong_met_to_unmet":
       return (
         <div>
-          <CareerCoachStep0
+          <WrongMetToUnmet
+            recommendation={recommendation}
             metQualifications={metQualifications}
             unmetQualifications={unmetQualifications}
             setCareerCoachStep={setCareerCoachStep}
             setMetQualifications={setMetQualifications}
+            setReviewedMetQualifications={setReviewedMetQualifications}
             setUnmetQualifications={setUnmetQualifications}
           />
         </div>
       );
-    case 1:
+    case "wrong_unmet_to_met":
       return (
         <div>
-          <CareerCoachStep1
+          <WrongUnmetToMet
             metQualifications={metQualifications}
             unmetQualifications={unmetQualifications}
             setCareerCoachStep={setCareerCoachStep}
             setMetQualifications={setMetQualifications}
+            setReviewedUnmetQualifications={setReviewedUnmetQualifications}
             setUnmetQualifications={setUnmetQualifications}
           />
         </div>
       );
-    case 2:
-      return (
+    case "qualifications_final_review":
+      return(
         <div>
-          <CareerCoachStep2
-            metQualifications={metQualifications}
-            setCareerCoachStep={setCareerCoachStep}
-            setQualificationFeedback={setQualificationFeedback}
-          />
+          <QualificationsFinalReview 
+          metQualifications={metQualifications}
+          recommendation={recommendation}
+          unmetQualifications={unmetQualifications}/>
         </div>
-      );
-    case 3:
-      return (
-        <div>
-          <CareerCoachStep3
-            metQualifications={metQualifications}
-            setCareerCoachStep={setCareerCoachStep}
-            setQualificationFeedback={setQualificationFeedback}
-          />
-        </div>
-      );
+      )
+    // case "edit_met_qualifications":
+    //   return (
+    //     <div>
+    //       <EditMetQualifications
+    //         metQualifications={metQualifications}
+    //         recommendation={recommendation}
+    //         setCareerCoachStep={setCareerCoachStep}
+    //       />
+    //     </div>
+    //   );
+    // case "make_changes_to_met_qualifications":
+    //   return (
+    //     <div>
+    //       <MakeChangesToMetQualifications
+    //         metQualifications={metQualifications}
+    //         setCareerCoachStep={setCareerCoachStep}
+    //       />
+    //     </div>
+      // );
     default:
       return <div>Nothing to see here</div>;
   }

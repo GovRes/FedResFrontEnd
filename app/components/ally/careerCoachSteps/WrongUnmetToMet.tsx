@@ -1,22 +1,25 @@
 import { FormEvent, useState } from "react";
 import styles from "../ally.module.css";
-import { Qualification } from "../AllyContainer";
+import { QualificationType } from "@/app/utils/responseSchemas";
 import BaseForm from "../../forms/BaseForm";
 import { Checkboxes, TextArea, SubmitButton } from "../../forms/Inputs";
 import { delayAllyChat } from "@/app/utils/allyChat";
 import { getCheckboxValues } from "@/app/utils/formUtils";
-export default function CareerCoachStep0({
+import { CareerCoachStepType } from "../CareerCoach";
+export default function WrongUnmetToMet({
   metQualifications,
   setCareerCoachStep,
   unmetQualifications,
   setMetQualifications,
+  setReviewedUnmetQualifications,
   setUnmetQualifications,
 }: {
-  metQualifications: Qualification[];
-  unmetQualifications: Qualification[];
-  setCareerCoachStep: (step: number) => void;
-  setMetQualifications: (metQualifications: Qualification[]) => void;
-  setUnmetQualifications: (unmetQualifications: Qualification[]) => void;
+  metQualifications: QualificationType[];
+  unmetQualifications: QualificationType[];
+  setCareerCoachStep: (step: CareerCoachStepType) => void;
+  setMetQualifications: (metQualifications: QualificationType[]) => void;
+  setReviewedUnmetQualifications: (reviewedUnmetQualifications: boolean) => void;
+  setUnmetQualifications: (unmetQualifications: QualificationType[]) => void;
 }) {
   let allyStatements = [
     "I've reviewed your resume and job description. Here are some of the qualifications you don't seem to meet.",
@@ -24,11 +27,12 @@ export default function CareerCoachStep0({
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const values = getCheckboxValues(event);
-    setCareerCoachStep(2);
-    let objs: Qualification[] = values
+    setReviewedUnmetQualifications(true);
+    setCareerCoachStep("qualifications_final_review");
+    let objs: QualificationType[] = values
       .map((value) => {
         let item = unmetQualifications.find(
-          (obj) => obj.id === parseInt(value)
+          (obj) => obj.id === value
         );
         if (item) {
           let index = unmetQualifications.indexOf(item);
@@ -38,7 +42,7 @@ export default function CareerCoachStep0({
         }
         return item;
       })
-      .filter((obj): obj is Qualification => obj !== undefined);
+      .filter((obj): obj is QualificationType=> obj !== undefined);
     if (objs.length > 0) {
       setMetQualifications([...metQualifications, ...objs]);
     }
@@ -52,7 +56,7 @@ export default function CareerCoachStep0({
           className={`${styles.fade}`}
           style={{ animationDelay: `${delay}s` }}
         >
-          {unmetQualifications.map((qualification: Qualification) => (
+          {unmetQualifications.map((qualification: QualificationType) => (
             <li key={qualification.id}>{qualification.name}</li>
           ))}
         </ul>
@@ -60,7 +64,7 @@ export default function CareerCoachStep0({
           className={`${styles.fade}`}
           style={{ animationDelay: `${delay + 0.5}s` }}
         >
-          First of all, could you please check any qualifications that you think
+          Could you please check any qualifications that you think
           you actually meet?
         </p>
       </div>

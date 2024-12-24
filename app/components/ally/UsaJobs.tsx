@@ -3,47 +3,25 @@ import styles from "./ally.module.css";
 import BaseForm from "../forms/BaseForm";
 import { SubmitButton, TextArea, Url } from "../forms/Inputs";
 import { delayAllyChat } from "@/app/utils/allyChat";
+import { ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam } from "openai/resources/index.mjs";
+import { jobDescriptionReviewerPrompt } from "../../prompts/jobDescriptionReviewer";
+import { sendMessages } from "@/app/utils/api";
+import { AllyContext, AllyContextType } from "@/app/providers";
 
-export default function UsaJobs({
-  email,
-  jobDescription,
-  name,
-  resume,
-  step,
-  url,
-  setJobDescription,
-  setStep,
-  setUrl,
-}: {
-  email: string | undefined;
+export default function UsaJobs() {
 
-  jobDescription: string | undefined;
-  name: string | undefined;
-  resume: string | undefined;
-  step: number;
-  url: string | undefined;
-  setJobDescription: (jobDescription: string) => void;
-  setStep: (step: number) => void;
-  setUrl: (url: string) => void;
-}) {
-  async function onSubmitUsaJobsUrl(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setUrl(
-      (event.currentTarget.elements.namedItem("usa-jobs") as HTMLInputElement)
-        .value
-    );
-  }
-  
+
+  const {setJobDescription} = useContext(AllyContext) as AllyContextType;
   async function onSubmitUsaJobsDescription(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const jobDescription = (
+      event.currentTarget.elements.namedItem(
+        "job-description"
+      ) as HTMLInputElement
+    ).value
     setJobDescription(
-      (
-        event.currentTarget.elements.namedItem(
-          "job-description"
-        ) as HTMLInputElement
-      ).value
+      jobDescription
     );
-    setStep(3)
   }
 
   let allyStatements = [
@@ -66,3 +44,13 @@ export default function UsaJobs({
     </div>
   );
 }
+
+/*
+async function onSubmitUsaJobsUrl(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
+  setUrl(
+    (event.currentTarget.elements.namedItem("usa-jobs") as HTMLInputElement)
+    .value
+  );
+}
+*/
