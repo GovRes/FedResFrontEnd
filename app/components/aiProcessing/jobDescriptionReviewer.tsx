@@ -14,8 +14,7 @@ import { ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam } from
       ];
       setLoading(true)
       let res = await sendMessages({ messages, responseFormat: { type: "json_object" } });
-      console.log(JSON.parse(res.message).keywords);
-      setKeywords(JSON.parse(res.message).keywords);
+      setKeywords(res.keywords); 
       setLoading(false)
       setStep("career_coach")
     return;

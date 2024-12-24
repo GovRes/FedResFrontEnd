@@ -50,6 +50,12 @@ export default function CareerCoach() {
     }
   }
 
+  useEffect(() => {
+    console.log(54, careerCoachStep)
+    console.log(qualifications)
+
+  }, [careerCoachStep])
+
   switch (careerCoachStep) {
     case "wrong_met_to_unmet":
       return (

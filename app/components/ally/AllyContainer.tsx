@@ -40,9 +40,7 @@ export default function AllyContainer() {
     keywords,
     resume,
   ]);
-  useEffect(() => {
-console.log(step)
-  }, [step])
+  
   if(loading) {
     return <TextSpinnerLoader text={"talking to the ai"} />
   }

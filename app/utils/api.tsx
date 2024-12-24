@@ -8,6 +8,5 @@ export async function sendMessages({ messages, responseFormat={ "type": "json" }
     body: JSON.stringify({ messages, response_format: responseFormat }),
   })
   const data: Record<string, string> = await res.json();
-  console.log(11, data)
   return data;
 }

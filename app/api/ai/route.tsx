@@ -31,8 +31,7 @@ export async function POST(req: NextRequest) {
   
       // Normalize the response
       const normal = normalizeResponse(content);
-  
-      return normal;
+      return new Response(normal, {status: 200});
     } catch (error) {
       console.error('Error during OpenAI API call:', error);
       return new Response('Error during API call', { status: 500 });

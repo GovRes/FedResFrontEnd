@@ -10,6 +10,8 @@ export const Qualification = z.object({
     description: z.string(),
 })
 
+export const QualificationsArraySchema = z.array(Qualification);
+
 export const Recommendation = z.object({
     numberOfQualifiedKeyPhrases: z.number(),
     recommendation: z.enum(["Recommend", "Do not recommend"]), 

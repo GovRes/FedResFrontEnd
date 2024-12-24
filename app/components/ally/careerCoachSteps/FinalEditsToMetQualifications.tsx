@@ -42,9 +42,8 @@ export default function MakeChangesToMetQualifications({
   const onSubmitQualification = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     let response = event.currentTarget.qualification.value;
-    console.log(response);
     if (response) {
-      console.log(response);
+  
       setCurrentQualificationId(response);
       setCurrentQualification(
         metQualifications.find((q) => q.id === response) || null

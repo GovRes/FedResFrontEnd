@@ -20,15 +20,17 @@ export const MetQualificationsEditor = ({ currentQualification, currentQualifica
         setLoading,
         setQualifications,
     } = useContext(AllyContext) as AllyContextType;
+    console.log(23, qualifications)
     const [initialInvitation, setInitialInvitation] = useState(true);
     const [updatedDescription, setUpdatedDescription] = useState("");
-    function updateQualificationDescription(qualifications: QualificationType[], description: string) {
-        let updatedQualifications = qualifications.map((qualification) => {
+    function updateQualificationDescription(qualifications: QualificationsType, description: string) {
+        let updatedQualifications = qualifications.metQualifications.map((qualification) => {
             if (qualification.id === currentQualification.id) {
                 qualification.description = description;
             }
-            return qualification;
+            return qualification;   
         });
+        console.log(32, qualifications)
         const validatedQualifications = QualificationsSchema.parse(qualifications);
         setQualifications({
             ...validatedQualifications,
@@ -40,14 +42,14 @@ export const MetQualificationsEditor = ({ currentQualification, currentQualifica
         let userFeedback = event.currentTarget.qualificationResponse.value;
         if (userFeedback && jobDescription && keywords && resume) {
 
-            let updatedDescription = await qualificationDescriptionEditor({ jobDescription, keywords, resume, sendMessages, setLoading, qualification: currentQualification, userFeedback })
-            setUpdatedDescription(JSON.parse(updatedDescription.message).updatedDescription);
+            let updatedDescriptionRes = await qualificationDescriptionEditor({ jobDescription, keywords, resume, sendMessages, setLoading, qualification: currentQualification, userFeedback })
+            setUpdatedDescription(updatedDescriptionRes.updatedDescription);
             setInitialInvitation(false);
             event.currentTarget.qualificationResponse.value = "";
         } else {
             if(qualifications) {
 
-                updateQualificationDescription(qualifications.metQualifications, updatedDescription);
+                updateQualificationDescription(qualifications, updatedDescription);
             }
             setCurrentQualificationIndex(currentQualificationIndex + 1);
         }

@@ -15,10 +15,9 @@ export const qualificationsReviewer = async ({jobDescription, keywords, resume, 
         qualificationsReviewerPrompt,
       ];
       let qualificationsReviewerRes = await sendMessages({ messages: messagesForQualificationsReviewer, responseFormat: { type: "json_object" } });
-      console.log(JSON.parse(qualificationsReviewerRes.message))
       //then it passes to the advanced reviewer
-      const tempMetQualifications = JSON.parse(qualificationsReviewerRes.message).metQualifications;
-      const tempUnmetQualifications = JSON.parse(qualificationsReviewerRes.message).unmetQualifications;
+      const tempMetQualifications = qualificationsReviewerRes.metQualifications;
+      const tempUnmetQualifications = qualificationsReviewerRes.unmetQualifications;
       const advancedUserMessage: ChatCompletionUserMessageParam = {
         role: "user",
         content: `Job description: ${jobDescription}. Key phrases: ${Array.isArray(keywords) ? keywords.join(", ") : ""}. Resume: ${resume}. Met qualifications: ${tempMetQualifications}. Unmet qualifications: ${tempUnmetQualifications}`,
@@ -28,9 +27,9 @@ export const qualificationsReviewer = async ({jobDescription, keywords, resume, 
         advancedQualificationsReviewerPrompt,
       ]; 
       let advancedQualificationsReviewerRes = await sendMessages({ messages: messageForAdvancedQualificationsReviewer, responseFormat: { type: "json_object" } });
-      const metQualifications = JSON.parse(advancedQualificationsReviewerRes.message).metQualifications;
-      const unmetQualifications = JSON.parse(advancedQualificationsReviewerRes.message).unmetQualifications;
-      const recommendation = JSON.parse(advancedQualificationsReviewerRes.message).recommendation.recommendation;
+      const metQualifications = advancedQualificationsReviewerRes.metQualifications;
+      const unmetQualifications = advancedQualificationsReviewerRes.unmetQualifications;
+      const recommendation = advancedQualificationsReviewerRes.recommendation.recommendation;
    
       setLoading(false)
       setQualifications({ metQualifications, unmetQualifications });
@@ -62,7 +61,6 @@ export const qualificationsReviewer = async ({jobDescription, keywords, resume, 
         qualificationsRecommenderPrompt,
       ];
       let qualificationsReviewerRes = await sendMessages({ messages: messagesForQualificationsReviewer, responseFormat: { type: "json_object" } });
-      console.log(JSON.parse(qualificationsReviewerRes.message))
-      const recommendation = JSON.parse(qualificationsReviewerRes.message).recommendation.recommendation;
+      const recommendation = qualificationsReviewerRes.recommendation.recommendation;
       setRecommendation(recommendation)
         }
