@@ -1,38 +1,10 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
-## Getting Started
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-This is a minor change to try to trigger aws amplify
+The steps of the AI process currently are:
+1) User pastes resume (component: Resume)
+2) User pastes job description from USAJobs.Gov (component: UsaJobs)
+3) The job description goes to the jobDescriptionReviewer, which calls the prompt "jobDescriptionReviewerPrompt" to extract key phrases from the job description.
+4) Next up, the process hands off to the qualifications reviewer, which receives the job description, key phrases, and resume, and calls the "qualificationsReviewerPrompt" to return met and unmet qualifications.
+5) It passes the job description, key phrases, resume, met qualifications, and unmet qualifications to the "advancedQualificationsReviewerPrompt", which "checks the work" of the qualificationsReviewerPrompt and returns met and unmet qualifications, and a recommendation about whether the user should or should not apply for this job.
+6) The CareerCoach component asks the user to review met and unmet qualifications, and adjust these lists.
+7) The qualificationsRecommender passes the job description, key words, resume, and updated met and unmet qualifications back to the qualificationsRecommenderPrompt prompt to check in one more time about whether it recommends that the user apply for the job.
+8) The topic categorizer takes the key phrases and organizes them into topics.
+8) The Career Coach (component: EditMetQualifications) offers the user their qualifications one at a time, and works with the user to write a description of what in their past experience meets this qualification.

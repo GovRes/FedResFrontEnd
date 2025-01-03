@@ -17,6 +17,7 @@
     "@aws-sdk/client-s3": "^3.709.0",
     "aws-amplify": "^6.10.3",
     "framer-motion": "^11.15.0",
+    "lodash": "^4.17.21",
     "next": "^15.1.0",
     "npm-check-updates": "^17.1.11",
     "openai": "^4.77.0",
@@ -30,6 +31,7 @@
   "devDependencies": {
     "@aws-amplify/backend": "^1.9.0",
     "@aws-amplify/backend-cli": "^1.4.3",
+    "@simbathesailor/use-what-changed": "^2.0.0",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
