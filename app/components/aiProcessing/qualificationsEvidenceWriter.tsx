@@ -34,7 +34,10 @@ export const qualificationsEvidenceWriter = async ({
       qualificationsEvidenceWriterPrompt,
     ];
 
-    const res = await sendMessages({ messages: messagesForQualificationsReviewer, name: "qualification" });
+    let res = await sendMessages({ messages: messagesForQualificationsReviewer, name: "qualification" });
+    if (!res.evidence && !res.question) {
+      res = await sendMessages({ messages: messagesForQualificationsReviewer, name: "qualification" });
+    }
     return res as TopicType
   } catch (error) {
     console.error("API Call Error:", error);
