@@ -1,17 +1,21 @@
 import { qualificationsEvidenceWriterPrompt } from "@/app/prompts/qualificationsEvidenceWriter";
+import {qualificationsEvidenceQuestionResponderPrompt} from "@/app/prompts/qualificationsEvidenceQuestionResponderPrompt"
+import {qualificationsEvidenceFeedbackResponderPrompt} from '@/app/prompts/qualificationsEvidenceFeedbackResponderPrompt'
 import { sendMessages } from "@/app/utils/api";
-import { TopicsType, TopicType } from "@/app/utils/responseSchemas";
+import { QualificationsType, TopicType } from "@/app/utils/responseSchemas";
 import { ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam } from "openai/resources/index.mjs";
 
 export const qualificationsEvidenceWriter = async ({
   currentTopic,
   jobDescription,
+  qualifications,
   resume,
   setLoading,
   setLoadingText,
 }: {
   currentTopic: TopicType;
   jobDescription: string;
+  qualifications: QualificationsType;
   resume: string;
   setLoading: Function;
   setLoadingText: Function;
@@ -19,11 +23,10 @@ export const qualificationsEvidenceWriter = async ({
   try {
     setLoading(true);
     setLoadingText("Writing qualifications evidence");
-    console.log("Current Topic:", currentTopic);
-
+    
     const userMessage: ChatCompletionUserMessageParam = {
       role: "user",
-      content: `Job description: ${jobDescription}. Resume: ${resume}, Current qualification topic: ${JSON.stringify(currentTopic)}`,
+      content: `Job description: ${jobDescription}. Resume: ${resume}, qualifications: ${qualifications}, Current qualification topic: ${JSON.stringify(currentTopic)}`,
     };
 
     const messagesForQualificationsReviewer: (ChatCompletionUserMessageParam | ChatCompletionSystemMessageParam)[] = [
@@ -31,8 +34,86 @@ export const qualificationsEvidenceWriter = async ({
       qualificationsEvidenceWriterPrompt,
     ];
 
-    const res = await sendMessages({ messages: messagesForQualificationsReviewer, responseFormat: { type: "json_object" } });
-    return res.topic as TopicType;
+    const res = await sendMessages({ messages: messagesForQualificationsReviewer, name: "qualification" });
+    return res as TopicType
+  } catch (error) {
+    console.error("API Call Error:", error);
+    throw error; // Handle errors gracefully
+  } finally {
+    setLoading(false);
+  }
+};
+
+export const qualificationsEvidenceQuestionResponder = async ({
+  currentTopic,
+  jobDescription,
+  resume,
+  setLoading,
+  setLoadingText,
+  userResponse,
+}: {
+  currentTopic: TopicType;
+  jobDescription: string;
+  resume: string;
+  setLoading: Function;
+  setLoadingText: Function;
+  userResponse: string;
+}) => {
+  try {
+    setLoading(true);
+    setLoadingText("Processing your response and writing new evidence");
+    
+    const userMessage: ChatCompletionUserMessageParam = {
+      role: "user",
+      content: `Job description: ${jobDescription}. Resume: ${resume}, Current qualification topic: ${JSON.stringify(currentTopic)}. Your question: ${currentTopic.question} User response to your question: ${userResponse}`,
+    };
+
+    const messagesForQualificationsReviewer: (ChatCompletionUserMessageParam | ChatCompletionSystemMessageParam)[] = [
+      userMessage,
+      qualificationsEvidenceQuestionResponderPrompt,
+    ];
+
+    const res = await sendMessages({ messages: messagesForQualificationsReviewer, name: "qualification" });
+    return res as TopicType
+  } catch (error) {
+    console.error("API Call Error:", error);
+    throw error; // Handle errors gracefully
+  } finally {
+    setLoading(false);
+  }
+};
+
+export const qualificationsEvidenceFeedbackResponder = async ({
+  currentTopic,
+  jobDescription,
+  resume,
+  setLoading,
+  setLoadingText,
+  userResponse,
+}: {
+  currentTopic: TopicType;
+  jobDescription: string;
+  resume: string;
+  setLoading: Function;
+  setLoadingText: Function;
+  userResponse: string;
+}) => {
+  try {
+    setLoading(true);
+    setLoadingText("Processing your response and writing new evidence");
+    
+    const userMessage: ChatCompletionUserMessageParam = {
+      role: "user",
+      content: `Job description: ${jobDescription}. Resume: ${resume}, Current qualification topic: ${JSON.stringify(currentTopic)}. Your original evidence: ${currentTopic.evidence} User feedback on your evidence: ${userResponse}`,
+    };
+
+    const messagesForQualificationsReviewer: (ChatCompletionUserMessageParam | ChatCompletionSystemMessageParam)[] = [
+      userMessage,
+      qualificationsEvidenceFeedbackResponderPrompt,
+    ];
+
+    const res = await sendMessages({ messages: messagesForQualificationsReviewer, name: "qualification" });
+    return res as TopicType
   } catch (error) {
     console.error("API Call Error:", error);
     throw error; // Handle errors gracefully

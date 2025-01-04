@@ -31,7 +31,7 @@ export const qualificationsReviewer = async ({
     userMessage,
     qualificationsReviewerPrompt,
   ];
-  let qualificationsReviewerRes = await sendMessages({ messages: messagesForQualificationsReviewer, responseFormat: { type: "json_object" } });
+  let qualificationsReviewerRes = await sendMessages({ messages: messagesForQualificationsReviewer, name: "qualifications" });
   //then it passes to the advanced reviewer
   const tempMetQualifications = qualificationsReviewerRes.metQualifications;
   const tempUnmetQualifications = qualificationsReviewerRes.unmetQualifications;
@@ -43,7 +43,7 @@ export const qualificationsReviewer = async ({
     advancedUserMessage,
     advancedQualificationsReviewerPrompt,
   ];
-  let advancedQualificationsReviewerRes = await sendMessages({ messages: messageForAdvancedQualificationsReviewer, responseFormat: { type: "json_object" } });
+  let advancedQualificationsReviewerRes = await sendMessages({ messages: messageForAdvancedQualificationsReviewer, name: "qualifications"});
   setLoading(false)
   const result = advancedQualificationsReviewerRes as QualificationsType
   return result
@@ -72,7 +72,7 @@ export const qualificationsRecommender = async ({
     userMessage,
     qualificationsRecommenderPrompt,
   ];
-  let qualificationsReviewerRes = await sendMessages({ messages: messagesForQualificationsReviewer, responseFormat: { type: "json_object" } });
+  let qualificationsReviewerRes = await sendMessages({ messages: messagesForQualificationsReviewer, name: "qualifications" });
   setLoading(false)
   return qualificationsReviewerRes as QualificationsType
 }

@@ -1,7 +1,11 @@
 "use client";
 
 import React, { createContext, useState, ReactNode } from "react";
-import { QualificationsType, TopicsType } from "../utils/responseSchemas";
+import { QualificationsType, TopicType } from "../utils/responseSchemas";
+import {jobDescription as jd} from '../testData/testCandidate1/jobDescription'
+import {keywords as kw} from '../testData/testCandidate1/keywords'
+import {resume as r} from '../testData/testCandidate1/resume'
+import {topics as t } from '../testData/testCandidate1/topics'
 export type StepType =  "temp_registration" | "resume" | "usa_jobs" |  "wrong_met_to_unmet" | "wrong_unmet_to_met" | "edit_met_qualifications" | "make_changes_to_met_qualifications" | "qualifications_final_review" | "pause"
 export interface AllyContextType {
   email?: string;
@@ -16,7 +20,7 @@ export interface AllyContextType {
   reviewedUnmetQualifications: boolean;
   resume?: string;
   step?: StepType;
-  topics?: TopicsType; 
+  topics?: TopicType[]; 
   url?: string;
   setEmail: (step: string) => void;
   setJobDescription: (jobDescription: string) => void;
@@ -30,7 +34,7 @@ export interface AllyContextType {
   setReviewedUnmetQualifications: (reviewedUnmetQualifications: boolean) => void;
   setResume: (resume: string) => void;
   setStep: (step: StepType) => void;
-  setTopics: (topics: TopicsType) => void;
+  setTopics: (topics: TopicType[]) => void;
   setUrl: (url: string) => void;
 }
 
@@ -39,20 +43,29 @@ export const AllyContext = createContext<AllyContextType | undefined>(
 );
 
 export const AllyProvider = ({ children }: { children: ReactNode }) => {
-  const [email, setEmail] = useState("");
-  const [jobDescription, setJobDescription] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [loadingText, setLoadingText] = useState("Talking to the AI");
-  const [name, setName] = useState("");
-  const [qualifications, setQualifications] = useState<QualificationsType>({metQualifications: [], unmetQualifications: []});
-  const [recommendation, setRecommendation] = useState("");
-  const [reviewedMetQualifications, setReviewedMetQualifications] = useState(false);
-  const [reviewedUnmetQualifications, setReviewedUnmetQualifications] = useState(false);
-  const [resume, setResume] = useState("");
-  const [step, setStep] = useState<StepType>("resume");
-  const [topics, setTopics] = useState<TopicsType>([]);
-  const [url, setUrl] = useState("");
-  const [keywords, setKeywords] = useState<string[]>([]);
+  // const test = true;
+      const [email, setEmail] = useState("");
+      const [jobDescription, setJobDescription] = useState("");
+      const [keywords, setKeywords] = useState<string[]>([]);
+      const [loading, setLoading] = useState(false);
+      const [loadingText, setLoadingText] = useState("Talking to the AI");
+      const [name, setName] = useState("");
+      const [qualifications, setQualifications] = useState<QualificationsType>({metQualifications: [], unmetQualifications: []});
+      const [recommendation, setRecommendation] = useState("");
+      const [resume, setResume] = useState("");
+      const [reviewedMetQualifications, setReviewedMetQualifications] = useState(false);
+      const [reviewedUnmetQualifications, setReviewedUnmetQualifications] = useState(false);
+      const [step, setStep] = useState<StepType>("resume");
+      const [topics, setTopics] = useState<TopicType[]>();
+      const [url, setUrl] = useState("");
+    // if (test) {
+    //   setJobDescription(jd)
+    //   setKeywords(kw)
+    //   setResume(r)
+    //   setReviewedMetQualifications(true)
+    //   setReviewedUnmetQualifications(true)
+    //   setTopics(t)
+    // }
 
   return (
     <AllyContext.Provider

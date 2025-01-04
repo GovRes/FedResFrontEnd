@@ -1,6 +1,5 @@
 import { jobDescriptionReviewerPrompt } from "@/app/prompts/jobDescriptionReviewer";
 import { sendMessages } from "@/app/utils/api";
-import { Function } from "aws-cdk-lib/aws-cloudfront";
 import { ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam } from "openai/resources/index.mjs";
 
 export const jobDescriptionReviewer = async ({
@@ -23,8 +22,9 @@ export const jobDescriptionReviewer = async ({
       ];
       setLoading(true)
       setLoadingText("Extracting keywords from job description");
-      let res = await sendMessages({ messages, responseFormat: { type: "json_object" } });
+      let res = await sendMessages({ messages, name: "keywords" });
       setLoading(false)
       const result = res.keywords as Array<string>
+      console.log(result)
       return result
   };

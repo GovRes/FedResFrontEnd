@@ -1,166 +1,138 @@
+import { FormEvent, useContext, useState } from "react";
 import styles from "@/app/components/ally/ally.module.css";
-import { QualificationsSchema, QualificationsType, QualificationType, TopicsType, TopicType } from "@/app/utils/responseSchemas";
-import BaseForm from "../../forms/BaseForm";
-import { SubmitButton, TextArea } from "../../forms/Inputs";
-import { FormEvent, useContext, useEffect, useRef, useState } from "react";
-// import { qualificationDescriptionEditor } from "../../aiProcessing/qualificationDescriptionEditor";
+import BaseForm from "@/app/components/forms/BaseForm";
+import { SubmitButton, TextArea } from "@/app/components/forms/Inputs";
+import { qualificationsEvidenceQuestionResponder, qualificationsEvidenceFeedbackResponder } from "@/app/components/aiProcessing/qualificationsEvidenceWriter";
 import { AllyContext, AllyContextType } from "@/app/providers";
-import { sendMessages } from "@/app/utils/api";
-import { qualificationsEvidenceWriter } from "../../aiProcessing/qualificationsEvidenceWriter";
-export const TopicalQualificationsEditor = ({ currentTopic, currentTopicIndex, setCurrentTopicIndex }: {
-    currentTopic: TopicType,
+import { TopicType } from "@/app/utils/responseSchemas";
+export const TopicalQualificationsEditor = ({ currentTopic, setCurrentTopicIndex, setCurrentTopic }: {
+    currentTopic?: TopicType,
     currentTopicIndex: number,
-    setCurrentTopicIndex: Function
+    setCurrentTopic: Function,
+    setCurrentTopicIndex: Function,
 }) => {
     let delay = 0.3;
     const {
         jobDescription,
         keywords,
-        qualifications,
         resume,
         topics,
         setLoading,
         setLoadingText,
-        setQualifications,
+        setTopics,
     } = useContext(AllyContext) as AllyContextType;
-    const [workingTopic, setWorkingTopic] = useState<TopicType | null>(currentTopic);
 
+    const [initialInvitation, setInitialInvitation] = useState(false)
     
-// console.log(currentTopic)
-// console.log(39, workingTopic)
-console.log(currentTopic)
-    return (<div>current topic {currentTopicIndex}: {currentTopic.name} - {currentTopic.evidence}</div>)
+    function updateTopicEvidence(topics: TopicType[], evidence: string) {
+        let updatedTopics = topics.map((topic) => {
+            if (currentTopic && topic.id === currentTopic.id) {
+                topic.evidence = evidence;
+            }
+            return topic;
+        });
+        setTopics(updatedTopics);
+    }
+
+    const onSubmitQuestionResponse = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        let userResponse = event.currentTarget.questionResponse.value;
+        if (currentTopic && jobDescription && keywords && resume && userResponse) {
+            let updatedDescriptionRes = await qualificationsEvidenceQuestionResponder({ currentTopic: currentTopic, jobDescription, resume, setLoading, setLoadingText, userResponse })
+            setCurrentTopic((prev: any) => prev ? { ...prev, question: updatedDescriptionRes.question } : prev);
+            console.log(43, updatedDescriptionRes)
+        }
+    };
+    const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        let userResponse = event.currentTarget.qualificationResponse.value;
+        if (currentTopic && userResponse && jobDescription && keywords && resume) {
+            try {
+                let updatedDescriptionRes = await qualificationsEvidenceFeedbackResponder({ currentTopic: currentTopic, jobDescription, resume, setLoading, setLoadingText, userResponse });
+                console.log(51, updatedDescriptionRes)
+                setCurrentTopic((prev: any) => prev  ? { ...prev, evidence: updatedDescriptionRes.evidence } : prev);
+                setInitialInvitation(false);
+                } catch (error) {
+                console.error(error);
+            }
+        } else {
+            if (topics && currentTopic && currentTopic.evidence) {
+                updateTopicEvidence(topics, currentTopic.evidence);
+            }
+            setCurrentTopicIndex((prev: number) => prev + 1);
+        }
+    };
+
+    if (currentTopic) {
+        console.log(currentTopic)
+        if (currentTopic.question) {
+            return (
+                <div>
+                    <div
+                        className={`${styles.allyChatContainer} ${styles.fade}`}
+                        style={{ animationDelay: `${delay + 0.5}s` }}
+                    >                                        <p
+                        className={styles.fade}
+                        style={{ animationDelay: `${delay + 0.5}s` }}
+                    >I have a question that will help me write a better description of your experience: <br /></p>
+                        <p>
+
+                            <em>{currentTopic.question}</em>
+                        </p>
+                    </div><div
+                        className={`${styles.userChatContainer} ${styles.fade}`}
+                        style={{ animationDelay: `${delay + 1.6}s` }}
+                    >
+                        <BaseForm onSubmit={onSubmitQuestionResponse}>
+                            <TextArea name="questionResponse" />
+                            <SubmitButton type="submit">Next</SubmitButton>
+                        </BaseForm>
+                    </div>
+                </div>)
+        } else if (currentTopic.evidence) {
+            return (
+                <>
+                    {initialInvitation ?
+                        <p className={styles.fade}
+                            style={{ animationDelay: `${delay + 0.5}s` }}
+                        >
+                            Here's the evidence I wrote for your qualifications in{" "}
+                            {currentTopic.name}
+                        </p> : <p className={styles.fade}
+                            style={{ animationDelay: `${delay + 0.5}s` }}
+                        >
+                            Here's my updated evidence for your qualifications in{" "}
+                            {currentTopic.name}
+                        </p>
+                    }
+                    <p
+                        className={styles.fade}
+                        style={{ animationDelay: `${delay + 1}s` }}
+                    >
+                        <i>{currentTopic.evidence}</i>
+                    </p>
+                    <p
+                        className={styles.fade}
+                        style={{ animationDelay: `${delay + 1.5}s` }}
+                    >
+                        If that sounds good to you, click "Next" to move on.
+                        Otherwise, tell me what you'd like to change about this.
+                    </p>
+                    <div
+                        className={`${styles.userChatContainer} ${styles.fade}`}
+                        style={{ animationDelay: `${delay + 1.6}s` }}
+                    >
+                        <BaseForm onSubmit={onSubmit}>
+                            <TextArea name="qualificationResponse" />
+                            <SubmitButton type="submit">Return Feedback</SubmitButton>
+                            <SubmitButton type="submit">Next</SubmitButton>
+                        </BaseForm>
+                    </div>
+                </>
+            )
+        }
+
+    } else {
+        return (<div>no current topic</div>)
+    }
 }
-// useEffect(() => {
-//     if (currentQualification && jobDescription && resume && topics) {
-//         qualificationsEvidenceWriter({currentQualification, jobDescription, resume, topics, sendMessages, setLoading})
-//     }
-// }, [currentQualification, jobDescription, resume, topics])
-// const [initialInvitation, setInitialInvitation] = useState(true);
-// const [updatedDescription, setUpdatedDescription] = useState("");
-// function updateQualificationDescription(qualifications: QualificationsType, description: string) {
-//     let updatedQualifications = qualifications.metQualifications.map((qualification) => {
-//         if (qualification.id === currentQualification.id) {
-//             qualification.description = description;
-//         }
-//         return qualification;
-//     });
-//     console.log(32, qualifications)
-//     const validatedQualifications = QualificationsSchema.parse(qualifications);
-//     setQualifications({
-//         ...validatedQualifications,
-//         metQualifications: updatedQualifications,
-//     });
-// }
-// const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-// event.preventDefault();
-// let userFeedback = event.currentTarget.qualificationResponse.value;
-// if (userFeedback && jobDescription && keywords && resume) {
-
-//     // let updatedDescriptionRes = await qualificationDescriptionEditor({ jobDescription, keywords, resume, sendMessages, setLoading, qualification: currentQualification, userFeedback })
-//     // setUpdatedDescription(updatedDescriptionRes.updatedDescription);
-//     // setInitialInvitation(false);
-//     event.currentTarget.qualificationResponse.value = "";
-// } else {
-//     if(qualifications) {
-
-//         updateQualificationDescription(qualifications, updatedDescription);
-//     }
-//     setCurrentQualificationIndex(currentQualificationIndex + 1);
-// }
-// };
-
-
-//     return (
-//         <>
-//             {workingTopic?.evidence ? ( 
-//                 <>
-//                     <div
-//                         className={`${styles.allyChatContainer} ${styles.fade}`}
-//                         style={{ animationDelay: `${delay + 0.5}s` }}
-//                     >
-//                         <>
-//                                 <p
-//                                     className={styles.fade}
-//                                     style={{ animationDelay: `${delay + 0.5}s` }}
-//                                 >
-//                                     Here's the evidence I wrote for your qualifications in{" "}
-//                                     {workingTopic.name}
-//                                 </p>
-//                                 <p
-//                                     className={styles.fade}
-//                                     style={{ animationDelay: `${delay + 1}s` }}
-//                                 >
-//                                     <i>{workingTopic.evidence}</i>
-//                                 </p>
-//                             </>
-//                         {/* {initialInvitation ?
-//                             <>
-//                                 <p
-//                                     className={styles.fade}
-//                                     style={{ animationDelay: `${delay + 0.5}s` }}
-//                                 >
-//                                     Here's the description I wrote about your qualifications in{" "}
-//                                     {currentQualification.name}
-//                                 </p>
-//                                 <p
-//                                     className={styles.fade}
-//                                     style={{ animationDelay: `${delay + 1}s` }}
-//                                 >
-//                                     <i>{currentQualification.description}</i>
-//                                 </p>
-//                             </>
-//                             : <>
-//                                 <p
-//                                     className={styles.fade}
-//                                     style={{ animationDelay: `${delay + 0.5}s` }}
-//                                 >
-//                                     Here's my updated description for your qualifications in{" "}
-//                                     {currentQualification.name}
-//                                 </p>
-//                                 <p
-//                                     className={styles.fade}
-//                                     style={{ animationDelay: `${delay + 1}s` }}
-//                                 >
-//                                     <i>{updatedDescription}</i>
-//                                 </p>
-//                             </> */}
-//                         {/* } */}
-//                         <p
-//                             className={styles.fade}
-//                             style={{ animationDelay: `${delay + 1.5}s` }}
-//                         >
-//                             If that sounds good to you, click "Next" to move on.
-//                             Otherwise, tell me what you'd like to change about this.
-//                         </p>
-//                     </div>
-//                 </>
-//             ) : (
-//                 <>
-//                     <div
-//                         className={`${styles.allyChatContainer} ${styles.fade}`}
-//                         style={{ animationDelay: `${delay + 0.5}s` }}
-//                     >
-//                         <p
-//                             className={styles.fade}
-//                             style={{ animationDelay: `${delay + 0.5}s` }}
-//                         >
-//                             Can you tell me more about your experiences with{" "}
-//                             {currentTopic?.name}?
-//                         </p>
-//                     </div>
-//                 </>
-//             )}
-
-//             <div
-//                 className={`${styles.userChatContainer} ${styles.fade}`}
-//                 style={{ animationDelay: `${delay + 1.6}s` }}
-//             >
-//                 <BaseForm onSubmit={onSubmit}>
-//                     <TextArea name="qualificationResponse" />
-//                     <SubmitButton type="submit">Next</SubmitButton>
-//                 </BaseForm>
-//             </div>
-//         </>
-//     )
-// }
