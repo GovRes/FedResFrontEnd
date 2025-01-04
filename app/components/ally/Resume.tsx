@@ -1,13 +1,13 @@
-import { FormEvent, useContext, useState } from "react";
-import styles from "./ally.module.css";
-import {Uploader} from "../forms/Uploader";
+import { FormEvent, useContext } from "react";
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../../amplify/data/resource'; // Path to your backend resource definition
+import styles from "./ally.module.css";
 import BaseForm from "../forms/BaseForm";
 import { SubmitButton, TextArea } from "../forms/Inputs";
+import {Uploader} from "../forms/Uploader";
 import { AllyContext, AllyContextType } from "@/app/providers";
 
-const client = generateClient<Schema>();
+// const client = generateClient<Schema>();
 
 export default function Resume() {
    const {setResume, setStep} = useContext(AllyContext) as AllyContextType;

@@ -1,26 +1,20 @@
-import { FormEvent, useState } from "react";
-import styles from "../ally.module.css";
-import { QualificationType } from "@/app/utils/responseSchemas";
-import BaseForm from "../../forms/BaseForm";
-import { Checkboxes, TextArea, SubmitButton } from "../../forms/Inputs";
+import { FormEvent, Ref, RefObject, useState } from "react";
+import styles from "./ally.module.css";
+import { QualificationsType, QualificationType } from "@/app/utils/responseSchemas";
+import BaseForm from "../forms/BaseForm";
+import { Checkboxes, TextArea, SubmitButton } from "../forms/Inputs";
 import { delayAllyChat } from "@/app/utils/allyChat";
 import { getCheckboxValues } from "@/app/utils/formUtils";
-import { CareerCoachStepType } from "../CareerCoach";
 export default function WrongUnmetToMet({
-  metQualifications,
-  setCareerCoachStep,
-  unmetQualifications,
-  setMetQualifications,
+  qualifications,
+  setQualifications,
   setReviewedUnmetQualifications,
-  setUnmetQualifications,
 }: {
-  metQualifications: QualificationType[];
-  unmetQualifications: QualificationType[];
-  setCareerCoachStep: (step: CareerCoachStepType) => void;
-  setMetQualifications: (metQualifications: QualificationType[]) => void;
+  qualifications: QualificationsType;
+  setQualifications: (qualifications: QualificationsType) => void;
   setReviewedUnmetQualifications: (reviewedUnmetQualifications: boolean) => void;
-  setUnmetQualifications: (unmetQualifications: QualificationType[]) => void;
 }) {
+  console.log(18)
   let allyStatements = [
     "I've reviewed your resume and job description. Here are some of the qualifications you don't seem to meet.",
   ];
@@ -28,24 +22,21 @@ export default function WrongUnmetToMet({
     event.preventDefault();
     const values = getCheckboxValues(event);
     setReviewedUnmetQualifications(true);
-    setCareerCoachStep("qualifications_final_review");
     let objs: QualificationType[] = values
-      .map((value) => {
-        let item = unmetQualifications.find(
-          (obj) => obj.id === value
-        );
-        if (item) {
-          let index = unmetQualifications.indexOf(item);
-          setUnmetQualifications(
-            unmetQualifications.filter((_, i) => i !== index)
-          );
+          .map((value) => {
+            let item = qualifications.unmetQualifications.find((obj) => obj.id === value);
+            if (item) {
+              let index = qualifications.unmetQualifications.indexOf(item);
+              let updatedUnmetQualifications = qualifications.unmetQualifications.filter((_, i) => i !== index)
+              setQualifications({...qualifications, unmetQualifications: updatedUnmetQualifications});
+            }
+            return item;
+          })
+          .filter((obj): obj is QualificationType => obj !== undefined);
+        if (objs.length > 0) {
+          let updatedMetQualifications = [...qualifications.metQualifications, ...objs]
+          setQualifications({...qualifications, unmetQualifications: updatedMetQualifications});
         }
-        return item;
-      })
-      .filter((obj): obj is QualificationType=> obj !== undefined);
-    if (objs.length > 0) {
-      setMetQualifications([...metQualifications, ...objs]);
-    }
   };
   let { allyFormattedGraphs, delay } = delayAllyChat({ allyStatements });
   return (
@@ -56,7 +47,7 @@ export default function WrongUnmetToMet({
           className={`${styles.fade}`}
           style={{ animationDelay: `${delay}s` }}
         >
-          {unmetQualifications.map((qualification: QualificationType) => (
+          {qualifications.unmetQualifications.map((qualification: QualificationType) => (
             <li key={qualification.id}>{qualification.name}</li>
           ))}
         </ul>
@@ -75,7 +66,7 @@ export default function WrongUnmetToMet({
         <BaseForm onSubmit={onSubmit}>
           <Checkboxes
             additionalClassName="positive"
-            options={unmetQualifications}
+            options={qualifications.unmetQualifications}
           />
           <SubmitButton type="submit">Submit</SubmitButton>
         </BaseForm>

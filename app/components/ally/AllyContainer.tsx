@@ -1,65 +1,149 @@
 "use client";
 import React, { useContext, useEffect, useState } from "react";
-import { ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam } from "openai/resources/index.mjs";
-import CareerCoach from "./CareerCoach";
+import EditTopicalQualifications from "./EditTopicalQualifications";
+import QualificationsFinalReview from "./QualificationsFinalReview";
 import Resume from "./Resume";
-import TempRegister from "./TempRegister";
 import UsaJobs from "./UsaJobs";
-import {TextSpinnerLoader} from "../loader/Loader";
-import { AllyContext, AllyContextType } from "@/app/providers";
+import WrongMetToUnmet from "./WrongMetToUnmet";
+import WrongUnmetToMet from "./WrongUnmetToMet";
+import { TextBlinkLoader } from "../loader/Loader";
 import { jobDescriptionReviewer } from "../aiProcessing/jobDescriptionReviewer";
-import { qualificationsReviewerPrompt } from "@/app/prompts/qualificationsReviewer";
-import { sendMessages } from "@/app/utils/api";
-import { advancedQualificationsReviewerPrompt } from "@/app/prompts/advancedQualificationsReviewer";
 import { qualificationsReviewer } from "../aiProcessing/qualificationsReviewer";
+import { AllyContext, StepType } from "@/app/providers";
+import { topicsCategorizer } from "../aiProcessing/topicCategorizer";
+import { qualificationsEvidenceWriter } from "../aiProcessing/qualificationsEvidenceWriter";
+import { TopicType } from "@/app/utils/responseSchemas";
 
 export default function AllyContainer() {
+  const context = useContext(AllyContext);
+  if (!context) {
+    throw new Error("AllyContainer must be used within an AllyContext.Provider");
+  }
   const {
     jobDescription,
     keywords,
     loading,
+    loadingText,
+    qualifications,
+    recommendation,
+    reviewedMetQualifications,
+    reviewedUnmetQualifications,
     resume,
     step,
+    topics,
     setKeywords,
     setLoading,
+    setLoadingText,
     setQualifications,
-    setRecommendation,
+    setReviewedMetQualifications,
+    setReviewedUnmetQualifications,
     setStep,
-  } = useContext(AllyContext) as AllyContextType;
-
-  useEffect(() => {
-    if (jobDescription) jobDescriptionReviewer({ jobDescription, setKeywords, setLoading, setStep });
-  }, [jobDescription]);
-//need to make some kind of failsafe that will give it an opprtunity to get any of these that are missing.
-  useEffect(() => {
-    if (resume && keywords && jobDescription && resume !== '' && keywords.length && jobDescription !== '') {
-      qualificationsReviewer({jobDescription, keywords, resume, sendMessages, setLoading, setQualifications, setRecommendation})
+    setTopics
+  } = context;
+  const [currentTopicIndex, setCurrentTopicIndex] = useState(0);
+  const [currentTopic, setCurrentTopic] = useState<TopicType>({ id: "", name: "", evidence: "", keywords: [] });
+  async function selectStep(): Promise<StepType> {
+    if (!resume) {
+      console.log(47)
+      // store resume
+      return "resume"
+    } else if (resume && !jobDescription) {
+      console.log(51)
+      // store usa jobs description and extract keywords from it.
+      return "usa_jobs"
+    } else if (resume && jobDescription && !reviewedMetQualifications && !reviewedUnmetQualifications) {
+      console.log(55)
+      let keywords = await jobDescriptionReviewer({ jobDescription, setLoading, setLoadingText });
+      console.log(57)
+      let qualifications = await qualificationsReviewer({ jobDescription, keywords, resume, setLoading, setLoadingText });
+      setKeywords(keywords)
+      setQualifications(qualifications)
+      return "wrong_met_to_unmet"
+    } else if (resume && jobDescription && keywords && qualifications && reviewedMetQualifications && !reviewedUnmetQualifications) {
+      console.log(63)
+      return "wrong_unmet_to_met"
+    } else if (jobDescription && keywords && reviewedMetQualifications && reviewedUnmetQualifications && !topics) {
+      console.log(66)
+      let topicsCategorizerRes = await topicsCategorizer({ jobDescription, keywords, setLoading, setLoadingText, })
+      console.log(topicsCategorizerRes)
+      console.log(typeof topicsCategorizerRes)
+      setTopics(topicsCategorizerRes)
+      console.log(topics, currentTopicIndex)
+      console.log(69)
+    } if (jobDescription && qualifications && topics && topics[currentTopicIndex]) {
+      console.log(71)
+      let topicRes = await qualificationsEvidenceWriter({ currentTopic: topics[currentTopicIndex], jobDescription, qualifications, resume, setLoading, setLoadingText })
+      if (topicRes) {
+        console.log(74)
+        setCurrentTopic(topicRes)
+      }
+      console.log(77)
+      return "edit_met_qualifications"
+    } else if (topics && currentTopicIndex === topics.length) {
+      return "qualifications_final_review"
     }
-  }, [
-    jobDescription,
-    keywords,
-    resume,
-  ]);
-  
-  if(loading) {
-    return <TextSpinnerLoader text={"talking to the ai"} />
+    // else if ((resume && jobDescription && keywords && reviewedMetQualifications && reviewedUnmetQualifications)) {
+    //   await qualificationsRecommender({ jobDescription, keywords, resume, setLoading, setLoadingText });
+    //   console.log(qualificationsRecommender)
+    //   return "pause"
+    // }
+    return "pause"
+  }
+  useEffect(() => {
+    const updateStep = async () => {
+
+      const updatedStep = await selectStep();
+
+      if (updatedStep != step) {
+        setStep(updatedStep)
+      }
+    };
+    updateStep();
+  }, [jobDescription, resume, reviewedMetQualifications, reviewedUnmetQualifications, topics]);
+
+  if (loading) {
+    return <TextBlinkLoader text={loadingText} />
   }
 
   switch (step) {
-    case "temp_registration":
-      return (
-        <TempRegister />
-      );
     case "resume":
       return <Resume />;
     case "usa_jobs":
       return (
         <UsaJobs />
       );
-    case "career_coach":
+    case "wrong_met_to_unmet":
       return (
-        <CareerCoach />
+        <div>
+          {qualifications &&
+            <WrongMetToUnmet
+              qualifications={qualifications}
+              recommendation={recommendation}
+              setQualifications={setQualifications}
+              setReviewedMetQualifications={setReviewedMetQualifications}
+            />
+          }
+        </div>
+      )
+    case "wrong_unmet_to_met":
+      return (
+        <div>{qualifications &&
+          <WrongUnmetToMet
+            qualifications={qualifications}
+            setQualifications={setQualifications}
+            setReviewedUnmetQualifications={setReviewedUnmetQualifications}
+          />
+        }
+        </div>
       );
+    case "edit_met_qualifications":
+      return (
+        <div>
+          <EditTopicalQualifications currentTopicIndex={currentTopicIndex} setCurrentTopicIndex={setCurrentTopicIndex} setCurrentTopic={setCurrentTopic} currentTopic={currentTopic} />
+        </div>
+      );
+    case  "qualifications_final_review":
+      return (<QualificationsFinalReview topics={topics}/>)
     default:
       return <div>Nothing for the group</div>;
   }

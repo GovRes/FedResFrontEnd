@@ -2,7 +2,15 @@ import { jobDescriptionReviewerPrompt } from "@/app/prompts/jobDescriptionReview
 import { sendMessages } from "@/app/utils/api";
 import { ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam } from "openai/resources/index.mjs";
 
- export const jobDescriptionReviewer = async ({jobDescription, setKeywords, setLoading, setStep}: {jobDescription: string, setKeywords: Function, setLoading: Function, setStep: Function}) => {
+export const jobDescriptionReviewer = async ({
+  jobDescription,
+  setLoading,
+  setLoadingText,
+}: {
+  jobDescription: string;
+  setLoading: (value: boolean) => void;
+  setLoadingText: (text: string) => void;
+}) => {
     
       const userMessage: ChatCompletionUserMessageParam = {
         role: "user",
@@ -13,9 +21,10 @@ import { ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam } from
         jobDescriptionReviewerPrompt,
       ];
       setLoading(true)
-      let res = await sendMessages({ messages, responseFormat: { type: "json_object" } });
-      setKeywords(res.keywords); 
+      setLoadingText("Extracting keywords from job description");
+      let res = await sendMessages({ messages, name: "keywords" });
       setLoading(false)
-      setStep("career_coach")
-    return;
+      const result = res.keywords as Array<string>
+      console.log(result)
+      return result
   };

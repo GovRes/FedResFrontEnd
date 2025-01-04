@@ -1,0 +1,22 @@
+export const keywords = [
+    "customer support services",
+    "installation and configuration",
+    "troubleshooting",
+    "customer assistance",
+    "training",
+    "Tier II technical support",
+    "customer relationship building",
+    "problem resolution management",
+    "information technology customer support",
+    "planning and delivery of services",
+    "specialized experience",
+    "IT-related experience",
+    "attention to detail",
+    "customer service",
+    "oral communication",
+    "problem solving",
+    "compatible military assignment",
+    "documentation on cost/benefit studies",
+    "federal employment suitability",
+    "current state driver’s license"
+]

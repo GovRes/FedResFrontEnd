@@ -30,6 +30,7 @@
   "devDependencies": {
     "@aws-amplify/backend": "^1.9.0",
     "@aws-amplify/backend-cli": "^1.4.3",
+    "@simbathesailor/use-what-changed": "^2.0.0",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",

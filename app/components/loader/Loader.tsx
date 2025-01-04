@@ -5,7 +5,7 @@ import { useEffect } from "react";
 export function TextSpinnerLoader({text}: {text: string}) {
   const characters = text.split("");
 
-  const radius = 80;
+  const radius = 300;
   const fontSize = "18px";
   const letterSpacing = 12.5;
 
@@ -33,8 +33,8 @@ export function TextSpinnerLoader({text}: {text: string}) {
       });
       animate(
         scope.current,
-        { rotate: 360 },
-        { duration: 4, ease: "linear", repeat: Infinity }
+        { rotate: -360 },
+        { duration: 10, ease: "linear", repeat: Infinity }
       );
     };
     animateLoader();
@@ -60,4 +60,12 @@ export function TextSpinnerLoader({text}: {text: string}) {
       </p>
     </motion.div>
   );
+}
+
+export function TextBlinkLoader({text}: {text: string}) {
+  return (
+    <div className={styles.blink}>
+      {text}
+    </div>
+  )
 }

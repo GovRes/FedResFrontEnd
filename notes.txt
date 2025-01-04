@@ -20,5 +20,7 @@ const [resumes, setResumes] = useState<Schema["Resume"]["type"][]>([]);
   useEffect(() => {
     fetchResumes();
   }, []);
-
+  
 // create a utility for sending and receiving messages - move code out of app.tsx and make a way to included prompts
+
+//tk add https://github.com/instructor-ai/instructor-js

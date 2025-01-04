@@ -4,16 +4,11 @@ import BaseForm from "../../forms/BaseForm";
 import { RadioSelect, TextArea, SubmitButton } from "../../forms/Inputs";
 import { delayAllyChat } from "@/app/utils/allyChat";
 import { QualificationType } from "@/app/utils/responseSchemas";
-import { CareerCoachStepType } from "../CareerCoach";
 export default function MakeChangesToMetQualifications({
-  metQualifications,
-  setCareerCoachStep,
-  
+  metQualifications
 }: {
-  metQualifications: QualificationType[];
-  
-  setCareerCoachStep: (step: CareerCoachStepType) => void;
-}) {
+ metQualifications: QualificationType[];
+  }) {
   const allyStatements = [
     "Here's what I've got for your qualifications. Would you like to make any changes at all?",
   ];
@@ -43,7 +38,7 @@ export default function MakeChangesToMetQualifications({
     event.preventDefault();
     let response = event.currentTarget.qualification.value;
     if (response) {
-  
+
       setCurrentQualificationId(response);
       setCurrentQualification(
         metQualifications.find((q) => q.id === response) || null
@@ -72,7 +67,7 @@ export default function MakeChangesToMetQualifications({
         >
           <button
             className={styles.positive}
-            onClick={() => setCareerCoachStep("pause")}
+            
           >
             Looks good
           </button>
