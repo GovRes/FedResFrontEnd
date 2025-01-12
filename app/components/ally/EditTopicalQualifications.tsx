@@ -1,5 +1,6 @@
-import {useContext, } from "react";
+import {JSX, JSXElementConstructor, ReactElement, ReactNode, ReactPortal, useContext, } from "react";
 import styles from "./ally.module.css";
+import TopicsMapItem from "./TopicsMapItem";
 import { TopicalQualificationsEditor } from "./careerCoachSteps/TopicalQualificationsEditor";
 import { delayAllyChat } from "@/app/utils/allyChat";
 import { TopicType } from "@/app/utils/responseSchemas";
@@ -25,29 +26,20 @@ export default function EditTopicalQualifications({
       "Our reviewer does not recommend that you apply for this job. We'll deal with this in a later version.")
   }
   const { allyFormattedGraphs, delay } = delayAllyChat({ allyStatements });
-  
+  let topicsList: JSX.Element[] = [];
+  if (topics && topics.length > 0) {
+    topicsList = topics.map((topic: TopicType, index) => {
+      return <TopicsMapItem active={index === currentTopicIndex} index={index} key={topic.id}  setCurrentTopicIndex={setCurrentTopicIndex} topic={topic} />;
+    })
+  }
   return (
-    <div>
-      <div className={`${styles.allyChatContainer}`}>
+    <div className={`${styles.qualificationEditorContainer}`}>
+      <div className={`${styles.qualificationEditorMap}`}>
+        <h2>Qualifications</h2>
+        {topicsList}
+      </div>
+      <div className={`${styles.allyChatContainer} ${styles.qualificationEditorAllyChat}`}>
         {allyFormattedGraphs}
-        {topics && topics.length > 0 && (
-
-          <ul
-            className={`${styles.fade}`}
-            style={{ animationDelay: `${delay}s` }}
-          >
-            {topics?.map((topic: TopicType, index) => (
-              <li
-                key={topic?.id || index}
-                className={
-                  index === currentTopicIndex ? `${styles.active}` : ""
-                }
-              >
-                {topic?.name}: {topic?.keywords.join(", ")}
-              </li>
-            ))}
-          </ul>
-        )}
         {topics && currentTopicIndex + 1 <= topics.length && (
           <>
             <TopicalQualificationsEditor currentTopic={currentTopic} currentTopicIndex={currentTopicIndex} setCurrentTopic={setCurrentTopic} setCurrentTopicIndex={setCurrentTopicIndex} />

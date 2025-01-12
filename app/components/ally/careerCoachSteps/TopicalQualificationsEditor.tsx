@@ -25,6 +25,7 @@ export const TopicalQualificationsEditor = ({ currentTopic, setCurrentTopicIndex
     const [initialInvitation, setInitialInvitation] = useState(false)
     
     function updateTopicEvidence(topics: TopicType[], evidence: string) {
+        console.log(currentTopic?.id)
         let updatedTopics = topics.map((topic) => {
             if (currentTopic && topic.id === currentTopic.id) {
                 topic.evidence = evidence;
@@ -57,6 +58,7 @@ export const TopicalQualificationsEditor = ({ currentTopic, setCurrentTopicIndex
             }
         } else {
             if (topics && currentTopic && currentTopic.evidence) {
+                console.log(currentTopic.evidence)
                 updateTopicEvidence(topics, currentTopic.evidence);
             }
             setCurrentTopicIndex((prev: number) => prev + 1);
@@ -65,7 +67,7 @@ export const TopicalQualificationsEditor = ({ currentTopic, setCurrentTopicIndex
 
     if (currentTopic) {
         console.log(currentTopic)
-        if (currentTopic.question) {
+        if (currentTopic.question && !currentTopic.evidence) {
             return (
                 <div>
                     <div

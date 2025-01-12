@@ -6,11 +6,7 @@ button.negative {
   background: var(--red-light);
   color: var(--red-dark);
 }
-.active {
-  font-size: 1.2em;
-  font-style: italic;
-  font-weight: 700;
-}
+
 .ally {
   max-width: 100%;
   margin: 0 auto;
@@ -21,7 +17,7 @@ button.negative {
   font-family: system-ui, sans-serif;
   font-size: 20px;
   @media (min-width: 1024px) {
-    max-width: 60%;
+    max-width:80%;
   }
 }
 
@@ -50,6 +46,51 @@ button.negative {
   font-size: var(--font-size-med);
   padding: 0 10px;
 }
+.qualificationEditorContainer {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  align-items: flex-start;
+}
+
+.qualificationEditorMap {
+  flex: 1; 
+  font-size: 0.7em;
+  
+}
+.qualificationEditorMap li {
+  padding: 5px;
+}
+.qualificationEditorMap li > ul > li {
+  margin-left: 15px;
+  list-style-type: disc;
+}
+
+.qualificationEditorMapItem {
+  background: linear-gradient(var(--blue-dark) 0%, var(--blue-med) 6%, var(--blue-light) 49%);
+  cursor: pointer;
+  padding: 25px;
+  border: 1px var(--blue-dark) solid;
+  
+  
+  &.active {
+    background: linear-gradient(var(--blue-med) 0%, var(--blue-light) 6%, var(--white) 49%);
+    cursor: default;
+  }
+}
+
+.qualificationEditorMapItem ul {
+    margin-left: 15px;
+ }
+
+ .qualificationEditorMap li {
+  list-style-type: disc;
+}
+
+.qualificationEditorAllyChat {
+  flex: 3;
+}
+
 
 .userChatContainer {
   --r: 1em; /* the radius */

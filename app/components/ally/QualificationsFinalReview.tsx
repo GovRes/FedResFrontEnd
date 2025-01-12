@@ -1,11 +1,15 @@
+import { AllyContext, AllyContextType } from "@/app/providers";
 import styles from "./ally.module.css";
 
 import { delayAllyChat } from "@/app/utils/allyChat";
 import { TopicType } from "@/app/utils/responseSchemas";
+import { useContext } from "react";
+import TopicsMapItem from "./TopicsMapItem";
+import TopicsReviewItem from "./TopicsReviewItem";
 export default function QualificationsFinalReview({
-  topics
+  setCurrentTopicIndex,
 }: {
-  topics: TopicType[] | undefined;
+  setCurrentTopicIndex: Function;
 }) {
   let allyStatements = [
     "Thank you for all your feedback!",
@@ -17,25 +21,24 @@ export default function QualificationsFinalReview({
   //   else {
   //       allyStatements.push("Our reviewer thinks you are a great candidate for this job!")
   //   }
-  
+  const {topics, setStep} = useContext(AllyContext) as AllyContextType;
   const { allyFormattedGraphs, delay } = delayAllyChat({ allyStatements });
- 
+
   return (
     <div>
       <div className={`${styles.allyChatContainer}`}>
         {allyFormattedGraphs}
-        <p>Here are my descriptions of your qualifications and evidence to support them:</p>
+        <p>Here are my descriptions of your qualifications and evidence to support them. To make any changes, just click on the one you would like to work on.:</p>
         <ul
           className={`${styles.fade}`}
           style={{ animationDelay: `${delay}s` }}
         >
-          {topics?.map((topic: TopicType) => (
-            <li
+          {topics?.map((topic: TopicType, index) => (
+            <TopicsReviewItem
+              index={index}
               key={topic.id}
-              
-            >
-              <strong>{topic.name}</strong> - {topic.evidence}
-            </li>
+              setCurrentTopicIndex={setCurrentTopicIndex}
+              topic={topic} />
           ))}
         </ul>
         {/* <p>And here are the ones we think are a stretch for you:</p>
@@ -57,4 +60,3 @@ export default function QualificationsFinalReview({
     </div>
   );
 }
-// tk separate out the qualification feedback from the "next" button so that on submit increments the index of the qualification

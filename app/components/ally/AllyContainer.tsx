@@ -99,7 +99,7 @@ export default function AllyContainer() {
       }
     };
     updateStep();
-  }, [jobDescription, resume, reviewedMetQualifications, reviewedUnmetQualifications, topics]);
+  }, [jobDescription, resume, reviewedMetQualifications, reviewedUnmetQualifications, topics, currentTopicIndex]);
 
   if (loading) {
     return <TextBlinkLoader text={loadingText} />
@@ -143,7 +143,9 @@ export default function AllyContainer() {
         </div>
       );
     case  "qualifications_final_review":
-      return (<QualificationsFinalReview topics={topics}/>)
+      return (<QualificationsFinalReview 
+        setCurrentTopicIndex={setCurrentTopicIndex}      
+      />)
     default:
       return <div>Nothing for the group</div>;
   }
