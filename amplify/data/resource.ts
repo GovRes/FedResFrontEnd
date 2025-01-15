@@ -6,26 +6,26 @@ adding a new "isDone" field as a boolean. The authorization rule below
 specifies that any unauthenticated user can "create", "read", "update", 
 and "delete" any "Todo" records.
 =========================================================================*/
-const schema = a.schema({
-  Todo: a
-    .model({
-      content: a.string(),
-    })
-    .authorization((allow) => [allow.guest()]),
+// const schema = a.schema({
+//   Todo: a
+//     .model({
+//       content: a.string(),
+//     })
+//     .authorization((allow) => [allow.guest()]),
 
-  Resume: a.model({
-    fileName: a.string(),
-  }).authorization((allow) => [allow.owner()]),
-});
+//   Resume: a.model({
+//     fileName: a.string(),
+//   }).authorization((allow) => [allow.owner()]),
+// });
 
-export type Schema = ClientSchema<typeof schema>;
+// export type Schema = ClientSchema<typeof schema>;
 
-export const data = defineData({
-  schema,
-  authorizationModes: {
-    defaultAuthorizationMode: 'iam',
-  },
-});
+// export const data = defineData({
+//   schema,
+//   authorizationModes: {
+//     defaultAuthorizationMode: 'iam',
+//   },
+// });
 
 
 /*== STEP 2 ===============================================================
