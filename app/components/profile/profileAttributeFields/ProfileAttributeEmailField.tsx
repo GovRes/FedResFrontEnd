@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { GrCheckmark, GrClose, GrEdit } from "react-icons/gr";
-import styles from './profileStyles.module.css';
+import styles from '../profileStyles.module.css';
 import { handleUpdateUserAttribute } from '@/app/utils/userAttributeInterface';
 
-export default function ProfileAttributeDateField({
+export default function ProfileAttributeEmailField({
     attributeKey,
     title,
     value,
@@ -44,8 +44,7 @@ export default function ProfileAttributeDateField({
                 showEdit ?
                     <form className={styles.form} onSubmit={submit}>
 
-                        <input
-                        type="date"
+                        <input type="email"
                         onChange={onChange}
                             value={formValue}
                         />
@@ -59,7 +58,7 @@ export default function ProfileAttributeDateField({
                         </button>
                     </form>
                     :
-                    <span>{new Date(value).toLocaleDateString()}<span onClick={() => setShowEdit(true)} className={styles.icon}><GrEdit /></span></span>
+                    <span>{value}<span onClick={() => setShowEdit(true)} className={styles.icon}><GrEdit /></span></span>
             }
         </div>
     )

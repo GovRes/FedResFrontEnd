@@ -1,18 +1,16 @@
 import { useEffect, useState } from "react";
 import { GrCheckmark, GrClose, GrEdit } from "react-icons/gr";
-import styles from './profileStyles.module.css';
+import styles from '../profileStyles.module.css';
 import { handleUpdateUserAttribute } from '@/app/utils/userAttributeInterface';
 
-export default function ProfileAttributeSelectField({
+export default function ProfileAttributeDateField({
     attributeKey,
-    options,
     title,
     value,
     setAttributes
 }:
     {
         attributeKey: string,
-        options: Record<string, string>,
         title: string,
         value: string,
         setAttributes: Function
@@ -30,6 +28,7 @@ export default function ProfileAttributeSelectField({
     async function submit(e: { preventDefault: () => void; target: any; }) {
         e.preventDefault();
         const response = await handleUpdateUserAttribute(attributeKey, formValue);
+        console.log(response)
         if (response === "200") {
             setAttributes((prev: any) => ({ ...prev, [attributeKey]: formValue }));
             setShowEdit(false);
@@ -45,14 +44,11 @@ export default function ProfileAttributeSelectField({
                 showEdit ?
                     <form className={styles.form} onSubmit={submit}>
 
-                        <select
-                            defaultValue={value}
-                            onChange={onChange}
-                        >
-                            {Object.keys(options).map((key) => {
-                                return <option key={key} value={key}>{options[key]}</option>
-                            })}
-                        </select>
+                        <input
+                        type="date"
+                        onChange={onChange}
+                            value={formValue}
+                        />
 
 
                         <button type="submit" className={`${styles.icon} ${styles.submitButton}`}>
@@ -63,7 +59,7 @@ export default function ProfileAttributeSelectField({
                         </button>
                     </form>
                     :
-                    <span>{options[value]}<span onClick={() => setShowEdit(true)} className={styles.icon}><GrEdit /></span></span>
+                    <span>{new Date(value).toLocaleDateString()}<span onClick={() => setShowEdit(true)} className={styles.icon}><GrEdit /></span></span>
             }
         </div>
     )

@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
 import { GrCheckmark, GrClose, GrEdit } from "react-icons/gr";
-import styles from './profileStyles.module.css';
+import styles from '../profileStyles.module.css';
 import { handleUpdateUserAttribute } from '@/app/utils/userAttributeInterface';
 
-export default function ProfileAttributeEmailField({
+export default function ProfileAttributeSelectField({
     attributeKey,
+    options,
     title,
     value,
     setAttributes
 }:
     {
         attributeKey: string,
+        options: Record<string, string>,
         title: string,
         value: string,
         setAttributes: Function
@@ -28,7 +30,6 @@ export default function ProfileAttributeEmailField({
     async function submit(e: { preventDefault: () => void; target: any; }) {
         e.preventDefault();
         const response = await handleUpdateUserAttribute(attributeKey, formValue);
-        console.log(response)
         if (response === "200") {
             setAttributes((prev: any) => ({ ...prev, [attributeKey]: formValue }));
             setShowEdit(false);
@@ -44,10 +45,14 @@ export default function ProfileAttributeEmailField({
                 showEdit ?
                     <form className={styles.form} onSubmit={submit}>
 
-                        <input type="email"
-                        onChange={onChange}
-                            value={formValue}
-                        />
+                        <select
+                            defaultValue={value}
+                            onChange={onChange}
+                        >
+                            {Object.keys(options).map((key) => {
+                                return <option key={key} value={key}>{options[key]}</option>
+                            })}
+                        </select>
 
 
                         <button type="submit" className={`${styles.icon} ${styles.submitButton}`}>
@@ -58,7 +63,7 @@ export default function ProfileAttributeEmailField({
                         </button>
                     </form>
                     :
-                    <span>{value}<span onClick={() => setShowEdit(true)} className={styles.icon}><GrEdit /></span></span>
+                    <span>{options[value]}<span onClick={() => setShowEdit(true)} className={styles.icon}><GrEdit /></span></span>
             }
         </div>
     )

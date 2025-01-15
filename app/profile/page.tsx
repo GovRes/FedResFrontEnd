@@ -5,12 +5,10 @@ import Profile from "../components/profile/Profile";
 
 export default function ProfilePage() {
     const { authStatus } = useAuthenticator(context => [context.authStatus]);
-    console.log(authStatus)
     return(
-
-        <div className="content">
+    <div className="content">
       {authStatus === 'configuring' && 'Loading...'}
       {authStatus !== 'authenticated' ? <Login /> : <Profile />}
     </div>
-    )
+  )
 }

@@ -167,7 +167,9 @@ textarea {
 }
 
 .content {
-  padding: 1rem;
+  padding-top: 3.5rem;
+  display: flex;
+  justify-content: center;
 }
 
 .error {

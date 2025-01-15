@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { GrCheckmark, GrClose, GrEdit } from "react-icons/gr";
-import styles from './profileStyles.module.css';
+import styles from '../profileStyles.module.css';
 import { handleUpdateUserAttribute } from '@/app/utils/userAttributeInterface';
 
 export default function ProfileAttributeStringField({

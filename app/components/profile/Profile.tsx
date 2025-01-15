@@ -1,38 +1,31 @@
-import { fetchUserAttributes, FetchUserAttributesOutput } from 'aws-amplify/auth';
-import { useEffect, useState } from "react";
-import ProfileAttributeStringField from './ProfileAttributeStringField';
-import ProfileAttributeDateField from './ProfileAttributeDateField';
-import ProfileAttributeSelectField from './ProfileAttributeSelectField';
-import { academicLevels, agencies, federalEmploymentStatus, gender } from '@/app/utils/usaJobsCodes';
-import ProfileAttributeBooleanField from './ProfileAttributeBooleanField';
-import ProfileAttributeEmailField from './ProfileAttributeEmailField';
-
-export default function Profile() {
-    const [attributes, setAttributes] = useState<FetchUserAttributesOutput>({});
-
-    useEffect(() => {
-        fetchUserAttributes().then(setAttributes);
-    }, []);
-
-    console.log(attributes) 
-    return (
-        <div>
-            <h1>Profile</h1>
-            <ProfileAttributeStringField attributeKey="given_name" title="Given Name" value={attributes.given_name || ""} setAttributes={setAttributes} />
-            <ProfileAttributeStringField attributeKey="family_name" title="Family Name" value={attributes.family_name || ""} setAttributes={setAttributes} />
-            <ProfileAttributeEmailField attributeKey="email" title="Email" value={attributes.email || ""} setAttributes={setAttributes} />
-            <ProfileAttributeDateField attributeKey="birthdate" title="Birthdate" value={attributes.birthdate || ""} setAttributes={setAttributes} />
-            <ProfileAttributeSelectField attributeKey="gender" title="Gender" value={attributes.gender || ""} options={gender} setAttributes={setAttributes} />
-            <ProfileAttributeBooleanField attributeKey="custom:citizen" title="Are you a US Citizen?" value={attributes["custom:citizen"] || ""} setAttributes={setAttributes}/>
-            <ProfileAttributeBooleanField attributeKey="custom:veteran" title="Are you a veteran?" value={attributes["custom:veteran"] || ""} setAttributes={setAttributes} />
-            <ProfileAttributeBooleanField attributeKey="custom:militarySpouse" title="Are you a military spouse?" value={attributes["custom:militarySpouse"] || ""} setAttributes={setAttributes} />
-            <ProfileAttributeBooleanField attributeKey="custom:disabled" title="Are you disabled?" value={attributes["custom:disabled"] || ""} setAttributes={setAttributes}  />
-            <ProfileAttributeSelectField attributeKey="custom:academicLevel" title="Highest level of education completed" value={attributes["custom:academicLevel"] || ""} options={academicLevels}  setAttributes={setAttributes}/>
-            <ProfileAttributeSelectField attributeKey="custom:fedEmploymentStatus" title="Are you curently a federal employee?" value={attributes["custom:fedEmploymentStatus"] || ""} options={federalEmploymentStatus} setAttributes={setAttributes} />
-            {
-                attributes["custom:fedEmploymentStatus"] === "CURRENT-FED" &&
-                <ProfileAttributeSelectField attributeKey="custom:currentAgency" title="If so, what is your current Agency" value={attributes["custom:currentAgency"] || ""} options={agencies} setAttributes={setAttributes} />
-            }
+import { useState } from "react";
+import ProfileAttributes from "./ProfileAttributes";
+import styles from './profileStyles.module.css'
+import ResumeDashboard from "./ResumeDashboard";
+export default function Profile(){
+    const [checked, setChecked] = useState("profile");
+    function onChange(e: { target: { id: any; }; }) {
+        setChecked(e.target.id)
+    }
+    return(
+        <div className={styles.profileContainer}>
+            <div className={styles.tabs}>
+                <input type="radio" name="tabs" id="profile" checked={checked==="profile"} onChange={onChange}/>
+                <label htmlFor="profile">Profile</label>
+                <div className={styles.tab}>
+                    <ProfileAttributes />
+                </div>
+                <input type="radio" name="tabs" id="resumes" checked={checked==="resumes"} onChange={onChange} />
+                <label htmlFor="resumes">Resumes</label>
+                <div className={styles.tab}>
+                    <ResumeDashboard />
+                </div>
+                <input type="radio" name="tabs" id="applications" checked={checked==="applications"} onChange={onChange} />
+                <label htmlFor="applications">Applications</label>
+                <div className={styles.tab}>
+                    <div>Application tracker goes here</div>
+                </div>
+            </div>          
         </div>
     )
 }
