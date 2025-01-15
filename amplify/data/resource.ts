@@ -12,9 +12,9 @@ const schema = a.schema({
     })
     .authorization((allow) => [allow.guest()]),
 
-//   Resume: a.model({
-//     fileName: a.string(),
-//   }).authorization((allow) => [allow.owner()]),
+  Resume: a.model({
+    fileName: a.string(),
+  }).authorization((allow) => [allow.owner()]),
 });
 // 
 export type Schema = ClientSchema<typeof schema>;
