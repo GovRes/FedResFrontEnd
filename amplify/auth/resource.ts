@@ -1,5 +1,9 @@
 import { defineAuth } from '@aws-amplify/backend';
-export const auth = {}
+export const auth = defineAuth({
+  loginWith: {
+        email: true,
+      },
+})
 
 // export const auth = defineAuth({
 //   loginWith: {
