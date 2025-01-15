@@ -16,7 +16,9 @@ export default function ResumeDashboard() {
                     bucket: 'govRezUserData'
                 }
             });
-            setResumes(result.items as ResumeType[])
+
+            let sortedResult = result.items.sort((a, b) => (b.lastModified?.getTime() || 0) - (a.lastModified?.getTime() || 0));
+            setResumes(sortedResult as ResumeType[])
         }
         if (refresh) {
             getResumes()

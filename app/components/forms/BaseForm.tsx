@@ -9,5 +9,5 @@ export default function BaseForm({
 }) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  return <form onSubmit={onSubmit}>{children}</form>;
+  return <form role="form"onSubmit={onSubmit}>{children}</form>;
 }
