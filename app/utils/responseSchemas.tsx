@@ -38,3 +38,9 @@ export const TopicsArraySchema = z.object({
 })
 
 export type TopicType = z.infer<typeof Topic>;
+
+export type ResumeType = {
+    path: string,
+    lastModified: Date,
+    eTag: string,
+}

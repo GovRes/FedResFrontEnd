@@ -1,3 +1,9 @@
+.login {
+  @media only screen and (min-width: 768px){
+      margin-top: 700px;
+      margin-left: -300px;
+  }
+}
 .navLink {
   color: var(--red-med);
   font-family: var(--header-font);

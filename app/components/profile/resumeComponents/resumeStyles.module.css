@@ -1,0 +1,16 @@
+.resumesTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 25px 0;
+}
+
+.tableHead, .tableData {
+    padding: 8px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+.tableHead {
+    background-color: var(--blue-dark);
+    color: white;
+}

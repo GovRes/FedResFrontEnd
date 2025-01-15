@@ -118,7 +118,7 @@ input {
   padding: 10px;
   width: 100%;
 }
-button {
+/* button {
   border-radius: 5px;
   display: block;
   font-family: var(--body-font);
@@ -133,7 +133,7 @@ button[type="submit"] {
 button[type="submit"]:hover {
   background-color: var(--white);
   color: var(--red-dark);
-}
+} */
 
 textarea {
   background-color: var(--blue-dark);
@@ -167,7 +167,9 @@ textarea {
 }
 
 .content {
-  padding: 1rem;
+  padding-top: 3.5rem;
+  display: flex;
+  justify-content: center;
 }
 
 .error {

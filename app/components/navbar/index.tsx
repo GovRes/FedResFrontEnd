@@ -1,10 +1,11 @@
 "use client";
 import styles from "./navbarStyles.module.css";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useAuthenticator } from '@aws-amplify/ui-react';
 
 import { IoClose, IoMenu } from "react-icons/io5";
-import Login from "@/app/login/page";
+import NavLogin from "./NavLogin";
 
 const Navbar = () => {
   const [showMenu, setShowMenu] = useState(false);
@@ -12,13 +13,21 @@ const Navbar = () => {
   const toggleMenu = () => {
     setShowMenu(!showMenu);
   };
-  const toggleLogin = () => {setShowLogin(!showLogin)}
+  const { user } = useAuthenticator((context) => [context.user]);
+  const toggleLogin = () => { setShowLogin(!showLogin) }
+
+  useEffect(() => {
+    if (user) {
+      setShowLogin(true)
+    }
+  }, [user])
 
   const closeMenuOnMobile = () => {
     if (window.innerWidth <= 1150) {
       setShowMenu(false);
     }
   };
+  
   return (
     <header>
       <nav>
@@ -73,18 +82,20 @@ const Navbar = () => {
                 Ally
               </Link>
             </li>
+            {user && (<li><Link
+                className={styles.navLink}
+                href="/profile"
+                onClick={closeMenuOnMobile}
+              >
+                Profile
+              </Link></li>)}
             <li>
-              {/* <Login /> */}
-              <Link
-                className={`${styles.navLink} ${styles.navCta}`}
-                href="#"
-                onClick={toggleLogin}
-                >
-                Login/Sign Up
-                </Link>
-                {showLogin ? <Login /> : "Login/Sign Up"}
+              {showLogin ? <NavLogin setShowLogin={setShowLogin} /> :
+                <span className={styles.navLink} onClick={toggleLogin}>Login/Sign Up</span>
+                }
             </li>
-          </ul>
+            
+           </ul>
           <div
             className={`${styles.navToggle} ${styles.navClose}`}
             onClick={toggleMenu}
