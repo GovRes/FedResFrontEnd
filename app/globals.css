@@ -37,6 +37,7 @@
 
 body {
   background-color: var(--body-color);
+  box-sizing: border-box;
   color: var(--text-color);
   font-family: var(--main-font);
   font-optical-sizing: auto;
@@ -135,7 +136,17 @@ button[type="submit"]:hover {
   background-color: var(--white);
   color: var(--red-dark);
 } */
+.tableHead,
+.tableData {
+  padding: 8px;
+  text-align: left;
+  border: 1px solid #ddd;
+}
 
+.tableHead {
+  background-color: var(--blue-dark);
+  color: white;
+}
 textarea {
   background-color: var(--blue-dark);
   border: 0;

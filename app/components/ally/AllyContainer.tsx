@@ -17,7 +17,9 @@ import { TopicType } from "@/app/utils/responseSchemas";
 export default function AllyContainer() {
   const context = useContext(AllyContext);
   if (!context) {
-    throw new Error("AllyContainer must be used within an AllyContext.Provider");
+    throw new Error(
+      "AllyContainer must be used within an AllyContext.Provider"
+    );
   }
   const {
     jobDescription,
@@ -28,124 +30,186 @@ export default function AllyContainer() {
     recommendation,
     reviewedMetQualifications,
     reviewedUnmetQualifications,
-    resume,
+    resumes,
     step,
     topics,
     setKeywords,
     setLoading,
     setLoadingText,
     setQualifications,
+    setResumes,
     setReviewedMetQualifications,
     setReviewedUnmetQualifications,
     setStep,
-    setTopics
+    setTopics,
   } = context;
   const [currentTopicIndex, setCurrentTopicIndex] = useState(0);
-  const [currentTopic, setCurrentTopic] = useState<TopicType>({ id: "", name: "", evidence: "", keywords: [] });
+  const [currentTopic, setCurrentTopic] = useState<TopicType>({
+    id: "",
+    name: "",
+    evidence: "",
+    keywords: [],
+  });
   async function selectStep(): Promise<StepType> {
-    if (!resume) {
-      console.log(47)
-      // store resume
-      return "resume"
-    } else if (resume && !jobDescription) {
-      console.log(51)
+    if (!resumes) {
+      // store resumes
+      return "resume";
+    } else if (resumes && !jobDescription) {
       // store usa jobs description and extract keywords from it.
-      return "usa_jobs"
-    } else if (resume && jobDescription && !reviewedMetQualifications && !reviewedUnmetQualifications) {
-      console.log(55)
-      let keywords = await jobDescriptionReviewer({ jobDescription, setLoading, setLoadingText });
-      console.log(57)
-      let qualifications = await qualificationsReviewer({ jobDescription, keywords, resume, setLoading, setLoadingText });
-      setKeywords(keywords)
-      setQualifications(qualifications)
-      return "wrong_met_to_unmet"
-    } else if (resume && jobDescription && keywords && qualifications && reviewedMetQualifications && !reviewedUnmetQualifications) {
-      console.log(63)
-      return "wrong_unmet_to_met"
-    } else if (jobDescription && keywords && reviewedMetQualifications && reviewedUnmetQualifications && !topics) {
-      console.log(66)
-      let topicsCategorizerRes = await topicsCategorizer({ jobDescription, keywords, setLoading, setLoadingText, })
-      console.log(topicsCategorizerRes)
-      console.log(typeof topicsCategorizerRes)
-      setTopics(topicsCategorizerRes)
-      console.log(topics, currentTopicIndex)
-      console.log(69)
-    } if (jobDescription && qualifications && topics && topics[currentTopicIndex]) {
-      console.log(71)
-      let topicRes = await qualificationsEvidenceWriter({ currentTopic: topics[currentTopicIndex], jobDescription, qualifications, resume, setLoading, setLoadingText })
+      return "usa_jobs";
+    } else if (
+      resumes &&
+      jobDescription &&
+      !reviewedMetQualifications &&
+      !reviewedUnmetQualifications
+    ) {
+      console.log(55);
+      let keywords = await jobDescriptionReviewer({
+        jobDescription,
+        setLoading,
+        setLoadingText,
+      });
+      console.log(57);
+      let qualifications = await qualificationsReviewer({
+        jobDescription,
+        keywords,
+        resumes,
+        setLoading,
+        setLoadingText,
+      });
+      setKeywords(keywords);
+      setQualifications(qualifications);
+      return "wrong_met_to_unmet";
+    } else if (
+      resumes &&
+      jobDescription &&
+      keywords &&
+      qualifications &&
+      reviewedMetQualifications &&
+      !reviewedUnmetQualifications
+    ) {
+      console.log(63);
+      return "wrong_unmet_to_met";
+    } else if (
+      jobDescription &&
+      keywords &&
+      reviewedMetQualifications &&
+      reviewedUnmetQualifications &&
+      !topics
+    ) {
+      console.log(66);
+      let topicsCategorizerRes = await topicsCategorizer({
+        jobDescription,
+        keywords,
+        setLoading,
+        setLoadingText,
+      });
+      console.log(topicsCategorizerRes);
+      console.log(typeof topicsCategorizerRes);
+      setTopics(topicsCategorizerRes);
+      console.log(topics, currentTopicIndex);
+      console.log(69);
+    }
+    if (
+      jobDescription &&
+      qualifications &&
+      topics &&
+      topics[currentTopicIndex]
+    ) {
+      console.log(71);
+      let topicRes = await qualificationsEvidenceWriter({
+        currentTopic: topics[currentTopicIndex],
+        jobDescription,
+        qualifications,
+        resumes,
+        setLoading,
+        setLoadingText,
+      });
       if (topicRes) {
-        console.log(74)
-        setCurrentTopic(topicRes)
+        console.log(74);
+        setCurrentTopic(topicRes);
       }
-      console.log(77)
-      return "edit_met_qualifications"
+      console.log(77);
+      return "edit_met_qualifications";
     } else if (topics && currentTopicIndex === topics.length) {
-      return "qualifications_final_review"
+      return "qualifications_final_review";
     }
     // else if ((resume && jobDescription && keywords && reviewedMetQualifications && reviewedUnmetQualifications)) {
     //   await qualificationsRecommender({ jobDescription, keywords, resume, setLoading, setLoadingText });
     //   console.log(qualificationsRecommender)
     //   return "pause"
     // }
-    return "pause"
+    return "pause";
   }
   useEffect(() => {
     const updateStep = async () => {
-
       const updatedStep = await selectStep();
 
       if (updatedStep != step) {
-        setStep(updatedStep)
+        setStep(updatedStep);
       }
     };
     updateStep();
-  }, [jobDescription, resume, reviewedMetQualifications, reviewedUnmetQualifications, topics, currentTopicIndex]);
+  }, [
+    jobDescription,
+    resumes,
+    reviewedMetQualifications,
+    reviewedUnmetQualifications,
+    topics,
+    currentTopicIndex,
+  ]);
 
   if (loading) {
-    return <TextBlinkLoader text={loadingText} />
+    return <TextBlinkLoader text={loadingText} />;
   }
 
   switch (step) {
     case "resume":
-      return <Resume />;
+      return <Resume setResumes={setResumes} />;
     case "usa_jobs":
-      return (
-        <UsaJobs />
-      );
+      return <UsaJobs />;
     case "wrong_met_to_unmet":
       return (
         <div>
-          {qualifications &&
+          {qualifications && (
             <WrongMetToUnmet
               qualifications={qualifications}
               recommendation={recommendation}
               setQualifications={setQualifications}
               setReviewedMetQualifications={setReviewedMetQualifications}
             />
-          }
+          )}
         </div>
-      )
+      );
     case "wrong_unmet_to_met":
       return (
-        <div>{qualifications &&
-          <WrongUnmetToMet
-            qualifications={qualifications}
-            setQualifications={setQualifications}
-            setReviewedUnmetQualifications={setReviewedUnmetQualifications}
-          />
-        }
+        <div>
+          {qualifications && (
+            <WrongUnmetToMet
+              qualifications={qualifications}
+              setQualifications={setQualifications}
+              setReviewedUnmetQualifications={setReviewedUnmetQualifications}
+            />
+          )}
         </div>
       );
     case "edit_met_qualifications":
       return (
         <div>
-          <EditTopicalQualifications currentTopicIndex={currentTopicIndex} setCurrentTopicIndex={setCurrentTopicIndex} setCurrentTopic={setCurrentTopic} currentTopic={currentTopic} />
+          <EditTopicalQualifications
+            currentTopicIndex={currentTopicIndex}
+            setCurrentTopicIndex={setCurrentTopicIndex}
+            setCurrentTopic={setCurrentTopic}
+            currentTopic={currentTopic}
+          />
         </div>
       );
-    case  "qualifications_final_review":
-      return (<QualificationsFinalReview 
-        setCurrentTopicIndex={setCurrentTopicIndex}      
-      />)
+    case "qualifications_final_review":
+      return (
+        <QualificationsFinalReview
+          setCurrentTopicIndex={setCurrentTopicIndex}
+        />
+      );
     default:
       return <div>Nothing for the group</div>;
   }
