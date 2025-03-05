@@ -1,8 +1,14 @@
 import React, { ChangeEvent, useEffect, useState } from "react";
 import styles from "./forms.module.css";
 
-export const Checkbox = ({ name }: { name: string }) => {
-  return <input name={name} type="checkbox" />;
+export const Checkbox = ({
+  handleChange,
+  name,
+}: {
+  handleChange: React.ChangeEventHandler<HTMLInputElement>;
+  name: string;
+}) => {
+  return <input name={name} onChange={handleChange} type="checkbox" />;
 };
 export const Checkboxes = ({
   additionalClassName,
@@ -86,7 +92,7 @@ export const RadioSelect = ({
 }: {
   additionalClassName: string;
   name: string;
-  options: { id: number | string ; name: string }[];
+  options: { id: number | string; name: string }[];
 }) => {
   const [checkedState, setCheckedState] = useState(
     new Array(options.length).fill(false)
