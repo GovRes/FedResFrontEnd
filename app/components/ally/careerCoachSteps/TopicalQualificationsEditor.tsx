@@ -20,7 +20,7 @@ export const TopicalQualificationsEditor = ({
 }) => {
   let delay = 0.3;
   const {
-    jobDescription,
+    job,
     keywords,
     resumes,
     topics,
@@ -47,11 +47,11 @@ export const TopicalQualificationsEditor = ({
   ) => {
     event.preventDefault();
     let userResponse = event.currentTarget.questionResponse.value;
-    if (currentTopic && jobDescription && keywords && resumes && userResponse) {
+    if (currentTopic && job && keywords && resumes && userResponse) {
       let updatedDescriptionRes = await qualificationsEvidenceQuestionResponder(
         {
           currentTopic: currentTopic,
-          jobDescription,
+          job,
           resumes,
           setLoading,
           setLoadingText,
@@ -67,12 +67,12 @@ export const TopicalQualificationsEditor = ({
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     let userResponse = event.currentTarget.qualificationResponse.value;
-    if (currentTopic && userResponse && jobDescription && keywords && resumes) {
+    if (currentTopic && userResponse && job && keywords && resumes) {
       try {
         let updatedDescriptionRes =
           await qualificationsEvidenceFeedbackResponder({
             currentTopic: currentTopic,
-            jobDescription,
+            job,
             resumes,
             setLoading,
             setLoadingText,

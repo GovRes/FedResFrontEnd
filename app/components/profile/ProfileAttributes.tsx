@@ -45,25 +45,25 @@ export default function ProfileAttributes() {
       <ProfileAttributeBooleanField
         attributeKey="custom:citizen"
         title="Are you a US Citizen?"
-        value={attributes["custom:citizen"] || ""}
+        value={attributes["custom:citizen"] || "true"}
         setAttributes={setAttributes}
       />
       <ProfileAttributeBooleanField
         attributeKey="custom:veteran"
         title="Are you a veteran?"
-        value={attributes["custom:veteran"] || ""}
+        value={attributes["custom:veteran"] || "false"}
         setAttributes={setAttributes}
       />
       <ProfileAttributeBooleanField
         attributeKey="custom:militarySpouse"
         title="Are you a military spouse?"
-        value={attributes["custom:militarySpouse"] || ""}
+        value={attributes["custom:militarySpouse"] || "false"}
         setAttributes={setAttributes}
       />
       <ProfileAttributeBooleanField
         attributeKey="custom:disabled"
         title="Are you an individual with a disability?"
-        value={attributes["custom:disabled"] || ""}
+        value={attributes["custom:disabled"] || "false"}
         setAttributes={setAttributes}
       />
       <ProfileAttributeSelectField

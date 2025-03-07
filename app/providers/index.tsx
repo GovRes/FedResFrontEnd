@@ -2,7 +2,7 @@
 
 import React, { createContext, useEffect, useState, ReactNode } from "react";
 import { QualificationsType, TopicType } from "../utils/responseSchemas";
-import { jobDescription as jd } from "../testData/testCandidate1/jobDescription";
+// import { job as jd } from "../testData/testCandidate1/jobDescription";
 import { keywords as kw } from "../testData/testCandidate1/keywords";
 import { resume as r } from "../testData/testCandidate1/resume";
 import { topics as t } from "../testData/testCandidate1/topics";
@@ -16,9 +16,10 @@ export type StepType =
   | "make_changes_to_met_qualifications"
   | "qualifications_final_review"
   | "pause";
+
 export interface AllyContextType {
   email?: string;
-  jobDescription?: string;
+  job?: JobType;
   keywords?: string[];
   loading: boolean;
   loadingText: string;
@@ -33,7 +34,7 @@ export interface AllyContextType {
   topics?: TopicType[];
   url?: string;
   setEmail: (step: string) => void;
-  setJobDescription: (jobDescription: string) => void;
+  setJob: (job: JobType) => void;
   setKeywords: (keywords: string[]) => void;
   setLoading: (loading: boolean) => void;
   setLoadingText: (loadingText: string) => void;
@@ -51,6 +52,14 @@ export interface AllyContextType {
   setUrl: (url: string) => void;
 }
 
+export interface JobType {
+  title: string;
+  department: string;
+  evaluationCriteria: string;
+  duties: string;
+  agencyDescription: string;
+}
+
 export const AllyContext = createContext<AllyContextType | undefined>(
   undefined
 );
@@ -58,7 +67,7 @@ export const AllyContext = createContext<AllyContextType | undefined>(
 export const AllyProvider = ({ children }: { children: ReactNode }) => {
   const test = false;
   const [email, setEmail] = useState("");
-  const [jobDescription, setJobDescription] = useState("");
+  const [job, setJob] = useState<JobType>();
   const [keywords, setKeywords] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingText, setLoadingText] = useState("Talking to the AI");
@@ -74,13 +83,13 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
     useState(false);
   const [reviewedUnmetQualifications, setReviewedUnmetQualifications] =
     useState(false);
-  const [step, setStep] = useState<StepType>("resume");
+  const [step, setStep] = useState<StepType>("usa_jobs");
   const [topics, setTopics] = useState<TopicType[]>();
   const [url, setUrl] = useState("");
 
   useEffect(() => {
     if (test) {
-      setJobDescription(jd);
+      // setJob(jd);
       setKeywords(kw);
       setResume(r);
       setReviewedMetQualifications(true);
@@ -93,7 +102,7 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
     <AllyContext.Provider
       value={{
         email,
-        jobDescription,
+        job,
         keywords,
         loading,
         loadingText,
@@ -109,7 +118,7 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
         url,
         setEmail,
         setKeywords,
-        setJobDescription,
+        setJob,
         setLoading,
         setLoadingText,
         setName,

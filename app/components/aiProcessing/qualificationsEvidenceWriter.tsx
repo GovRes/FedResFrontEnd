@@ -7,17 +7,18 @@ import {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from "openai/resources/index.mjs";
+import { JobType } from "@/app/providers";
 
 export const qualificationsEvidenceWriter = async ({
   currentTopic,
-  jobDescription,
+  job,
   qualifications,
   resumes,
   setLoading,
   setLoadingText,
 }: {
   currentTopic: TopicType;
-  jobDescription: string;
+  job: string;
   qualifications: QualificationsType;
   resumes: string[];
   setLoading: Function;
@@ -29,7 +30,7 @@ export const qualificationsEvidenceWriter = async ({
 
     const userMessage: ChatCompletionUserMessageParam = {
       role: "user",
-      content: `Job description: ${jobDescription}. Resume: ${resumes}, qualifications: ${qualifications}, Current qualification topic: ${JSON.stringify(
+      content: `Job description: ${job}. Resume: ${resumes}, qualifications: ${qualifications}, Current qualification topic: ${JSON.stringify(
         currentTopic
       )}`,
     };
@@ -60,14 +61,14 @@ export const qualificationsEvidenceWriter = async ({
 
 export const qualificationsEvidenceQuestionResponder = async ({
   currentTopic,
-  jobDescription,
+  job,
   resumes,
   setLoading,
   setLoadingText,
   userResponse,
 }: {
   currentTopic: TopicType;
-  jobDescription: string;
+  job: JobType;
   resumes: string[];
   setLoading: Function;
   setLoadingText: Function;
@@ -79,7 +80,7 @@ export const qualificationsEvidenceQuestionResponder = async ({
 
     const userMessage: ChatCompletionUserMessageParam = {
       role: "user",
-      content: `Job description: ${jobDescription}. Resume: ${resumes}, Current qualification topic: ${JSON.stringify(
+      content: `Job description: ${job}. Resume: ${resumes}, Current qualification topic: ${JSON.stringify(
         currentTopic
       )}. Your question: ${
         currentTopic.question
@@ -106,14 +107,14 @@ export const qualificationsEvidenceQuestionResponder = async ({
 
 export const qualificationsEvidenceFeedbackResponder = async ({
   currentTopic,
-  jobDescription,
+  job,
   resumes,
   setLoading,
   setLoadingText,
   userResponse,
 }: {
   currentTopic: TopicType;
-  jobDescription: string;
+  job: JobType;
   resumes: string[];
   setLoading: Function;
   setLoadingText: Function;
@@ -125,7 +126,7 @@ export const qualificationsEvidenceFeedbackResponder = async ({
 
     const userMessage: ChatCompletionUserMessageParam = {
       role: "user",
-      content: `Job description: ${jobDescription}. Resume: ${resumes}, Current qualification topic: ${JSON.stringify(
+      content: `Job description: ${job}. Resume: ${resumes}, Current qualification topic: ${JSON.stringify(
         currentTopic
       )}. Your original evidence: ${
         currentTopic.evidence

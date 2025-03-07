@@ -10,6 +10,21 @@ export const Checkbox = ({
 }) => {
   return <input name={name} onChange={handleChange} type="checkbox" />;
 };
+export const CheckboxWithLabel = ({
+  handleChange,
+  label,
+  name,
+}: {
+  handleChange: React.ChangeEventHandler<HTMLInputElement>;
+  label: string;
+  name: string;
+}) => {
+  return (
+    <span>
+      {label}: <input name={name} onChange={handleChange} type="checkbox" />
+    </span>
+  );
+};
 export const Checkboxes = ({
   additionalClassName,
   options,
@@ -84,7 +99,30 @@ export const Email = ({ name }: { name: string }) => {
     </>
   );
 };
-
+export const Number = ({
+  name,
+  onChange,
+}: {
+  name: string;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+}) => {
+  return <input name={name} type="number" onChange={onChange} />;
+};
+export const NumberWithLabel = ({
+  label,
+  name,
+  onChange,
+}: {
+  label: string;
+  name: string;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+}) => {
+  return (
+    <span>
+      {label}: <Number name={name} onChange={onChange} />
+    </span>
+  );
+};
 export const RadioSelect = ({
   additionalClassName,
   name,
@@ -121,6 +159,60 @@ export const RadioSelect = ({
     </div>
   );
 };
+export const Select = ({
+  allowNull = false,
+  name,
+  options,
+  onChange,
+  value,
+}: {
+  allowNull?: boolean;
+  name: string;
+  options: Record<string, string>;
+  onChange: (event: ChangeEvent<HTMLSelectElement>) => void;
+  value: string | number | undefined;
+}) => {
+  return (
+    <select defaultValue={value} name={name} onChange={onChange}>
+      {allowNull && <option value="">Select...</option>}
+      {Object.keys(options).map((key) => {
+        return (
+          <option key={key} value={key}>
+            {options[key]}
+          </option>
+        );
+      })}
+    </select>
+  );
+};
+export const SelectWithLabel = ({
+  allowNull = false,
+  label,
+  name,
+  options,
+  onChange,
+  value,
+}: {
+  allowNull?: boolean;
+  label: string;
+  name: string;
+  options: Record<string, string>;
+  onChange: (event: ChangeEvent<HTMLSelectElement>) => void;
+  value: string | number | undefined;
+}) => {
+  return (
+    <div>
+      <span>{label}</span>:{" "}
+      <Select
+        allowNull={allowNull}
+        name={name}
+        options={options}
+        onChange={onChange}
+        value={value}
+      />
+    </div>
+  );
+};
 export const SubmitButton = ({
   children,
 }: {
@@ -129,8 +221,29 @@ export const SubmitButton = ({
 }) => {
   return <button type="submit">{children}</button>;
 };
-export const Text = ({ name }: { name: string }) => {
-  return <input autoFocus name={name} type="text" />;
+export const Text = ({
+  name,
+  onChange,
+}: {
+  name: string;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+}) => {
+  return <input autoFocus name={name} type="text" onChange={onChange} />;
+};
+export const TextWithLabel = ({
+  label,
+  name,
+  onChange,
+}: {
+  label: string;
+  name: string;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+}) => {
+  return (
+    <span>
+      {label}: <Text name={name} onChange={onChange} />
+    </span>
+  );
 };
 
 export const TextArea = ({ name }: { name: string }) => {

@@ -8,13 +8,13 @@ import {
 import { QualificationsType } from "@/app/utils/responseSchemas";
 import { sendMessages } from "@/app/utils/api";
 export const qualificationsReviewer = async ({
-  jobDescription,
+  job,
   keywords,
   resumes,
   setLoading,
   setLoadingText,
 }: {
-  jobDescription: string;
+  job: string;
   keywords: string[];
   resumes: string[];
   setLoading: Function;
@@ -25,7 +25,7 @@ export const qualificationsReviewer = async ({
   //first it sends it to the junior reviewer
   const userMessage: ChatCompletionUserMessageParam = {
     role: "user",
-    content: `Job description: ${jobDescription}. Key phrases: ${
+    content: `Job description: ${job}. Key phrases: ${
       Array.isArray(keywords) ? keywords.join(", ") : ""
     }. Resumes: ${Array.isArray(resumes) ? resumes.join(", ") : ""}`,
   };
@@ -42,7 +42,7 @@ export const qualificationsReviewer = async ({
   const tempUnmetQualifications = qualificationsReviewerRes.unmetQualifications;
   const advancedUserMessage: ChatCompletionUserMessageParam = {
     role: "user",
-    content: `Job description: ${jobDescription}. Key phrases: ${
+    content: `Job description: ${job}. Key phrases: ${
       Array.isArray(keywords) ? keywords.join(", ") : ""
     }.Resumes: ${
       Array.isArray(resumes) ? resumes.join(", ") : ""
@@ -62,13 +62,13 @@ export const qualificationsReviewer = async ({
 };
 
 export const qualificationsRecommender = async ({
-  jobDescription,
+  job,
   keywords,
   resume,
   setLoading,
   setLoadingText,
 }: {
-  jobDescription: string;
+  job: string;
   keywords: Array<string>;
   resume: string;
   setLoading: Function;
@@ -79,7 +79,7 @@ export const qualificationsRecommender = async ({
   //user edits might have an impact on recommendation, so let's ask one more time.
   const userMessage: ChatCompletionUserMessageParam = {
     role: "user",
-    content: `Job description: ${jobDescription}. Key phrases: ${
+    content: `Job description: ${job}. Key phrases: ${
       Array.isArray(keywords) ? keywords.join(", ") : ""
     }. Resume: ${resume}`,
   };
