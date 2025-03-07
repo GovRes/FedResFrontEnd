@@ -52,6 +52,8 @@ button.negative {
   gap: 10px;
   justify-content: space-between;
 }
+.noResultsContainer {
+}
 .qualificationEditorContainer {
   display: flex;
   flex-direction: row;
@@ -101,6 +103,11 @@ button.negative {
 
 .qualificationEditorAllyChat {
   flex: 3;
+}
+
+.resultsContainer {
+  font-size: 0.8em;
+  padding-bottom: 100px;
 }
 
 .resumesContainer {

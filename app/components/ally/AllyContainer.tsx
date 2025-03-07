@@ -22,7 +22,7 @@ export default function AllyContainer() {
     );
   }
   const {
-    jobDescription,
+    job,
     keywords,
     loading,
     loadingText,
@@ -51,95 +51,92 @@ export default function AllyContainer() {
     keywords: [],
   });
   async function selectStep(): Promise<StepType> {
-    if (!resumes) {
-      // store resumes
-      return "resume";
-    } else if (resumes && !jobDescription) {
-      // store usa jobs description and extract keywords from it.
+    if (!job) {
+      // select a job
       return "usa_jobs";
+    } else if (!resumes && job) {
+      //select a resume for applying to this particular job
+      return "resume";
     } else if (
       resumes &&
-      jobDescription &&
+      job &&
       !reviewedMetQualifications &&
       !reviewedUnmetQualifications
     ) {
       console.log(55);
-      let keywords = await jobDescriptionReviewer({
-        jobDescription,
-        setLoading,
-        setLoadingText,
-      });
-      console.log(57);
-      let qualifications = await qualificationsReviewer({
-        jobDescription,
-        keywords,
-        resumes,
-        setLoading,
-        setLoadingText,
-      });
-      setKeywords(keywords);
-      setQualifications(qualifications);
-      return "wrong_met_to_unmet";
-    } else if (
-      resumes &&
-      jobDescription &&
-      keywords &&
-      qualifications &&
-      reviewedMetQualifications &&
-      !reviewedUnmetQualifications
-    ) {
-      console.log(63);
-      return "wrong_unmet_to_met";
-    } else if (
-      jobDescription &&
-      keywords &&
-      reviewedMetQualifications &&
-      reviewedUnmetQualifications &&
-      !topics
-    ) {
-      console.log(66);
-      let topicsCategorizerRes = await topicsCategorizer({
-        jobDescription,
-        keywords,
-        setLoading,
-        setLoadingText,
-      });
-      console.log(topicsCategorizerRes);
-      console.log(typeof topicsCategorizerRes);
-      setTopics(topicsCategorizerRes);
-      console.log(topics, currentTopicIndex);
-      console.log(69);
+      // let keywords = await jobDescriptionReviewer({
+      //   job,
+      //   setLoading,
+      //   setLoadingText,
+      // });
+      // console.log(57);
+      // let qualifications = await qualificationsReviewer({
+      //   job,
+      //   keywords,
+      //   resumes,
+      //   setLoading,
+      //   setLoadingText,
+      // });
+      // setKeywords(keywords);
+      // setQualifications(qualifications);
+      // return "wrong_met_to_unmet";
+      // } else if (
+      //   resumes &&
+      //   job &&
+      //   keywords &&
+      //   qualifications &&
+      //   reviewedMetQualifications &&
+      //   !reviewedUnmetQualifications
+      // ) {
+      //   console.log(63);
+      //   return "wrong_unmet_to_met";
+      // } else if (
+      //   job &&
+      //   keywords &&
+      //   reviewedMetQualifications &&
+      //   reviewedUnmetQualifications &&
+      //   !topics
+      // ) {
+      //   console.log(66);
+      //   let topicsCategorizerRes = await topicsCategorizer({
+      //     job,
+      //     keywords,
+      //     setLoading,
+      //     setLoadingText,
+      //   });
+      //   console.log(topicsCategorizerRes);
+      //   console.log(typeof topicsCategorizerRes);
+      //   setTopics(topicsCategorizerRes);
+      //   console.log(topics, currentTopicIndex);
+      //   console.log(69);
+      // }
+      // if (job && qualifications && topics && topics[currentTopicIndex]) {
+      //   let topicRes = await qualificationsEvidenceWriter({
+      //     currentTopic: topics[currentTopicIndex],
+      //     job,
+      //     qualifications,
+      //     resumes,
+      //     setLoading,
+      //     setLoadingText,
+      //   });
+      //   if (topicRes) {
+      //     console.log(74);
+      //     setCurrentTopic(topicRes);
+      //   }
+      // console.log(77);
+      // return "edit_met_qualifications";
+      // } else if (topics && currentTopicIndex === topics.length) {
+      //   return "qualifications_final_review";
+      // }
+      // else if ((resume && jobDescription && keywords && reviewedMetQualifications && reviewedUnmetQualifications)) {
+      //   await qualificationsRecommender({ jobDescription, keywords, resume, setLoading, setLoadingText });
+      //   console.log(qualificationsRecommender)
+      //   return "pause"
+      // }
+      return "pause";
+    } else {
+      return "pause";
     }
-    if (
-      jobDescription &&
-      qualifications &&
-      topics &&
-      topics[currentTopicIndex]
-    ) {
-      console.log(71);
-      let topicRes = await qualificationsEvidenceWriter({
-        currentTopic: topics[currentTopicIndex],
-        jobDescription,
-        qualifications,
-        resumes,
-        setLoading,
-        setLoadingText,
-      });
-      if (topicRes) {
-        console.log(74);
-        setCurrentTopic(topicRes);
-      }
-      console.log(77);
-      return "edit_met_qualifications";
-    } else if (topics && currentTopicIndex === topics.length) {
-      return "qualifications_final_review";
-    }
-    // else if ((resume && jobDescription && keywords && reviewedMetQualifications && reviewedUnmetQualifications)) {
-    //   await qualificationsRecommender({ jobDescription, keywords, resume, setLoading, setLoadingText });
-    //   console.log(qualificationsRecommender)
-    //   return "pause"
-    // }
-    return "pause";
   }
   useEffect(() => {
     const updateStep = async () => {
@@ -151,7 +148,7 @@ export default function AllyContainer() {
     };
     updateStep();
   }, [
-    jobDescription,
+    job,
     resumes,
     reviewedMetQualifications,
     reviewedUnmetQualifications,
