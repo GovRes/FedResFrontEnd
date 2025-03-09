@@ -1,6 +1,8 @@
 import React, { useRef, useEffect } from "react";
 import styles from "./modal.module.css";
 
+import { GrClose } from "react-icons/gr";
+
 interface ModalProps {
   isOpen: boolean;
   hasCloseBtn?: boolean;
@@ -48,7 +50,7 @@ const Modal = ({
           onClick={handleCloseModal}
           aria-label="Close modal"
         >
-          Close
+          <GrClose />
         </button>
       )}
       {children}

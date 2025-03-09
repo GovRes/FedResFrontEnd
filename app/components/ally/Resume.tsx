@@ -7,18 +7,24 @@ import ResumesTable from "./resumeComponents/ResumesTable";
 import ResumeUploader from "../profile/resumeComponents/ResumeUploader";
 import { ResumeType } from "@/app/utils/responseSchemas";
 import { getFileUrl } from "@/app/utils/client-utils";
+import { TextBlinkLoader } from "../loader/Loader";
 
 export default function Resumes({ setResumes }: { setResumes: Function }) {
+  const [loading, setLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState("Loading Resumes");
   const [localResumes, setLocalResumes] = useState<ResumeType[]>([]);
   const [selectedResumes, setSelectedResumes] = useState<ResumeType[]>([]);
   const [refresh, setRefresh] = useState(true);
   const [showUploader, setShowUploader] = useState(false);
   async function processResumes() {
+    setLoadingText("Processing Resumes");
+    setLoading(true);
     let stringResumes = await selectedResumes.map(async (resume) => {
       return await processResume(resume);
     });
     const resolvedResumes = await Promise.all(stringResumes);
     setResumes(resolvedResumes);
+    setLoading(false);
   }
   async function processResume(resume: ResumeType) {
     return await getFileUrl({ path: resume.path }).then(async (fileUrl) => {
@@ -42,12 +48,14 @@ export default function Resumes({ setResumes }: { setResumes: Function }) {
   }
   useEffect(() => {
     async function getResumes() {
+      setLoading(true);
       const result = await list({
         path: ({ identityId }) => `resumes/${identityId}/`,
         options: {
           bucket: "govRezUserData",
         },
       });
+      setLoading(false);
 
       let sortedResult = result.items.sort(
         (a, b) =>
@@ -60,6 +68,9 @@ export default function Resumes({ setResumes }: { setResumes: Function }) {
       setRefresh(false);
     }
   }, [refresh]);
+  if (loading) {
+    return <TextBlinkLoader text="Loading Resumes" />;
+  }
   return (
     <div className={styles.resumesContainer}>
       <ResumesTable

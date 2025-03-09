@@ -4,6 +4,7 @@ import styles from "../ally.module.css";
 import Modal from "../../modal/Modal";
 import { AllyContext } from "@/app/providers";
 import { formatJobDescription } from "@/app/utils/usaJobsSearch";
+import indefiniteArticle from "@/app/utils/indefiniteArticles";
 export interface MatchedObjectDescriptor {
   PositionTitle: string;
   DepartmentName: string;
@@ -50,6 +51,10 @@ export default function UsaJobsResults({
     setModalOpen(true);
     setCurrentJob(job);
   }
+  function returnToSearch() {
+    setShowSearchForm(true);
+    window.scrollTo(0, 0);
+  }
   function setJobAndProceed() {
     if (currentJob) {
       setModalOpen(false);
@@ -61,11 +66,19 @@ export default function UsaJobsResults({
   return (
     <div className={styles.resultsContainer}>
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
-        <div>You want apply for {currentJob?.PositionTitle}, correct?</div>
-        <button onClick={setJobAndProceed}>
-          Yes, let's apply to be a {currentJob?.PositionTitle}!
-        </button>
-        <button>No, please take me back to the search</button>
+        {currentJob && (
+          <>
+            <div>You want apply for {currentJob.PositionTitle}, correct?</div>
+            <button onClick={setJobAndProceed}>
+              Yes, let's apply to be{" "}
+              {indefiniteArticle({ phrase: currentJob.PositionTitle })}{" "}
+              {currentJob?.PositionTitle}!
+            </button>
+            <button onClick={() => setModalOpen(false)}>
+              No, please take me back to the search results.
+            </button>
+          </>
+        )}
       </Modal>
       <table>
         <thead role="rowgroup">
@@ -89,7 +102,7 @@ export default function UsaJobsResults({
           ))}
         </tbody>
       </table>
-      <button onClick={() => setShowSearchForm(true)}>Back to search</button>
+      <button onClick={returnToSearch}>Back to search</button>
     </div>
   );
 }

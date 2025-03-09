@@ -1,5 +1,6 @@
 import axios from "axios";
 import { MatchedObjectDescriptor } from "../components/ally/usaJobsComponents/UsaJobsResults";
+import { JobSearchObject } from "../components/ally/usaJobsComponents/UsaJobsSearch";
 
 var host = "data.usajobs.gov";
 var userAgent = process.env.USA_JOBS_EMAIL;
@@ -28,6 +29,7 @@ function constructHiringPath({ user }: { user: any }) {
   }
   return hiringPath;
 }
+
 export async function usaJobsSearch({
   keyword,
   locationName,
@@ -38,17 +40,7 @@ export async function usaJobsSearch({
   remote,
   travelPercentage,
   user,
-}: {
-  keyword?: string;
-  locationName?: string;
-  organization?: string;
-  positionScheduleType?: string;
-  positionTitle?: string;
-  radius?: number;
-  remote?: string;
-  travelPercentage?: string;
-  user: any;
-}) {
+}: JobSearchObject) {
   console.log(user);
   const hiringPath = constructHiringPath({ user });
   try {
