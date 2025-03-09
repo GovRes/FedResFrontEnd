@@ -7,11 +7,7 @@ import UsaJobs from "./UsaJobs";
 import WrongMetToUnmet from "./WrongMetToUnmet";
 import WrongUnmetToMet from "./WrongUnmetToMet";
 import { TextBlinkLoader } from "../loader/Loader";
-import { jobDescriptionReviewer } from "../aiProcessing/jobDescriptionReviewer";
-import { qualificationsReviewer } from "../aiProcessing/qualificationsReviewer";
 import { AllyContext, StepType } from "@/app/providers";
-import { topicsCategorizer } from "../aiProcessing/topicCategorizer";
-import { qualificationsEvidenceWriter } from "../aiProcessing/qualificationsEvidenceWriter";
 import { TopicType } from "@/app/utils/responseSchemas";
 
 export default function AllyContainer() {

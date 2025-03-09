@@ -1,9 +1,7 @@
 "use client";
 
 import { ResumeType } from "@/app/utils/responseSchemas";
-import styles from "../ally.module.css";
-import { GrDownload, GrTrash } from "react-icons/gr";
-import { getFileUrl, deleteFile } from "@/app/utils/client-utils";
+import { getFileUrl } from "@/app/utils/client-utils";
 import { useEffect, useState } from "react";
 import { Checkbox } from "../../forms/Inputs";
 

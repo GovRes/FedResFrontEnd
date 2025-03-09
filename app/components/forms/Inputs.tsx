@@ -20,9 +20,12 @@ export const CheckboxWithLabel = ({
   name: string;
 }) => {
   return (
-    <span>
-      {label}: <input name={name} onChange={handleChange} type="checkbox" />
-    </span>
+    <div className={styles.checkboxWithLabel}>
+      <span>{label}:</span>{" "}
+      <span>
+        <input name={name} onChange={handleChange} type="checkbox" />
+      </span>
+    </div>
   );
 };
 export const Checkboxes = ({
@@ -240,16 +243,58 @@ export const TextWithLabel = ({
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
 }) => {
   return (
-    <span>
-      {label}: <Text name={name} onChange={onChange} />
-    </span>
+    <div>
+      <div>{label}:</div> <Text name={name} onChange={onChange} />
+    </div>
   );
 };
 
 export const TextArea = ({ name }: { name: string }) => {
   return <textarea autoFocus cols={100} name={name} rows={30} />;
 };
-
+export const ToggleWithLabel = ({
+  label,
+  checked,
+  onChange,
+  name,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  name?: string;
+}) => {
+  return (
+    <div className={styles.checkboxWithLabel}>
+      <span>{label}:</span>{" "}
+      <Toggle checked={checked} name={name} onChange={onChange} />
+    </div>
+  );
+};
+export const Toggle = ({
+  checked,
+  onChange,
+  name,
+}: {
+  checked: boolean;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  name?: string;
+}) => {
+  return (
+    <span className={styles.attributeToggle}>
+      <div className={`${styles.button} ${styles.r}`} id="button-1">
+        <input
+          type="checkbox"
+          className={styles.checkbox}
+          checked={checked}
+          name={name}
+          onChange={onChange}
+        />
+        <div className={styles.knobs}></div>
+        <div className={styles.layer}></div>
+      </div>
+    </span>
+  );
+};
 export const Url = ({ name }: { name: string }) => {
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);

@@ -6,6 +6,7 @@ import {
   TextWithLabel,
   NumberWithLabel,
   CheckboxWithLabel,
+  ToggleWithLabel,
 } from "../../forms/Inputs";
 import { FormEvent, useState } from "react";
 import {
@@ -13,11 +14,25 @@ import {
   positionScheduleType,
   travelPercentage,
 } from "@/app/utils/usaJobsCodes";
+import { TextBlinkLoader } from "@/app/components/loader/Loader";
 
 import { delayAllyChat } from "@/app/utils/allyChat";
 import { usaJobsSearch } from "@/app/utils/usaJobsSearch";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { fetchUserAttributes } from "aws-amplify/auth";
+import { UserType } from "@/app/utils/userAttributeInterface";
+
+export interface JobSearchObject {
+  keyword?: string;
+  locationName?: string;
+  radius?: string;
+  organization?: keyof typeof agencies;
+  positionTitle?: string;
+  positionScheduleType?: string;
+  remote?: boolean;
+  travelPercentage?: string;
+  user: UserType;
+}
 
 export default function UsaJobsSearch({
   searchObject,
@@ -25,20 +40,18 @@ export default function UsaJobsSearch({
   setSearchResults,
   setShowSearchForm,
 }: {
-  searchObject: any;
+  searchObject: JobSearchObject;
   setSearchObject: Function;
   setSearchResults: Function;
   setShowSearchForm: Function;
 }) {
-  const { user, authStatus } = useAuthenticator((context) => [
-    context.user,
-    context.authStatus,
-  ]);
+  const [loading, setLoading] = useState(false);
 
   const onChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value, type, checked } = event.target as HTMLInputElement;
+    console.log({ name, value, type, checked });
     const newValue = type === "checkbox" ? checked : value;
     setSearchObject({
       ...searchObject,
@@ -47,35 +60,30 @@ export default function UsaJobsSearch({
   };
 
   async function search() {
-    if (authStatus === "authenticated" && user) {
-      let attr = await fetchUserAttributes();
-      console.log(attr);
-      return await usaJobsSearch({
-        keyword: searchObject.keyword,
-        locationName: searchObject.locationName,
-        organization: searchObject.organization,
-        positionTitle: searchObject.positionTitle,
-        positionScheduleType: searchObject.positionScheduleType,
-        radius: searchObject.radius,
-        remote: searchObject.remote,
-        travelPercentage: searchObject.travelPercentage,
-        user: attr,
-      });
-    }
+    setLoading(true);
+
+    let res = await usaJobsSearch({
+      ...searchObject,
+      keyword: searchObject.keyword,
+      locationName: searchObject.locationName,
+      organization: searchObject.organization,
+      positionTitle: searchObject.positionTitle,
+      positionScheduleType: searchObject.positionScheduleType,
+      radius: searchObject.radius,
+      remote: searchObject.remote,
+      travelPercentage: searchObject.travelPercentage,
+    });
+    setLoading(false);
+    return res;
   }
 
   async function onSubmitUsaJobsSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    console.log(searchObject);
+    window.scrollTo(0, 0);
     let results = await search();
+
     setShowSearchForm(false);
     setSearchResults(results);
-    // const jobDescription = (
-    //   event.currentTarget.elements.namedItem(
-    //     "job-description"
-    //   ) as HTMLInputElement
-    // ).value;
-    // setJobDescription(jobDescription);
   }
 
   let allyStatements = [
@@ -83,6 +91,9 @@ export default function UsaJobsSearch({
   ];
 
   let { allyFormattedGraphs, delay } = delayAllyChat({ allyStatements });
+  if (loading) {
+    return <TextBlinkLoader text="Searching USA jobs..." />;
+  }
   return (
     <div>
       <div className={`${styles.allyChatContainer}`}>{allyFormattedGraphs}</div>
@@ -127,10 +138,11 @@ export default function UsaJobsSearch({
             onChange={onChange}
             value={searchObject.positionScheduleType}
           />
-          <CheckboxWithLabel
+          <ToggleWithLabel
             label="Remote Only?"
-            name="remote"
-            handleChange={onChange}
+            checked={searchObject.remote === true}
+            onChange={onChange}
+            name={"remote"}
           />
           <SelectWithLabel
             allowNull={true}

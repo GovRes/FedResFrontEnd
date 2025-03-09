@@ -1,5 +1,6 @@
 import { GrFavorite } from "react-icons/gr";
 import { MatchedObjectDescriptor } from "./UsaJobsResults";
+import { formatSalary } from "@/app/utils/numberFormating";
 
 export default function UsaJobsResultsItem({
   job,
@@ -26,8 +27,8 @@ export default function UsaJobsResultsItem({
         {job.DepartmentName}
       </td>
       <td className="tableData" role="cell">
-        ${job.PositionRemuneration[0].MinimumRange} - $
-        {job.PositionRemuneration[0].MaximumRange} (
+        {formatSalary(job.PositionRemuneration[0].MinimumRange)} -{" "}
+        {formatSalary(job.PositionRemuneration[0].MaximumRange)} (
         {job.PositionRemuneration[0].Description})
       </td>
       <td className="tableData" role="cell">
