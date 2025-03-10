@@ -11,24 +11,28 @@ export default function QualificationsFinalReview({
 }: {
   setCurrentTopicIndex: Function;
 }) {
-  let allyStatements = [
-    "Thank you for all your feedback!",
-  ];
+  let allyStatements = ["Thank you for all your feedback!"];
   // if (recommendation === "Do not recommend") {
   //   allyStatements.push(
-  //     "Our reviewer does not recommend that you apply for this job. We'll deal with this in a later version.")
-  // } 
-  //   else {
-  //       allyStatements.push("Our reviewer thinks you are a great candidate for this job!")
-  //   }
-  const {topics, setStep} = useContext(AllyContext) as AllyContextType;
+  //     "Our reviewer does not recommend that you apply for this job. We'll deal with this in a later version."
+  //   );
+  // } else {
+  //   allyStatements.push(
+  //     "Our reviewer thinks you are a great candidate for this job!"
+  //   );
+  // }
+  const { topics, setStep } = useContext(AllyContext) as AllyContextType;
   const { allyFormattedGraphs, delay } = delayAllyChat({ allyStatements });
 
   return (
     <div>
       <div className={`${styles.allyChatContainer}`}>
         {allyFormattedGraphs}
-        <p>Here are my descriptions of your qualifications and evidence to support them. To make any changes, just click on the one you would like to work on.:</p>
+        <p>
+          Here are my descriptions of your qualifications and evidence to
+          support them. To make any changes, just click on the one you would
+          like to work on.:
+        </p>
         <ul
           className={`${styles.fade}`}
           style={{ animationDelay: `${delay}s` }}
@@ -38,7 +42,8 @@ export default function QualificationsFinalReview({
               index={index}
               key={topic.id}
               setCurrentTopicIndex={setCurrentTopicIndex}
-              topic={topic} />
+              topic={topic}
+            />
           ))}
         </ul>
         {/* <p>And here are the ones we think are a stretch for you:</p>
@@ -56,7 +61,6 @@ export default function QualificationsFinalReview({
           ))}
         </ul> */}
       </div>
-      
     </div>
   );
 }

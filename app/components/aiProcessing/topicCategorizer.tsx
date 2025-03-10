@@ -1,4 +1,5 @@
 import { topicsCategorizerPrompt } from "@/app/prompts/topicsCategorizer";
+import { JobType } from "@/app/providers";
 import { sendMessages } from "@/app/utils/api";
 import { TopicType } from "@/app/utils/responseSchemas";
 import {
@@ -12,7 +13,7 @@ export const topicsCategorizer = async ({
   setLoading,
   setLoadingText,
 }: {
-  job?: string;
+  job?: JobType;
   keywords?: Array<string>;
   setLoading: Function;
   setLoadingText: Function;

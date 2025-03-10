@@ -7,6 +7,8 @@ import {
 } from "openai/resources/index.mjs";
 import { QualificationsType } from "@/app/utils/responseSchemas";
 import { sendMessages } from "@/app/utils/api";
+import { JobType } from "@/app/providers";
+import { formatJobDescriptionForAI } from "@/app/utils/aiInteractionUtils";
 export const qualificationsReviewer = async ({
   job,
   keywords,
@@ -14,7 +16,7 @@ export const qualificationsReviewer = async ({
   setLoading,
   setLoadingText,
 }: {
-  job: string;
+  job: JobType;
   keywords: string[];
   resumes: string[];
   setLoading: Function;
@@ -23,9 +25,10 @@ export const qualificationsReviewer = async ({
   setLoadingText("Reviewing your qualifications");
   setLoading(true);
   //first it sends it to the junior reviewer
+  const jobDescription = formatJobDescriptionForAI({ job });
   const userMessage: ChatCompletionUserMessageParam = {
     role: "user",
-    content: `Job description: ${job}. Key phrases: ${
+    content: `Job description: ${jobDescription}. Key phrases: ${
       Array.isArray(keywords) ? keywords.join(", ") : ""
     }. Resumes: ${Array.isArray(resumes) ? resumes.join(", ") : ""}`,
   };
@@ -42,7 +45,7 @@ export const qualificationsReviewer = async ({
   const tempUnmetQualifications = qualificationsReviewerRes.unmetQualifications;
   const advancedUserMessage: ChatCompletionUserMessageParam = {
     role: "user",
-    content: `Job description: ${job}. Key phrases: ${
+    content: `Job description: ${jobDescription}. Key phrases: ${
       Array.isArray(keywords) ? keywords.join(", ") : ""
     }.Resumes: ${
       Array.isArray(resumes) ? resumes.join(", ") : ""
@@ -64,24 +67,25 @@ export const qualificationsReviewer = async ({
 export const qualificationsRecommender = async ({
   job,
   keywords,
-  resume,
+  resumes,
   setLoading,
   setLoadingText,
 }: {
-  job: string;
+  job: JobType;
   keywords: Array<string>;
-  resume: string;
+  resumes: string[];
   setLoading: Function;
   setLoadingText: Function;
 }) => {
   setLoading(true);
   setLoadingText("Reviewing your qualifications one more time");
   //user edits might have an impact on recommendation, so let's ask one more time.
+  const jobDescription = formatJobDescriptionForAI({ job });
   const userMessage: ChatCompletionUserMessageParam = {
     role: "user",
-    content: `Job description: ${job}. Key phrases: ${
+    content: `Job description: ${jobDescription}. Key phrases: ${
       Array.isArray(keywords) ? keywords.join(", ") : ""
-    }. Resume: ${resume}`,
+    }. Resume: ${Array.isArray(resumes) ? resumes.join(", ") : ""}`,
   };
   const messagesForQualificationsReviewer: (
     | ChatCompletionUserMessageParam

@@ -1,5 +1,10 @@
 "use client";
 import React, { useContext, useEffect, useState } from "react";
+import { jobDescriptionReviewer } from "../aiProcessing/jobDescriptionReviewer";
+import {
+  qualificationsRecommender,
+  qualificationsReviewer,
+} from "../aiProcessing/qualificationsReviewer";
 import EditTopicalQualifications from "./EditTopicalQualifications";
 import QualificationsFinalReview from "./QualificationsFinalReview";
 import Resume from "./Resume";
@@ -9,6 +14,8 @@ import WrongUnmetToMet from "./WrongUnmetToMet";
 import { TextBlinkLoader } from "../loader/Loader";
 import { AllyContext, StepType } from "@/app/providers";
 import { TopicType } from "@/app/utils/responseSchemas";
+import { topicsCategorizer } from "../aiProcessing/topicCategorizer";
+import { qualificationsEvidenceWriter } from "../aiProcessing/qualificationsEvidenceWriter";
 
 export default function AllyContainer() {
   const context = useContext(AllyContext);
@@ -59,80 +66,94 @@ export default function AllyContainer() {
       !reviewedMetQualifications &&
       !reviewedUnmetQualifications
     ) {
-      console.log(55);
-      // let keywords = await jobDescriptionReviewer({
-      //   job,
-      //   setLoading,
-      //   setLoadingText,
-      // });
-      // console.log(57);
-      // let qualifications = await qualificationsReviewer({
-      //   job,
-      //   keywords,
-      //   resumes,
-      //   setLoading,
-      //   setLoadingText,
-      // });
-      // setKeywords(keywords);
-      // setQualifications(qualifications);
-      // return "wrong_met_to_unmet";
-      // } else if (
-      //   resumes &&
-      //   job &&
-      //   keywords &&
-      //   qualifications &&
-      //   reviewedMetQualifications &&
-      //   !reviewedUnmetQualifications
-      // ) {
-      //   console.log(63);
-      //   return "wrong_unmet_to_met";
-      // } else if (
-      //   job &&
-      //   keywords &&
-      //   reviewedMetQualifications &&
-      //   reviewedUnmetQualifications &&
-      //   !topics
-      // ) {
-      //   console.log(66);
-      //   let topicsCategorizerRes = await topicsCategorizer({
-      //     job,
-      //     keywords,
-      //     setLoading,
-      //     setLoadingText,
-      //   });
-      //   console.log(topicsCategorizerRes);
-      //   console.log(typeof topicsCategorizerRes);
-      //   setTopics(topicsCategorizerRes);
-      //   console.log(topics, currentTopicIndex);
-      //   console.log(69);
-      // }
-      // if (job && qualifications && topics && topics[currentTopicIndex]) {
-      //   let topicRes = await qualificationsEvidenceWriter({
-      //     currentTopic: topics[currentTopicIndex],
-      //     job,
-      //     qualifications,
-      //     resumes,
-      //     setLoading,
-      //     setLoadingText,
-      //   });
-      //   if (topicRes) {
-      //     console.log(74);
-      //     setCurrentTopic(topicRes);
-      //   }
-      // console.log(77);
-      // return "edit_met_qualifications";
-      // } else if (topics && currentTopicIndex === topics.length) {
-      //   return "qualifications_final_review";
-      // }
-      // else if ((resume && jobDescription && keywords && reviewedMetQualifications && reviewedUnmetQualifications)) {
-      //   await qualificationsRecommender({ jobDescription, keywords, resume, setLoading, setLoadingText });
-      //   console.log(qualificationsRecommender)
-      //   return "pause"
-      // }
+      let keywords = await jobDescriptionReviewer({
+        job,
+        setLoading,
+        setLoadingText,
+      });
+      let qualifications = await qualificationsReviewer({
+        job,
+        keywords,
+        resumes,
+        setLoading,
+        setLoadingText,
+      });
+      setKeywords(keywords);
+      setQualifications(qualifications);
+      return "wrong_met_to_unmet";
+    } else if (
+      resumes &&
+      job &&
+      keywords &&
+      qualifications &&
+      reviewedMetQualifications &&
+      !reviewedUnmetQualifications
+    ) {
+      console.log(63);
+      return "wrong_unmet_to_met";
+    } else if (
+      job &&
+      keywords &&
+      reviewedMetQualifications &&
+      reviewedUnmetQualifications &&
+      !topics
+    ) {
+      console.log(66);
+      let topicsCategorizerRes = await topicsCategorizer({
+        job,
+        keywords,
+        setLoading,
+        setLoadingText,
+      });
+      console.log(topicsCategorizerRes);
+      console.log(typeof topicsCategorizerRes);
+      setTopics(topicsCategorizerRes);
+      console.log(topics, currentTopicIndex);
+      console.log(69);
+    }
+    if (
+      job &&
+      qualifications &&
+      resumes &&
+      topics &&
+      topics[currentTopicIndex]
+    ) {
+      let topicRes = await qualificationsEvidenceWriter({
+        currentTopic: topics[currentTopicIndex],
+        job,
+        qualifications,
+        resumes,
+        setLoading,
+        setLoadingText,
+      });
+      if (topicRes) {
+        console.log(74);
+        setCurrentTopic(topicRes);
+      }
+      console.log(77);
+      return "edit_met_qualifications";
+    } else if (topics && currentTopicIndex === topics.length) {
+      return "qualifications_final_review";
+    } else if (
+      resumes &&
+      job &&
+      keywords &&
+      reviewedMetQualifications &&
+      reviewedUnmetQualifications
+    ) {
+      await qualificationsRecommender({
+        job,
+        keywords,
+        resumes,
+        setLoading,
+        setLoadingText,
+      });
+      console.log(qualificationsRecommender);
       return "pause";
     } else {
       return "pause";
     }
+    return "pause";
   }
   useEffect(() => {
     const updateStep = async () => {

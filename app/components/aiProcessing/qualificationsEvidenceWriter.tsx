@@ -18,7 +18,7 @@ export const qualificationsEvidenceWriter = async ({
   setLoadingText,
 }: {
   currentTopic: TopicType;
-  job: string;
+  job: JobType;
   qualifications: QualificationsType;
   resumes: string[];
   setLoading: Function;

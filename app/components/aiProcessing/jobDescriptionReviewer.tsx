@@ -1,4 +1,6 @@
 import { jobDescriptionReviewerPrompt } from "@/app/prompts/jobDescriptionReviewer";
+import { JobType } from "@/app/providers";
+import { formatJobDescriptionForAI } from "@/app/utils/aiInteractionUtils";
 import { sendMessages } from "@/app/utils/api";
 import {
   ChatCompletionSystemMessageParam,
@@ -10,13 +12,14 @@ export const jobDescriptionReviewer = async ({
   setLoading,
   setLoadingText,
 }: {
-  job: string;
+  job: JobType;
   setLoading: (value: boolean) => void;
   setLoadingText: (text: string) => void;
 }) => {
+  const jobDescription = formatJobDescriptionForAI({ job });
   const userMessage: ChatCompletionUserMessageParam = {
     role: "user",
-    content: job,
+    content: jobDescription,
   };
   const messages: (
     | ChatCompletionUserMessageParam

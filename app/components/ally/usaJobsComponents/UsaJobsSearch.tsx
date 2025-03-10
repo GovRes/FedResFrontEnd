@@ -51,7 +51,6 @@ export default function UsaJobsSearch({
     event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value, type, checked } = event.target as HTMLInputElement;
-    console.log({ name, value, type, checked });
     const newValue = type === "checkbox" ? checked : value;
     setSearchObject({
       ...searchObject,
