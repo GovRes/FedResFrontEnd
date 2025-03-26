@@ -17,11 +17,13 @@ export interface MatchedObjectDescriptor {
   PositionLocation: {
     LocationName: string;
   }[];
+  QualificationSummary: string;
   UserArea: {
     Details: {
       AgencyMarketingStatement: string;
       Evaluations: string;
       MajorDuties: string[];
+      RequiredDocuments: string;
     };
   };
 }
@@ -58,8 +60,11 @@ export default function UsaJobsResults({
   function setJobAndProceed() {
     if (currentJob) {
       setModalOpen(false);
-      setStep("resume");
+      setStep("specialized_experience");
+
       let formattedJobDescription = formatJobDescription({ job: currentJob });
+      console.log(currentJob);
+      console.log(formattedJobDescription);
       setJob(formattedJobDescription);
     }
   }

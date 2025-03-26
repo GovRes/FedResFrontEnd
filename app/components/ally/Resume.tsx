@@ -1,5 +1,5 @@
 import { list } from "aws-amplify/storage";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import pdfToText from "react-pdftotext";
 
 import styles from "./ally.module.css";
@@ -8,14 +8,24 @@ import ResumeUploader from "../profile/resumeComponents/ResumeUploader";
 import { ResumeType } from "@/app/utils/responseSchemas";
 import { getFileUrl } from "@/app/utils/client-utils";
 import { TextBlinkLoader } from "../loader/Loader";
+import { setHeapSnapshotNearHeapLimit } from "v8";
+import { AllyContext } from "@/app/providers";
 
-export default function Resumes({ setResumes }: { setResumes: Function }) {
+export default function Resumes() {
+  const context = useContext(AllyContext);
+  if (!context) {
+    throw new Error(
+      "AllyContainer must be used within an AllyContext.Provider"
+    );
+  }
+  const { setResumes, setStep } = context;
   const [loading, setLoading] = useState(false);
   const [loadingText, setLoadingText] = useState("Loading Resumes");
   const [localResumes, setLocalResumes] = useState<ResumeType[]>([]);
   const [selectedResumes, setSelectedResumes] = useState<ResumeType[]>([]);
   const [refresh, setRefresh] = useState(true);
   const [showUploader, setShowUploader] = useState(false);
+
   async function processResumes() {
     setLoadingText("Processing Resumes");
     setLoading(true);
@@ -25,25 +35,31 @@ export default function Resumes({ setResumes }: { setResumes: Function }) {
     const resolvedResumes = await Promise.all(stringResumes);
     setResumes(resolvedResumes);
     setLoading(false);
+    setStep("specialized_experience");
   }
+
   async function processResume(resume: ResumeType) {
     return await getFileUrl({ path: resume.path }).then(async (fileUrl) => {
       if (fileUrl) {
         const urlString = fileUrl.toString();
         const file = await fetch(urlString)
           .then((res) => res.blob())
-          .catch((error) => console.error(error));
+          .catch((error) => {
+            console.error(error);
+            return null;
+          });
         if (file) {
           return pdfToText(file)
             .then((text) => {
-              console.log(text);
               return text;
             })
-            .catch((error) =>
-              console.error("Failed to extract text from pdf", error)
-            );
+            .catch((error) => {
+              console.error("Failed to extract text from pdf", error);
+              return "";
+            });
         }
       }
+      return "";
     });
   }
   useEffect(() => {

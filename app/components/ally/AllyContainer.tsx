@@ -16,6 +16,7 @@ import { AllyContext, StepType } from "@/app/providers";
 import { TopicType } from "@/app/utils/responseSchemas";
 import { topicsCategorizer } from "../aiProcessing/topicCategorizer";
 import { qualificationsEvidenceWriter } from "../aiProcessing/qualificationsEvidenceWriter";
+import SpecializedExperience from "./SpecializedExperience";
 
 export default function AllyContainer() {
   const context = useContext(AllyContext);
@@ -80,7 +81,8 @@ export default function AllyContainer() {
       });
       setKeywords(keywords);
       setQualifications(qualifications);
-      return "wrong_met_to_unmet";
+      return "specialized_experience";
+      // return "wrong_met_to_unmet";
     } else if (
       resumes &&
       job &&
@@ -155,33 +157,35 @@ export default function AllyContainer() {
     }
     return "pause";
   }
-  useEffect(() => {
-    const updateStep = async () => {
-      const updatedStep = await selectStep();
+  // useEffect(() => {
+  //   const updateStep = async () => {
+  //     const updatedStep = await selectStep();
 
-      if (updatedStep != step) {
-        setStep(updatedStep);
-      }
-    };
-    updateStep();
-  }, [
-    job,
-    resumes,
-    reviewedMetQualifications,
-    reviewedUnmetQualifications,
-    topics,
-    currentTopicIndex,
-  ]);
+  //     if (updatedStep != step) {
+  //       setStep(updatedStep);
+  //     }
+  //   };
+  //   updateStep();
+  // }, [
+  //   job,
+  //   resumes,
+  //   reviewedMetQualifications,
+  //   reviewedUnmetQualifications,
+  //   topics,
+  //   currentTopicIndex,
+  // ]);
 
-  if (loading) {
-    return <TextBlinkLoader text={loadingText} />;
+  if (loading.current) {
+    return <TextBlinkLoader text={loadingText.current || ""} />;
   }
 
   switch (step) {
-    case "resume":
-      return <Resume setResumes={setResumes} />;
     case "usa_jobs":
       return <UsaJobs />;
+    case "specialized_experience":
+      return <SpecializedExperience />;
+    case "resume":
+      return <Resume />;
     case "wrong_met_to_unmet":
       return (
         <div>

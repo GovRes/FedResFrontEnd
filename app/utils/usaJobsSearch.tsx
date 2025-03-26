@@ -72,10 +72,12 @@ export function formatJobDescription({
   job: MatchedObjectDescriptor;
 }) {
   return {
-    title: job.PositionTitle,
-    department: job.DepartmentName,
-    evaluationCriteria: job.UserArea.Details.Evaluations,
-    duties: job.UserArea.Details.MajorDuties.join("; "),
     agencyDescription: job.UserArea.Details.AgencyMarketingStatement,
+    department: job.DepartmentName,
+    duties: job.UserArea.Details.MajorDuties.join("; "),
+    evaluationCriteria: job.UserArea.Details.Evaluations,
+    qualificationsSummary: job.QualificationSummary,
+    requiredDocuments: job.UserArea.Details.RequiredDocuments,
+    title: job.PositionTitle,
   };
 }
