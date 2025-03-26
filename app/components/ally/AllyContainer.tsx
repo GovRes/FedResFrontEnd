@@ -176,6 +176,7 @@ export default function AllyContainer() {
   // ]);
 
   if (loading.current) {
+    console.log(loading.current);
     return <TextBlinkLoader text={loadingText.current || ""} />;
   }
 

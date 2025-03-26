@@ -28,6 +28,8 @@ export const SpecializedExperience = z.object({
   id: z.string(),
   title: z.string(),
   description: z.string(),
+  userConfirmed: z.boolean().optional(),
+  descriptionOfExperience: z.string().optional(),
 });
 
 export const SpecializedExperienceArraySchema = z.object({

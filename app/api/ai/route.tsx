@@ -1,6 +1,8 @@
 import OpenAI from "openai";
 import { type NextRequest } from "next/server";
 import { zodResponseFormat } from "openai/helpers/zod";
+import { AssistantResponse } from "ai";
+
 import {
   Keywords,
   Qualification,
@@ -12,6 +14,7 @@ import {
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.OPENAI_API_KEY;
+  const assistantId = process.env.OPEN_AI_ASSISTANT_ID;
 
   if (!apiKey) {
     console.error("Missing API key");
