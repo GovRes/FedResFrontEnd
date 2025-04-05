@@ -4,6 +4,9 @@ const technicalRequirements =
 
 export const specializedExperienceExtractorPrompt: ChatCompletionSystemMessageParam =
   {
+    //tk should it be based just on the qualifications summary? or more of the job?
     role: "system",
-    content: `Given a summary of qualifications for a job, return the specialized experience required to apply for the job. Return only specialized experience, not general qualifications. ${technicalRequirements}`,
+    content: `Given a summary of qualifications for a job, return the specialized experience required to apply for the job. Return only specialized experience, not general qualifications. These specialized experiences may be a degree program, licensure, experience with a particular kind of software, etc. In addition to a short name of the experience, return a sentence or two describing it, and a question that you would ask a user to begin helping them write a paragraph about that experience. The question should include the job title and department as well as the name of the specialized experience.
+    ${technicalRequirements} 
+    An example would be: {id: "12fiwceiwe", title: "BS in Computer Science", description: "Bachelor's degree in Computer Science or a related field.", initialMessage: "I'm going to help you write a paragraph about getting your BS in computer science. We will include this in your application to become an IT security engineer at the Department of Defense. Can you tell me a bit about your undergraduate degree experience?"}.`,
   };

@@ -7,7 +7,7 @@ var userAgent = process.env.USA_JOBS_EMAIL;
 var authKey = process.env.USA_JOBS_API_KEY;
 const instance = axios.create({
   baseURL: "https://data.usajobs.gov/api/",
-  timeout: 10000,
+  timeout: 100000,
   headers: {
     Host: host,
     "User-Agent": userAgent,

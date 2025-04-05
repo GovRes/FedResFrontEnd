@@ -35,6 +35,7 @@ export default function AllyContainer() {
     reviewedMetQualifications,
     reviewedUnmetQualifications,
     resumes,
+    specializedExperiences,
     step,
     topics,
     setKeywords,

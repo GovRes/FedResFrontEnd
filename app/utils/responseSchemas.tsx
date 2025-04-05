@@ -29,7 +29,8 @@ export const SpecializedExperience = z.object({
   title: z.string(),
   description: z.string(),
   userConfirmed: z.boolean().optional(),
-  descriptionOfExperience: z.string().optional(),
+  paragraph: z.string().optional(),
+  initialMessage: z.string(),
 });
 
 export const SpecializedExperienceArraySchema = z.object({

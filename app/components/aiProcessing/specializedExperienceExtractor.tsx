@@ -27,11 +27,17 @@ export const specializedExperienceExtractor = async ({
     | ChatCompletionUserMessageParam
     | ChatCompletionSystemMessageParam
   )[] = [userMessage, specializedExperienceExtractorPrompt];
-  let res = await sendMessages({
-    messages: messagesForSpecializedExperienceExtractor,
-    name: "specializedExperiences",
-  });
+  try {
+    let res = await sendMessages({
+      messages: messagesForSpecializedExperienceExtractor,
+      name: "specializedExperiences",
+    });
 
-  setLoading(false);
-  return res.specializedExperiences as SpecializedExperienceType[];
+    return res.specializedExperiences as SpecializedExperienceType[];
+  } catch (error) {
+    console.error("Error extracting specialized experiences:", error);
+    throw error;
+  } finally {
+    setLoading(false);
+  }
 };
