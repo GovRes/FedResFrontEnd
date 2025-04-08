@@ -231,7 +231,7 @@ export const Text = ({
   name: string;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
 }) => {
-  return <input autoFocus name={name} type="text" onChange={onChange} />;
+  return <input name={name} type="text" onChange={onChange} />;
 };
 export const TextWithLabel = ({
   label,

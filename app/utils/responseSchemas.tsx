@@ -31,6 +31,13 @@ export const SpecializedExperience = z.object({
   userConfirmed: z.boolean().optional(),
   paragraph: z.string().optional(),
   initialMessage: z.string(),
+  typeOfExperience: z.enum([
+    "degree",
+    "certification",
+    "license",
+    "experience",
+    "other",
+  ]),
 });
 
 export const SpecializedExperienceArraySchema = z.object({

@@ -61,16 +61,15 @@ export default function Chat({
   // Function to save the paragraph
   const handleParagraphSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    console.log(paragraphData);
     if (!paragraphData) return;
     setEditType(null);
     await saveParagraph();
   };
   const saveParagraph = async () => {
     if (!paragraphData) return;
-    saveItem({ ...item, paragraph: paragraphData });
-    console.log("Saving paragraph:", paragraphData);
-    console.log("Item to save:", item);
-    console.log(currentIndex, itemsLength);
+    saveItem({ ...item, paragraph: paragraphData, userConfirmed: true });
+    window.scroll(0, 0);
     if (currentIndex != itemsLength - 1) {
       setCurrentIndex(currentIndex + 1);
       setEditType(null);
@@ -78,6 +77,11 @@ export default function Chat({
       setParagraphData(null);
       setThreadId("");
     } else {
+      setCurrentIndex(0);
+      setEditType(null);
+      setInput("");
+      setParagraphData(null);
+      setThreadId("");
       setNext();
     }
   };

@@ -8,7 +8,7 @@ import {
   CheckboxWithLabel,
   ToggleWithLabel,
 } from "../../forms/Inputs";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import {
   agencies,
   positionScheduleType,
@@ -18,8 +18,6 @@ import { TextBlinkLoader } from "@/app/components/loader/Loader";
 
 import { delayAllyChat } from "@/app/utils/allyChat";
 import { usaJobsSearch } from "@/app/utils/usaJobsSearch";
-import { useAuthenticator } from "@aws-amplify/ui-react";
-import { fetchUserAttributes } from "aws-amplify/auth";
 import { UserType } from "@/app/utils/userAttributeInterface";
 
 export interface JobSearchObject {
@@ -46,6 +44,20 @@ export default function UsaJobsSearch({
   setShowSearchForm: Function;
 }) {
   const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    setSearchObject({
+      ...searchObject,
+      keyword: null,
+      locationName: null,
+      organization: null,
+      positionTitle: null,
+      positionScheduleType: null,
+      radius: null,
+      remote: null,
+      travelPercentage: null,
+    });
+    console.log({ searchObject });
+  }, []);
 
   const onChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>

@@ -18,14 +18,14 @@ export default function Resumes() {
       "AllyContainer must be used within an AllyContext.Provider"
     );
   }
-  const { setResumes, setStep } = context;
+  const { setResumes, setStep, specializedExperiences } = context;
   const [loading, setLoading] = useState(false);
   const [loadingText, setLoadingText] = useState("Loading Resumes");
   const [localResumes, setLocalResumes] = useState<ResumeType[]>([]);
   const [selectedResumes, setSelectedResumes] = useState<ResumeType[]>([]);
   const [refresh, setRefresh] = useState(true);
   const [showUploader, setShowUploader] = useState(false);
-
+  console.log({ specializedExperiences });
   async function processResumes() {
     setLoadingText("Processing Resumes");
     setLoading(true);
