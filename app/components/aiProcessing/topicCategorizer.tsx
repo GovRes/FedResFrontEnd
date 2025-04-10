@@ -1,5 +1,5 @@
 import { topicsCategorizerPrompt } from "@/app/prompts/topicsCategorizer";
-import { JobType } from "@/app/providers";
+import { JobType } from "@/app/utils/responseSchemas";
 import { sendMessages } from "@/app/utils/api";
 import { TopicType } from "@/app/utils/responseSchemas";
 import {

@@ -15,7 +15,6 @@ export const Recommendation = z.object({
   recommendation: z.enum(["Recommend", "Do not recommend"]),
   justification: z.string(),
 });
-
 export const Qualifications = z.object({
   recommendation: Recommendation.optional(),
   metQualifications: z.array(Qualification),
@@ -45,8 +44,10 @@ export const SpecializedExperienceArraySchema = z.object({
 });
 export const Topic = z.object({
   id: z.string(),
-  name: z.string(),
+  title: z.string(),
   keywords: z.array(z.string()),
+  description: z.string().optional(),
+  //maybe are not needed
   evidence: z.string().optional(),
   question: z.string().optional(),
 });
@@ -64,3 +65,51 @@ export type ResumeType = {
   lastModified: Date;
   eTag: string;
 };
+
+export const UserJobQualification = z.object({
+  id: z.string(),
+  topic: Topic,
+  description: z.string(),
+  title: z.string(),
+  paragraph: z.string().optional(),
+  userConfirmed: z.boolean(),
+});
+
+export type UserJobQualificationType = z.infer<typeof UserJobQualification>;
+
+export const UserJob = z.object({
+  endDate: z.string().optional(),
+  hours: z.string().optional(),
+  gsLevel: z.string().optional(),
+  id: z.string(),
+  startDate: z.string().optional(),
+  organization: z.string(),
+  title: z.string(),
+  responsibilities: z.string().optional(),
+  userJobQualifications: z.array(UserJobQualification),
+});
+
+export type UserJobType = z.infer<typeof UserJob>;
+export type UserJobQualification = z.infer<typeof UserJobQualification>;
+export const UserJobsArraySchema = z.object({ userJobs: z.array(UserJob) });
+
+export type StepType =
+  | "temp_registration"
+  | "usa_jobs"
+  | "specialized_experience"
+  | "resume"
+  | "user_jobs"
+  | "edit_user_jobs"
+  | "wrong_met_to_unmet"
+  | "wrong_unmet_to_met"
+  | "pause";
+
+export interface JobType {
+  agencyDescription: string;
+  department: string;
+  duties: string;
+  evaluationCriteria: string;
+  qualificationsSummary: string;
+  requiredDocuments: string;
+  title: string;
+}

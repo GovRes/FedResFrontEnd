@@ -10,6 +10,7 @@ import {
   SpecializedExperienceArraySchema,
   Topic,
   TopicsArraySchema,
+  UserJobsArraySchema,
 } from "@/app/utils/responseSchemas";
 
 export async function POST(req: NextRequest) {
@@ -30,6 +31,7 @@ export async function POST(req: NextRequest) {
     qualifications: Qualifications,
     specializedExperiences: SpecializedExperienceArraySchema,
     topics: TopicsArraySchema,
+    userJobs: UserJobsArraySchema,
   };
 
   type SchemaKey = keyof typeof schemas;
@@ -40,7 +42,8 @@ export async function POST(req: NextRequest) {
     console.error(`Invalid schema name: ${data.name}`);
     return new Response(`Invalid schema name: ${data.name}`, { status: 400 });
   }
-
+  console.log("Selected schema:", selectedSchema);
+  console.log("schema name", schemaName);
   try {
     const completion = await client.beta.chat.completions.parse({
       messages: data.messages,

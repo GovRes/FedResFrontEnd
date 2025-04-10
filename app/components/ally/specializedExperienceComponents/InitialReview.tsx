@@ -42,7 +42,6 @@ export default function InitialReview({
     }
     fetchSpecializedExperience();
     hasFetched.current = true;
-    console.log("47", specializedExperiences);
   }, [job, setLoading, setLoadingText, setSpecializedExperiences]);
   function backToSearch() {
     setStep("usa_jobs");

@@ -1,6 +1,10 @@
 "use client";
 /* the code in this file allows users to interact with an AI which will eventually generate a paragraph for them and allow them to revise it. */
-import { SpecializedExperienceType } from "@/app/utils/responseSchemas";
+import {
+  SpecializedExperienceType,
+  UserJobQualificationType,
+  UserJobType,
+} from "@/app/utils/responseSchemas";
 import { useState, useEffect, FormEvent } from "react";
 import styles from "../../ally.module.css";
 import DetailedListEditorReturnedParagraph from "./ReturnedParagraph";
@@ -20,9 +24,11 @@ export default function Chat({
   assistantName: string;
   currentIndex: number;
   initialMessage: string;
-  item: SpecializedExperienceType;
+  item: SpecializedExperienceType | UserJobQualificationType;
   itemsLength: number;
-  saveItem: (item: SpecializedExperienceType) => void;
+  saveItem: (
+    item: SpecializedExperienceType | UserJobQualificationType
+  ) => void;
   setCurrentIndex: (index: number) => void;
   setNext: () => void;
 }) {
@@ -33,7 +39,9 @@ export default function Chat({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [threadId, setThreadId] = useState<string | null>(null);
-  const [paragraphData, setParagraphData] = useState<string | null>(null);
+  const [paragraphData, setParagraphData] = useState<string | null>(
+    item?.paragraph || null
+  );
   const [editType, setEditType] = useState<string | null>(null);
 
   // Initialize with the welcome message
@@ -61,7 +69,6 @@ export default function Chat({
   // Function to save the paragraph
   const handleParagraphSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log(paragraphData);
     if (!paragraphData) return;
     setEditType(null);
     await saveParagraph();

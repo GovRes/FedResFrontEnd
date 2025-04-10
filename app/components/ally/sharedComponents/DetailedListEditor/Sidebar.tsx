@@ -1,20 +1,27 @@
-import { SpecializedExperienceType } from "@/app/utils/responseSchemas";
+import {
+  SpecializedExperienceType,
+  UserJobQualificationType,
+  UserJobType,
+} from "@/app/utils/responseSchemas";
 import styles from "../../ally.module.css";
-import DetailedListEditorSidebarItem from "./SidebarItem";
+import SidebarItem from "./SidebarItem";
 
-export default function DetailedListEditorSidebar({
+export default function Sidebar({
   currentIndex,
   items,
   setCurrentIndex,
   titleText,
 }: {
   currentIndex: number;
-  items: SpecializedExperienceType[];
+  items:
+    | SpecializedExperienceType[]
+    | UserJobType[]
+    | UserJobQualificationType[];
   setCurrentIndex: Function;
   titleText: string;
 }) {
   const itemsList = items.map((item, index) => (
-    <DetailedListEditorSidebarItem
+    <SidebarItem
       currentIndex={currentIndex}
       key={item.id}
       index={index}

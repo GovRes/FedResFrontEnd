@@ -1,5 +1,5 @@
-import { jobDescriptionReviewerPrompt } from "@/app/prompts/jobDescriptionReviewer";
-import { JobType } from "@/app/providers";
+import { jobDescriptionKeywordFinderPrompt } from "@/app/prompts/jobDescriptionKeywordFinder";
+import { JobType } from "@/app/utils/responseSchemas";
 import { formatJobDescriptionForAI } from "@/app/utils/aiInteractionUtils";
 import { sendMessages } from "@/app/utils/api";
 import {
@@ -7,7 +7,7 @@ import {
   ChatCompletionUserMessageParam,
 } from "openai/resources/index.mjs";
 
-export const jobDescriptionReviewer = async ({
+export const jobDescriptionKeywordFinder = async ({
   job,
   setLoading,
   setLoadingText,
@@ -24,7 +24,7 @@ export const jobDescriptionReviewer = async ({
   const messages: (
     | ChatCompletionUserMessageParam
     | ChatCompletionSystemMessageParam
-  )[] = [userMessage, jobDescriptionReviewerPrompt];
+  )[] = [userMessage, jobDescriptionKeywordFinderPrompt];
   setLoading(true);
   setLoadingText("Extracting keywords from job description");
   let res = await sendMessages({ messages, name: "keywords" });

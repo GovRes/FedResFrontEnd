@@ -35,7 +35,7 @@ export default function Resumes() {
     const resolvedResumes = await Promise.all(stringResumes);
     setResumes(resolvedResumes);
     setLoading(false);
-    setStep("specialized_experience");
+    setStep("user_jobs");
   }
 
   async function processResume(resume: ResumeType) {

@@ -15,6 +15,33 @@ let assistantInstance:
   | (OpenAI.Beta.Assistants.Assistant & { _request_id?: string | null })
   | null = null;
 
+// Helper function to check for active runs and cancel if needed
+async function checkAndHandleActiveRuns(threadId: string) {
+  try {
+    console.log("Checking for active runs...");
+    const runs = await openai.beta.threads.runs.list(threadId);
+    const activeRun = runs.data.find((run) =>
+      ["queued", "in_progress", "requires_action"].includes(run.status)
+    );
+
+    if (activeRun) {
+      console.log(
+        `Found active run ${activeRun.id} with status ${activeRun.status}. Cancelling...`
+      );
+      await openai.beta.threads.runs.cancel(threadId, activeRun.id);
+      console.log(`Cancelled run ${activeRun.id}`);
+
+      // Brief delay to ensure cancellation is processed
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    } else {
+      console.log("No active runs found.");
+    }
+  } catch (error) {
+    console.error("Error checking/cancelling active runs:", error);
+    // Continue execution even if there's an error checking runs
+  }
+}
+
 export async function POST(req: Request) {
   console.log("=== POST REQUEST RECEIVED ===");
 
@@ -79,6 +106,9 @@ export async function POST(req: Request) {
         role: "assistant",
         content: initialMessage,
       });
+    } else {
+      // For existing threads, check and handle any active runs
+      await checkAndHandleActiveRuns(threadId);
     }
 
     // Add the user message to the thread if provided

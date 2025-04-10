@@ -2,9 +2,11 @@ import styles from "../../ally.module.css";
 import {
   SpecializedExperienceType,
   TopicType,
+  UserJobQualificationType,
+  UserJobType,
 } from "@/app/utils/responseSchemas";
 
-export default function DetailedListEditorItem({
+export default function SidebarItem({
   currentIndex,
   index,
   setCurrentIndex,
@@ -13,7 +15,11 @@ export default function DetailedListEditorItem({
   currentIndex: number;
   index: number;
   setCurrentIndex: Function;
-  item: SpecializedExperienceType | TopicType;
+  item:
+    | UserJobType
+    | SpecializedExperienceType
+    | TopicType
+    | UserJobQualificationType;
 }) {
   let content;
   if ("keywords" in item && Array.isArray(item.keywords)) {
@@ -28,11 +34,11 @@ export default function DetailedListEditorItem({
     content = <div>{item.description}</div>;
   }
 
-  let headingText;
+  let headingText = "";
   if ("title" in item) {
     headingText = item.title;
-  } else if ("name" in item) {
-    headingText = item.name;
+  } else if ("name" in item && typeof (item as any).name === "string") {
+    headingText = (item as any).name;
   }
   return (
     <div

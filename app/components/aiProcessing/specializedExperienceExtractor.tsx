@@ -1,6 +1,6 @@
 import { specializedExperienceExtractorPrompt } from "@/app/prompts/specializedExperienceExtractorPrompt";
 import { SpecializedExperienceType } from "@/app/utils/responseSchemas";
-import { JobType } from "@/app/providers";
+import { JobType } from "@/app/utils/responseSchemas";
 import { sendMessages } from "@/app/utils/api";
 import {
   ChatCompletionSystemMessageParam,
