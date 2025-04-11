@@ -33,10 +33,14 @@ export default function SidebarItem({
   } else if ("description" in item) {
     content = <div>{item.description}</div>;
   }
-
+  console.log(item);
   let headingText = "";
-  if ("title" in item) {
-    headingText = item.title;
+  if ("organization" in item && "title" in item) {
+    // Properly narrow the type for both organization and name properties
+    const typedItem = item as { title: string; organization: string };
+    headingText = `${typedItem.title} at ${typedItem.organization}`;
+  } else if ("title" in item) {
+    headingText = `${item.title}`;
   } else if ("name" in item && typeof (item as any).name === "string") {
     headingText = (item as any).name;
   }

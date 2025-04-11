@@ -21,7 +21,11 @@ export const topicUserJobMatcher = async ({
   setLoading(true);
   const userMessage: ChatCompletionUserMessageParam = {
     role: "user",
-    content: `user's past jobs: ${userJobs}. Topically organized keywords for job listing: ${topics}.`,
+    content: `user's past jobs: ${JSON.stringify(
+      userJobs
+    )}. Topically organized keywords for job listing: ${JSON.stringify(
+      topics
+    )}.`,
   };
   const messagesForTopicUserJobMatcher: (
     | ChatCompletionUserMessageParam

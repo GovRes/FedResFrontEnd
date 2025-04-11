@@ -25,7 +25,7 @@ export default function InitialReview({
     setSpecializedExperiences,
     setStep,
   } = context;
-  const [isLoading, setIsLoading] = useState(loading.current);
+  const [isLoading, setIsLoading] = useState(loading);
   const hasFetched = useRef(false);
   useEffect(() => {
     if (hasFetched.current) return;
@@ -59,9 +59,11 @@ export default function InitialReview({
   //     }
   //   }, [isLoading, specializedExperiences, setStep]);
 
+  //tk redo this section like jobs section, with preserving local state and sending to provider only when ready
+
   useEffect(() => {
-    setIsLoading(loading.current);
-  }, [loading.current]);
+    setIsLoading(loading);
+  }, [loading]);
 
   if (isLoading) {
     return <TextBlinkLoader text="Loading specialized experiences..." />;

@@ -6,6 +6,7 @@ import { TextBlinkLoader } from "../loader/Loader";
 import { AllyContext } from "@/app/providers";
 import SpecializedExperience from "./SpecializedExperience";
 import UserJobs from "./UserJobs";
+import ReturnResume from "./ReturnResume";
 
 export default function AllyContainer() {
   const context = useContext(AllyContext);
@@ -25,6 +26,8 @@ export default function AllyContainer() {
       return <Resume />;
     case "user_jobs":
       return <UserJobs />;
+    case "return_resume":
+      return <ReturnResume />;
     default:
       return <div>Nothing for the group</div>;
   }

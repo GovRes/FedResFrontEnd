@@ -34,6 +34,7 @@ export default function DetailedListEditor({
   const [currentItem, setCurrentItem] = useState<
     SpecializedExperienceType | UserJobQualificationType
   >(items[currentIndex]);
+  console.log(currentIndex, currentItem, items[currentIndex]);
   const [initialMessage, setInitialMessage] = useState(
     `Can you tell me more about your experience with ${currentItem.title}?`
   );
@@ -43,7 +44,6 @@ export default function DetailedListEditor({
       `I'm going to help you write a paragraph about ${items[currentIndex]?.title} to include in your application for ${jobString}. Can you tell me a bit about your experience?`
     );
   }, [currentIndex, items]);
-  console.log(currentIndex);
 
   let itemsList: JSX.Element[] = [];
 

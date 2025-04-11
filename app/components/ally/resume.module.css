@@ -1,0 +1,32 @@
+.jobItem {
+  padding: 15px 0;
+}
+.jobItemBasicInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 10px 0;
+}
+.jobTitle {
+  font-style: italic;
+}
+.organization {
+  font-weight: bold;
+}
+.resumeSection {
+  padding: 20px 0;
+}
+.specializedExperience h3 {
+  text-transform: uppercase;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-content: center;
+}
+
+.userDemos {
+  padding: 10px 0;
+}

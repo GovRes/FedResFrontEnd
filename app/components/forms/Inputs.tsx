@@ -105,24 +105,28 @@ export const Email = ({ name }: { name: string }) => {
 export const Number = ({
   name,
   onChange,
+  value,
 }: {
   name: string;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  value: number | undefined;
 }) => {
-  return <input name={name} type="number" onChange={onChange} />;
+  return <input name={name} type="number" onChange={onChange} value={value} />;
 };
 export const NumberWithLabel = ({
   label,
   name,
   onChange,
+  value,
 }: {
   label: string;
   name: string;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  value: number | undefined;
 }) => {
   return (
     <span>
-      {label}: <Number name={name} onChange={onChange} />
+      {label}: <Number name={name} onChange={onChange} value={value} />
     </span>
   );
 };

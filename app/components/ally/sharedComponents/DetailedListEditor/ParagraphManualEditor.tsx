@@ -4,10 +4,14 @@ import { FormEvent, useState } from "react";
 export default function ParagraphManualEditor({
   paragraphData,
   handleParagraphSubmit,
+  saveParagraph,
+  setEditType,
   setParagraphData,
 }: {
   paragraphData: string;
   handleParagraphSubmit: (e: FormEvent<HTMLFormElement>) => void;
+  saveParagraph: Function;
+  setEditType: Function;
   setParagraphData: (data: string) => void;
 }) {
   const [input, setInput] = useState(paragraphData);
@@ -38,6 +42,14 @@ export default function ParagraphManualEditor({
           {isLoading ? "Sending..." : "Send"}
         </button>
       </form>
+      <div>
+        <button onClick={() => saveParagraph()}>
+          This paragraph is great, save it and move on
+        </button>
+        <button onClick={() => setEditType("aiEditor")}>
+          I would like to suggest an edit or request a change.
+        </button>
+      </div>
     </div>
   );
 }

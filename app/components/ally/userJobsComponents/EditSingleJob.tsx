@@ -5,7 +5,10 @@ import {
   userJobsAssistantName,
   userJobsAssistantInstructions,
 } from "@/app/prompts/userJobsWriterPrompt";
-import { UserJobType } from "@/app/utils/responseSchemas";
+import {
+  UserJobQualificationType,
+  UserJobType,
+} from "@/app/utils/responseSchemas";
 import { TextBlinkLoader } from "../../loader/Loader";
 
 export default function EditSingleJob({
@@ -29,27 +32,42 @@ export default function EditSingleJob({
       "AllyContainer must be used within an AllyContext.Provider"
     );
   }
-  const { job, loading, loadingText, setStep, setUserJobs } = context;
+  const { job, setStep, setUserJobs } = context;
 
-  function saveUserJobQualification() {
+  console.log({ currentJobIndex, localUserJobs, userJob, userJobsLength });
+  function saveUserJobQualification(
+    updatedUserJobQualifications:
+      | UserJobQualificationType[]
+      | {
+          id: string;
+          title: string;
+          description: string;
+          initialMessage: string;
+          typeOfExperience:
+            | "degree"
+            | "certification"
+            | "license"
+            | "experience"
+            | "other";
+          paragraph?: string;
+          userConfirmed?: boolean;
+        }[]
+  ) {
     try {
-      // Default to empty array if userJobQualifications doesn't exist
-      const qualifications = userJob.userJobQualifications || [];
-
-      let tempUserJobQualifications = qualifications.map(
-        (userJobQualification) => {
-          return {
-            ...userJobQualification,
-            paragraph: userJobQualification.paragraph,
-            userConfirmed: true,
-          };
-        }
-      );
-      let tempUserJob = {
-        ...userJob,
-        userJobQualifications: tempUserJobQualifications,
-      };
-      saveUserJob(tempUserJob);
+      // Check if it's UserJobQualificationType[] before assigning
+      if (
+        updatedUserJobQualifications.length > 0 &&
+        "topic" in updatedUserJobQualifications[0]
+      ) {
+        let tempUserJob = {
+          ...userJob,
+          userJobQualifications:
+            updatedUserJobQualifications as UserJobQualificationType[],
+        };
+        saveUserJob(tempUserJob);
+      } else {
+        console.error("Received incompatible qualification type");
+      }
     } catch (error) {
       console.error("Error in saveUserJobQualification:", error);
     }
@@ -58,13 +76,10 @@ export default function EditSingleJob({
     if (currentJobIndex + 1 < userJobsLength) {
       setCurrentJobIndex(currentJobIndex + 1);
     } else {
+      console.log(localUserJobs);
       setUserJobs(localUserJobs);
-      setStep("pause");
+      setStep("return_resume");
     }
-  }
-
-  if (loading) {
-    return <TextBlinkLoader text={loadingText} />;
   }
 
   // Otherwise display the qualifications
@@ -77,7 +92,7 @@ export default function EditSingleJob({
       jobString={`${job?.title} at the ${job?.department}`}
       setFunction={saveUserJobQualification}
       setNext={setNextJob}
-      sidebarTitleText="Specialized Experiences"
+      sidebarTitleText="Job Experience"
     />
   );
 }

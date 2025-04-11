@@ -99,9 +99,7 @@ export type StepType =
   | "specialized_experience"
   | "resume"
   | "user_jobs"
-  | "edit_user_jobs"
-  | "wrong_met_to_unmet"
-  | "wrong_unmet_to_met"
+  | "return_resume"
   | "pause";
 
 export interface JobType {

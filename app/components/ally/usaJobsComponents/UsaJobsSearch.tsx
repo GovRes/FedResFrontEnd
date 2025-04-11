@@ -23,7 +23,7 @@ import { UserType } from "@/app/utils/userAttributeInterface";
 export interface JobSearchObject {
   keyword?: string;
   locationName?: string;
-  radius?: string;
+  radius?: number;
   organization?: keyof typeof agencies;
   positionTitle?: string;
   positionScheduleType?: string;
@@ -117,21 +117,25 @@ export default function UsaJobsSearch({
             label="Keywords (separate multiple keywords with a semicolon)"
             name="keyword"
             onChange={onChange}
+            value={searchObject.keyword || ""}
           />
           <TextWithLabel
             label="Position Title"
             name="positionTitle"
             onChange={onChange}
+            value={searchObject.positionTitle || ""}
           />
           <TextWithLabel
             label="Location"
             name="locationName"
             onChange={onChange}
+            value={searchObject.locationName || ""}
           />
           <NumberWithLabel
             label="Max distance from location (miles)"
             name="radius"
             onChange={onChange}
+            value={searchObject.radius || undefined}
           />
           <SelectWithLabel
             allowNull={true}

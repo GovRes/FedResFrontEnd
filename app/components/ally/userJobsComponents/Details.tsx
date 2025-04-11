@@ -29,6 +29,8 @@ export default function Details({
     localUserJobs[currentIndex]
   );
 
+  console.log("localUserJobs", localUserJobs);
+
   useEffect(() => {
     setCurrentItem(localUserJobs[currentIndex]);
   });

@@ -145,16 +145,12 @@ export default function ParagraphAIEditor({
         )}
       </div>
       <div className={styles.paragraphContainer}>
-        <h3>Your Paragraph:</h3>
-        <p>{localParagraphData}</p>
-        <div>
-          <button onClick={() => saveParagraph()}>
-            This paragraph is great, save it and move on
-          </button>
-          <button onClick={() => setEditType("manual")}>
-            I would like to manually edit this paragraph myself.
-          </button>
-        </div>
+        {localParagraphData && (
+          <>
+            <h3>Your Paragraph:</h3>
+            <p>{localParagraphData}</p>
+          </>
+        )}
       </div>{" "}
       <div>
         {/* Input form */}
@@ -174,6 +170,14 @@ export default function ParagraphAIEditor({
             {isLoading ? "Sending..." : "Send"}
           </button>
         </form>
+        <div>
+          <button onClick={() => saveParagraph()}>
+            This paragraph is great, save it and move on
+          </button>
+          <button onClick={() => setEditType("manual")}>
+            I would like to manually edit this paragraph myself.
+          </button>
+        </div>
       </div>
     </div>
   );

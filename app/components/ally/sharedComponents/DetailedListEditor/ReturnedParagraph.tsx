@@ -39,6 +39,8 @@ export default function ReturnedParagraph({
       {editType === "manual" && (
         <ParagraphManualEditor
           paragraphData={paragraphData}
+          saveParagraph={saveParagraph}
+          setEditType={setEditType}
           setParagraphData={setParagraphData}
           handleParagraphSubmit={handleParagraphSubmit}
         />

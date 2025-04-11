@@ -75,17 +75,11 @@ export default function InitialReview({
     event.preventDefault();
     window.scrollTo(0, 0);
     const values = getCheckboxValues(event);
-    values
-      .map((value) => {
-        let item = localUserJobs.find((obj) => obj.id === value);
-        if (item) {
-          let index = localUserJobs.indexOf(item);
-          let updatedUserJobs = localUserJobs.filter((_, i) => i !== index);
-          setLocalUserJobs(updatedUserJobs);
-        }
-        return item;
-      })
-      .filter((obj): obj is UserJobType => obj !== undefined);
+    // Filter out jobs whose IDs are in the values array
+    const updatedUserJobs = localUserJobs.filter(
+      (job) => !values.includes(job.id)
+    );
+    setLocalUserJobs(updatedUserJobs);
     setUserJobsStep("details");
   };
 
@@ -97,7 +91,7 @@ export default function InitialReview({
       <>
         <div className={styles.allyChatContainer}>
           Here are the jobs we extracted from your resume. Please select any
-          that you do not think will be relevant{" "}
+          that you DO NOT think will be relevant{" "}
           {job && <>in your application for {job.title}</>}
         </div>
         <div className={`${styles.userChatContainer} ${styles.fade}`}>
