@@ -1,4 +1,5 @@
 import {
+  AwardType,
   SpecializedExperienceType,
   UserJobType,
 } from "@/app/utils/responseSchemas";
@@ -11,6 +12,7 @@ import { fetchUserAttributes } from "aws-amplify/auth";
 import styles from "./resume.module.css";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { TextBlinkLoader } from "../loader/Loader";
+import AwardItem from "./returnResumeComponents/AwardItem";
 
 export default function ReturnResume() {
   const context = useContext(AllyContext);
@@ -21,6 +23,7 @@ export default function ReturnResume() {
   }
 
   const {
+    awards,
     loading,
     loadingText,
     setLoading,
@@ -120,6 +123,10 @@ export default function ReturnResume() {
         </div>
         <div className={styles.resumeSection}>
           <h3 className={styles.additionalInfo}>Awards and Achievements</h3>
+
+          {awards.map((award: AwardType) => (
+            <AwardItem key={award.id} award={award} />
+          ))}
         </div>
       </div>
     </div>

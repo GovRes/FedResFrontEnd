@@ -78,7 +78,7 @@ export default function EditSingleJob({
     } else {
       console.log(localUserJobs);
       setUserJobs(localUserJobs);
-      setStep("return_resume");
+      setStep("awards");
     }
   }
 

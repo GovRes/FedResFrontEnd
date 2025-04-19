@@ -4,6 +4,7 @@ import { zodResponseFormat } from "openai/helpers/zod";
 import { AssistantResponse } from "ai";
 
 import {
+  AwardsArraySchema,
   Keywords,
   Qualification,
   Qualifications,
@@ -26,6 +27,7 @@ export async function POST(req: NextRequest) {
   const data = await req.json();
 
   const schemas = {
+    awards: AwardsArraySchema,
     keywords: Keywords,
     qualification: Topic,
     qualifications: Qualifications,

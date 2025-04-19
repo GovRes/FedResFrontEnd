@@ -23,6 +23,15 @@ export const Qualifications = z.object({
 
 export type QualificationType = z.infer<typeof Qualification>;
 export type QualificationsType = z.infer<typeof Qualifications>;
+export const Award = z.object({
+  id: z.string(),
+  title: z.string(),
+  date: z.string(),
+});
+export const AwardsArraySchema = z.object({
+  awards: z.array(Award),
+});
+export type AwardType = z.infer<typeof Award>;
 export const SpecializedExperience = z.object({
   id: z.string(),
   title: z.string(),
@@ -99,6 +108,7 @@ export type StepType =
   | "specialized_experience"
   | "resume"
   | "user_jobs"
+  | "awards"
   | "return_resume"
   | "pause";
 

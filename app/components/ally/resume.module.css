@@ -13,6 +13,9 @@
 .organization {
   font-weight: bold;
 }
+.resumeItem {
+  padding: 20px 0;
+}
 .resumeSection {
   padding: 20px 0;
 }

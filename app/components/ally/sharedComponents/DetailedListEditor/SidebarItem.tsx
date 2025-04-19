@@ -1,5 +1,6 @@
 import styles from "../../ally.module.css";
 import {
+  AwardType,
   SpecializedExperienceType,
   TopicType,
   UserJobQualificationType,
@@ -17,6 +18,7 @@ export default function SidebarItem({
   setCurrentIndex: Function;
   item:
     | UserJobType
+    | AwardType
     | SpecializedExperienceType
     | TopicType
     | UserJobQualificationType;

@@ -1,4 +1,5 @@
 import {
+  AwardType,
   SpecializedExperienceType,
   UserJobQualificationType,
   UserJobType,
@@ -15,6 +16,7 @@ export default function Sidebar({
   currentIndex: number;
   items:
     | SpecializedExperienceType[]
+    | AwardType[]
     | UserJobType[]
     | UserJobQualificationType[];
   setCurrentIndex: Function;

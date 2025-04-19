@@ -2,8 +2,8 @@
 import React, { useContext } from "react";
 import Resume from "./Resume";
 import UsaJobs from "./UsaJobs";
-import { TextBlinkLoader } from "../loader/Loader";
 import { AllyContext } from "@/app/providers";
+import Awards from "./Awards";
 import SpecializedExperience from "./SpecializedExperience";
 import UserJobs from "./UserJobs";
 import ReturnResume from "./ReturnResume";
@@ -26,6 +26,8 @@ export default function AllyContainer() {
       return <Resume />;
     case "user_jobs":
       return <UserJobs />;
+    case "awards":
+      return <Awards />;
     case "return_resume":
       return <ReturnResume />;
     default:
