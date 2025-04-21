@@ -31,6 +31,7 @@ export const Education = z.object({
   school: z.string(),
   date: z.string(),
   title: z.string(),
+  gpa: z.string().optional(),
   userConfirmed: z.boolean().optional(),
 });
 export const EducationArraySchema = z.object({

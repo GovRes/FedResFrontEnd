@@ -1,7 +1,9 @@
 import {
   AwardType,
+  EducationType,
   SpecializedExperienceType,
   UserJobType,
+  VolunteerType,
 } from "@/app/utils/responseSchemas";
 import SpecializedExperienceItem from "./returnResumeComponents/SpecializedExperienceItem";
 import { useContext, useEffect, useState } from "react";
@@ -13,6 +15,7 @@ import styles from "./resume.module.css";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { TextBlinkLoader } from "../loader/Loader";
 import AwardItem from "./returnResumeComponents/AwardItem";
+import VolunteerItem from "./returnResumeComponents/VolunteerItem";
 
 export default function ReturnResume() {
   const context = useContext(AllyContext);
@@ -24,12 +27,14 @@ export default function ReturnResume() {
 
   const {
     awards,
+    educations,
     loading,
     loadingText,
     setLoading,
     setLoadingText,
     specializedExperiences,
     userJobs,
+    volunteers,
   } = context;
   //   might want to change this store education as a separate thing from specialized experiences
   const special = specializedExperiences.filter(
@@ -109,17 +114,17 @@ export default function ReturnResume() {
         </div>
         <div className={styles.resumeSection}>
           <h3 className={styles.education}>Education and Certifications</h3>
-          {education.map((experience: SpecializedExperienceType) => (
-            <EducationExperienceItem
-              key={experience.id}
-              experience={experience}
-            />
+          {educations.map((ed: EducationType) => (
+            <EducationExperienceItem key={ed.id} education={ed} />
           ))}
         </div>
         <div className={styles.resumeSection}>
           <h3 className={styles.additionalInfo}>
             Volunteer/Community Service Experiences
           </h3>
+          {volunteers.map((volunteer: UserJobType) => (
+            <VolunteerItem key={volunteer.id} volunteer={volunteer} />
+          ))}
         </div>
         <div className={styles.resumeSection}>
           <h3 className={styles.additionalInfo}>Awards and Achievements</h3>
