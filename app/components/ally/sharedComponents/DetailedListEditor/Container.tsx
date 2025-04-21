@@ -7,7 +7,9 @@ import {
 import SidebarItem from "./SidebarItem";
 import Sidebar from "./Sidebar";
 import Chat from "./Chat";
-export default function DetailedListEditor({
+export default function DetailedListEditor<
+  T extends SpecializedExperienceType | UserJobQualificationType
+>({
   assistantInstructions,
   assistantName,
   heading,
@@ -20,22 +22,17 @@ export default function DetailedListEditor({
   assistantInstructions: string;
   assistantName: string;
   heading?: string;
-  items: SpecializedExperienceType[] | UserJobQualificationType[];
+  items: T[];
   jobString: string;
-  setFunction: (
-    list: SpecializedExperienceType[] | UserJobQualificationType[]
-  ) => void;
+  setFunction: (list: T[]) => void;
   setNext(): void;
   sidebarTitleText: string;
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [currentItem, setCurrentItem] = useState<
-    SpecializedExperienceType | UserJobQualificationType
-  >(items[currentIndex]);
+  const [currentItem, setCurrentItem] = useState<T>(items[currentIndex]);
   console.log(currentIndex, currentItem, items[currentIndex]);
-  const [initialMessage, setInitialMessage] = useState(
-    `Can you tell me more about your experience with ${currentItem.title}?`
-  );
+  const [initialMessage, setInitialMessage] = useState("");
+
   useEffect(() => {
     setCurrentItem(items[currentIndex]);
     setInitialMessage(
@@ -45,27 +42,23 @@ export default function DetailedListEditor({
 
   let itemsList: JSX.Element[] = [];
 
-  async function saveItem(
-    item: SpecializedExperienceType | UserJobQualificationType
-  ) {
+  async function saveItem(item: T) {
     let updatedItems = items.map((i) => (i.id !== item.id ? i : item));
     setFunction(updatedItems as typeof items);
   }
 
   if (items && items.length > 0) {
-    itemsList = items.map(
-      (item: SpecializedExperienceType | UserJobQualificationType, index) => {
-        return (
-          <SidebarItem
-            currentIndex={currentIndex}
-            index={index}
-            key={item.id}
-            setCurrentIndex={setCurrentIndex}
-            item={item}
-          />
-        );
-      }
-    );
+    itemsList = items.map((item: T, index) => {
+      return (
+        <SidebarItem
+          currentIndex={currentIndex}
+          index={index}
+          key={item.id}
+          setCurrentIndex={setCurrentIndex}
+          item={item}
+        />
+      );
+    });
   }
 
   return (

@@ -9,7 +9,9 @@ import { useState, useEffect, FormEvent } from "react";
 import styles from "../../ally.module.css";
 import DetailedListEditorReturnedParagraph from "./ReturnedParagraph";
 
-export default function Chat({
+export default function Chat<
+  T extends SpecializedExperienceType | UserJobQualificationType
+>({
   assistantInstructions,
   assistantName,
   currentIndex,
@@ -24,11 +26,9 @@ export default function Chat({
   assistantName: string;
   currentIndex: number;
   initialMessage: string;
-  item: SpecializedExperienceType | UserJobQualificationType;
+  item: T;
   itemsLength: number;
-  saveItem: (
-    item: SpecializedExperienceType | UserJobQualificationType
-  ) => void;
+  saveItem: (item: T) => void;
   setCurrentIndex: (index: number) => void;
   setNext: () => void;
 }) {

@@ -2,14 +2,19 @@ import {
   AwardType,
   EducationType,
   SpecializedExperienceType,
+  TopicType,
   UserJobQualificationType,
   UserJobType,
 } from "@/app/utils/responseSchemas";
 import styles from "../../ally.module.css";
 import SidebarItem from "./SidebarItem";
-
 export default function Sidebar<
-  T extends AwardType | EducationType | UserJobType | UserJobQualificationType
+  T extends
+    | AwardType
+    | EducationType
+    | SpecializedExperienceType
+    | UserJobType
+    | UserJobQualificationType
 >({
   currentIndex,
   items,

@@ -141,6 +141,7 @@ export type StepType =
   | "awards"
   | "education"
   | "volunteer"
+  | "volunteer_details"
   | "return_resume"
   | "pause";
 

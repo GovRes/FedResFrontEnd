@@ -8,7 +8,7 @@ import {
 } from "@/app/utils/responseSchemas";
 import { Checkboxes, SubmitButton } from "../../forms/Inputs";
 import BaseForm from "../../forms/BaseForm";
-
+import { generateHeadingText } from "@/app/utils/stringBuilders";
 export default function ReviewItemsList<
   T extends AwardType | EducationType | UserJobType
 >({
@@ -32,7 +32,7 @@ export default function ReviewItemsList<
   const [itemOptions, setItemOptions] = useState(
     localItems.map((item) => ({
       id: item.id,
-      name: item.title,
+      name: generateHeadingText(item),
     }))
   );
 
@@ -44,7 +44,10 @@ export default function ReviewItemsList<
 
   useEffect(() => {
     setItemOptions(
-      localItems.map((item) => ({ id: item.id, name: item.title }))
+      localItems.map((item) => ({
+        id: item.id,
+        name: generateHeadingText(item),
+      }))
     );
   }, [localItems]);
 

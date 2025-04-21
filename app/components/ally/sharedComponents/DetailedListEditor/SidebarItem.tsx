@@ -2,10 +2,12 @@ import {
   AwardType,
   EducationType,
   SpecializedExperienceType,
+  TopicType,
   UserJobQualificationType,
   UserJobType,
 } from "@/app/utils/responseSchemas";
 import styles from "../../ally.module.css";
+import { generateHeadingText } from "@/app/utils/stringBuilders";
 
 export default function SidebarItem<
   T extends
@@ -37,14 +39,7 @@ export default function SidebarItem<
   } else if ("description" in item) {
     content = <div>{item.description}</div>;
   }
-  let headingText = "";
-  if ("organization" in item && "title" in item) {
-    headingText = `${item.title} at ${item["organization"]}`;
-  } else if ("title" in item) {
-    headingText = `${item.title}`;
-  } else if ("name" in item && typeof (item as any).name === "string") {
-    headingText = (item as any).name;
-  }
+  let headingText = generateHeadingText(item);
   return (
     <div
       key={item.id}

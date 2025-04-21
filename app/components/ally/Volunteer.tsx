@@ -3,25 +3,39 @@ import InitialReview from "./sharedComponents/InitialReview";
 import Editing from "./userJobsComponents/Editing";
 import Details from "./sharedComponents/Details";
 import VolunteersForm from "./volunteersComponents/VolunteersForm";
-import { VolunteerType } from "@/app/utils/responseSchemas";
+import { UserJobType } from "@/app/utils/responseSchemas";
 import { AllyContext } from "@/app/providers";
 import { volunteersExtractor } from "../aiProcessing/volunteersExtractor";
 import { TextBlinkLoader } from "../loader/Loader";
-const Volunteers = () => {
+import AddItems from "./sharedComponents/AddItems";
+const Volunteer = () => {
   const [volunteersStep, setVolunteersStep] = useState("initial");
-  const [localVolunteers, setLocalVolunteers] = useState<VolunteerType[]>([]);
+  const [localVolunteers, setLocalVolunteers] = useState<UserJobType[]>([]);
   const context = useContext(AllyContext);
   if (!context) {
     throw new Error(
       "AllyContainer must be used within an AllyContext.Provider"
     );
   }
-  const { loading, loadingText, resumes, setLoading, setLoadingText } = context;
+  const {
+    loading,
+    loadingText,
+    resumes,
+    setLoading,
+    setLoadingText,
+    setStep,
+    setVolunteers,
+  } = context;
+
+  function setNext() {
+    setVolunteers(localVolunteers);
+    setStep("volunteer_details");
+  }
   const hasFetched = useRef(false);
   useEffect(() => {
     if (hasFetched.current) return;
 
-    async function fetchVolunteers() {
+    async function fetchUserJobs() {
       if (resumes) {
         const volunteersRes = await volunteersExtractor({
           resumes,
@@ -31,7 +45,7 @@ const Volunteers = () => {
         setLocalVolunteers(volunteersRes);
       }
     }
-    fetchVolunteers();
+    fetchUserJobs();
     hasFetched.current = true;
   }, [resumes, setLoading, setLoadingText, setLocalVolunteers]);
 
@@ -41,7 +55,7 @@ const Volunteers = () => {
   if (volunteersStep === "initial") {
     return (
       <InitialReview
-        itemType="past job"
+        itemType="volunteer experience"
         localItems={localVolunteers}
         setLocalItems={setLocalVolunteers}
         setItemsStep={setVolunteersStep}
@@ -51,22 +65,36 @@ const Volunteers = () => {
     return (
       <Details
         Form={VolunteersForm}
-        itemType="past job"
+        itemType="volunteer experience"
         localItems={localVolunteers}
         setLocalItems={setLocalVolunteers}
-        setItemsStep={setVolunteersStep}
+        setNext={() => setVolunteersStep("additional")}
       />
     );
-  } else {
+  } else if (volunteersStep === "additional") {
     return (
-      // since volunteer experiences and work experiences have nearly all the same parameters other than GS level, we're just going to reuse the UserJobsType
-      <Editing
-        localUserJobs={localVolunteers}
-        nextStep="return_resume"
-        setLocalUserJobs={setLocalVolunteers}
+      <AddItems<UserJobType>
+        baseItem={
+          {
+            id: crypto.randomUUID(),
+            title: "",
+            organization: "",
+            startDate: "",
+            endDate: "",
+            responsibilities: "",
+            userJobQualifications: [],
+          } as UserJobType
+        }
+        Form={VolunteersForm}
+        header="Add volunteer experience"
+        itemType="volunteer experience"
+        localItems={localVolunteers}
+        setGlobalItems={setVolunteers}
+        setLocalItems={setLocalVolunteers}
+        setNext={setNext}
       />
     );
   }
 };
 
-export default Volunteers;
+export default Volunteer;

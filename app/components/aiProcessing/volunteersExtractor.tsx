@@ -32,7 +32,7 @@ export const volunteersExtractor = async ({
       name: "userJobs",
     });
 
-    return res.volunteers as UserJobType[];
+    return res.userJobs as UserJobType[];
   } catch (error) {
     console.error("Error extracting volunteer experiences", error);
     throw error;

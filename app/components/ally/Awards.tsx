@@ -72,7 +72,7 @@ export default function Awards({}) {
         itemType="award"
         localItems={localAwards}
         setLocalItems={setLocalAwards}
-        setItemsStep={setAwardsStep}
+        setNext={() => setAwardsStep("additional")}
       />
     );
   } else {

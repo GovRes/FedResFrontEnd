@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useContext } from "react";
 import InitialReview from "./sharedComponents/InitialReview";
-import Editing from "./userJobsComponents/Editing";
 import Details from "./sharedComponents/Details";
-import UserJobsForm from "./volunteersComponents/VolunteersForm";
+import UserJobsForm from "./userJobsComponents/UserJobsForm";
 import { UserJobType } from "@/app/utils/responseSchemas";
 import { AllyContext } from "@/app/providers";
 import { userJobsExtractor } from "../aiProcessing/userJobsExtractor";
 import { TextBlinkLoader } from "../loader/Loader";
+import AddItems from "./sharedComponents/AddItems";
 const UserJobs = () => {
   // const [userJobsStep, setUserJobsStep] = useState("initial");
   const [userJobsStep, setUserJobsStep] = useState("initial");
@@ -61,12 +61,36 @@ const UserJobs = () => {
         setItemsStep={setUserJobsStep}
       />
     );
-  } else {
+  } else if (userJobsStep === "details") {
     return (
       <Details
         Form={UserJobsForm}
         itemType="past job"
         localItems={localUserJobs}
+        setLocalItems={setLocalUserJobs}
+        setNext={setNext}
+      />
+    );
+  } else if (userJobsStep === "additional") {
+    return (
+      <AddItems<UserJobType>
+        baseItem={
+          {
+            id: crypto.randomUUID(),
+            title: "",
+            organization: "",
+            startDate: "",
+            endDate: "",
+            gsLevel: "",
+            responsibilities: "",
+            userJobQualifications: [],
+          } as UserJobType
+        }
+        Form={UserJobsForm}
+        header="Add a past job"
+        itemType="past job"
+        localItems={localUserJobs}
+        setGlobalItems={setUserJobs}
         setLocalItems={setLocalUserJobs}
         setNext={setNext}
       />

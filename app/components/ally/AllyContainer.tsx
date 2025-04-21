@@ -12,6 +12,7 @@ import Volunteer from "./Volunteer";
 import ExtractKeywords from "./ExtractKeywords";
 import SortTopics from "./SortTopics";
 import UserJobDetails from "./UserJobDetails";
+import VolunteerDetails from "./VolunteerDetails";
 
 export default function AllyContainer() {
   const context = useContext(AllyContext);
@@ -43,6 +44,8 @@ export default function AllyContainer() {
       return <Education />;
     case "volunteer":
       return <Volunteer />;
+    case "volunteer_details":
+      return <VolunteerDetails />;
     case "return_resume":
       return <ReturnResume />;
     default:

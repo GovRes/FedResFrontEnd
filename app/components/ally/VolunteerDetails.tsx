@@ -1,5 +1,5 @@
 import { useContext, useState } from "react";
-import Editing from "./userJobsComponents/Editing";
+import Editing from "./volunteersComponents/Editing";
 import { AllyContext } from "@/app/providers";
 import { UserJobType } from "@/app/utils/responseSchemas";
 
@@ -10,13 +10,14 @@ export default function UserJobDetails() {
       "AllyContainer must be used within an AllyContext.Provider"
     );
   }
-  const { userJobs } = context;
-  const [localUserJobs, setLocalUserJobs] = useState<UserJobType[]>(userJobs);
+  const { volunteers } = context;
+  const [localVolunteers, setLocalVolunteers] =
+    useState<UserJobType[]>(volunteers);
   return (
     <Editing
-      localUserJobs={localUserJobs}
-      nextStep="awards"
-      setLocalUserJobs={setLocalUserJobs}
+      localVolunteers={localVolunteers}
+      nextStep="return_resume"
+      setLocalVolunteers={setLocalVolunteers}
     />
   );
 }
