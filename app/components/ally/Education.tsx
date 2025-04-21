@@ -1,0 +1,99 @@
+import { EducationType } from "@/app/utils/responseSchemas";
+import { useContext, useEffect, useRef, useState } from "react";
+import InitialReview from "./sharedComponents/InitialReview";
+import Details from "./sharedComponents/Details";
+import EducationForm from "./educationComponents/EducationForm";
+import AddItems from "./sharedComponents/AddItems";
+
+import { v4 as uuidv4 } from "uuid";
+import { AllyContext } from "@/app/providers";
+import { educationExtractor } from "../aiProcessing/educationExtractor";
+import { TextBlinkLoader } from "../loader/Loader";
+
+export default function Educations({}) {
+  const [educationsStep, setEducationsStep] = useState("initial");
+  const [localEducations, setLocalEducations] = useState<EducationType[]>([]);
+  const context = useContext(AllyContext);
+  if (!context) {
+    throw new Error(
+      "AllyContainer must be used within an AllyContext.Provider"
+    );
+  }
+  const {
+    loading,
+    loadingText,
+    resumes,
+    setEducations,
+    setLoading,
+    setLoadingText,
+    setStep,
+  } = context;
+
+  function completeAndMoveOn() {
+    setEducations(localEducations);
+    setStep("volunteer");
+  }
+  const hasFetched = useRef(false);
+  useEffect(() => {
+    if (hasFetched.current) return;
+
+    async function fetchEducations() {
+      if (resumes) {
+        const educationsRes = await educationExtractor({
+          resumes,
+          setLoading,
+          setLoadingText,
+        });
+        if (educationsRes.length === 0) {
+          setEducationsStep("additional");
+        }
+        setLocalEducations(educationsRes);
+      }
+    }
+    fetchEducations();
+    hasFetched.current = true;
+  }, [resumes, setLoading, setLoadingText, setLocalEducations]);
+  if (loading) {
+    return <TextBlinkLoader text={loadingText} />;
+  }
+  if (educationsStep === "initial") {
+    return (
+      <InitialReview
+        itemType="educational experience"
+        localItems={localEducations}
+        setLocalItems={setLocalEducations}
+        setItemsStep={setEducationsStep}
+      />
+    );
+  } else if (educationsStep === "details") {
+    return (
+      <Details
+        Form={EducationForm}
+        itemType="education"
+        localItems={localEducations}
+        setLocalItems={setLocalEducations}
+        setItemsStep={setEducationsStep}
+      />
+    );
+  } else {
+    return (
+      <AddItems<EducationType>
+        baseItem={{
+          id: uuidv4(),
+          degree: "",
+          major: "",
+          school: "",
+          title: "",
+          date: "",
+        }}
+        Form={EducationForm}
+        header="Educations"
+        itemType="education"
+        localItems={localEducations}
+        setGlobalItems={setEducations}
+        setLocalItems={setLocalEducations}
+        setNext={completeAndMoveOn}
+      />
+    );
+  }
+}

@@ -7,7 +7,7 @@ import styles from "../resume.module.css";
 
 export default function UserJobItem({ userJob }: { userJob: UserJobType }) {
   function formatDates(startDate: string, endDate: string) {
-    if (endDate === "present") {
+    if (endDate === "Present") {
       const start = new Date(startDate);
       return `${start.toLocaleDateString("en-US", {
         month: "long",

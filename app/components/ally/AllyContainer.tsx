@@ -1,12 +1,14 @@
 "use client";
 import React, { useContext } from "react";
-import Resume from "./Resume";
-import UsaJobs from "./UsaJobs";
-import { AllyContext } from "@/app/providers";
 import Awards from "./Awards";
-import SpecializedExperience from "./SpecializedExperience";
-import UserJobs from "./UserJobs";
+import Education from "./Education";
+import Resume from "./Resume";
 import ReturnResume from "./ReturnResume";
+import SpecializedExperience from "./SpecializedExperience";
+import UsaJobs from "./UsaJobs";
+import UserJobs from "./UserJobs";
+import { AllyContext } from "@/app/providers";
+import Volunteer from "./Volunteer";
 
 export default function AllyContainer() {
   const context = useContext(AllyContext);
@@ -28,6 +30,10 @@ export default function AllyContainer() {
       return <UserJobs />;
     case "awards":
       return <Awards />;
+    case "education":
+      return <Education />;
+    case "volunteer":
+      return <Volunteer />;
     case "return_resume":
       return <ReturnResume />;
     default:

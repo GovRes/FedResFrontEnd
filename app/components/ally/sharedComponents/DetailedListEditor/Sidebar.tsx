@@ -1,5 +1,6 @@
 import {
   AwardType,
+  EducationType,
   SpecializedExperienceType,
   UserJobQualificationType,
   UserJobType,
@@ -7,18 +8,16 @@ import {
 import styles from "../../ally.module.css";
 import SidebarItem from "./SidebarItem";
 
-export default function Sidebar({
+export default function Sidebar<
+  T extends AwardType | EducationType | UserJobType | UserJobQualificationType
+>({
   currentIndex,
   items,
   setCurrentIndex,
   titleText,
 }: {
   currentIndex: number;
-  items:
-    | SpecializedExperienceType[]
-    | AwardType[]
-    | UserJobType[]
-    | UserJobQualificationType[];
+  items: T[];
   setCurrentIndex: Function;
   titleText: string;
 }) {
@@ -31,6 +30,7 @@ export default function Sidebar({
       setCurrentIndex={setCurrentIndex}
     />
   ));
+
   return (
     <div className={`${styles.qualificationEditorMap}`}>
       <h2>{titleText}</h2>

@@ -6,6 +6,7 @@ import { AssistantResponse } from "ai";
 import {
   AwardsArraySchema,
   Keywords,
+  EducationArraySchema,
   Qualification,
   Qualifications,
   SpecializedExperienceArraySchema,
@@ -28,6 +29,7 @@ export async function POST(req: NextRequest) {
 
   const schemas = {
     awards: AwardsArraySchema,
+    education: EducationArraySchema,
     keywords: Keywords,
     qualification: Topic,
     qualifications: Qualifications,

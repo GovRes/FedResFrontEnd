@@ -1,32 +1,92 @@
 import { AwardType } from "@/app/utils/responseSchemas";
-import { useEffect, useState } from "react";
-import InitialReview from "./awardsComponents/InitialReview";
-import Details from "./awardsComponents/Details";
-import Additional from "./awardsComponents/Additional";
+import { useContext, useEffect, useRef, useState } from "react";
+import InitialReview from "./sharedComponents/InitialReview";
+import Details from "./sharedComponents/Details";
+import AwardForm from "./awardsComponents/AwardForm";
+import AddItems from "./sharedComponents/AddItems";
+
+import { v4 as uuidv4 } from "uuid";
+import { AllyContext } from "@/app/providers";
+import { awardsExtractor } from "../aiProcessing/awardsExtractor";
+import { TextBlinkLoader } from "../loader/Loader";
 
 export default function Awards({}) {
   const [awardsStep, setAwardsStep] = useState("initial");
   const [localAwards, setLocalAwards] = useState<AwardType[]>([]);
+  const context = useContext(AllyContext);
+  if (!context) {
+    throw new Error(
+      "AllyContainer must be used within an AllyContext.Provider"
+    );
+  }
+  const {
+    loading,
+    loadingText,
+    resumes,
+    setAwards,
+    setLoading,
+    setLoadingText,
+    setStep,
+  } = context;
 
+  function completeAndMoveOn() {
+    setAwards(localAwards);
+    setStep("education");
+  }
+  const hasFetched = useRef(false);
+  useEffect(() => {
+    if (hasFetched.current) return;
+
+    async function fetchAwards() {
+      if (resumes) {
+        const awardsRes = await awardsExtractor({
+          resumes,
+          setLoading,
+          setLoadingText,
+        });
+        if (awardsRes.length === 0) {
+          setAwardsStep("additional");
+        }
+        setLocalAwards(awardsRes);
+      }
+    }
+    fetchAwards();
+    hasFetched.current = true;
+  }, [resumes, setLoading, setLoadingText, setLocalAwards]);
+  if (loading) {
+    return <TextBlinkLoader text={loadingText} />;
+  }
   if (awardsStep === "initial") {
     return (
       <InitialReview
-        localAwards={localAwards}
-        setLocalAwards={setLocalAwards}
-        setAwardsStep={setAwardsStep}
+        itemType="award"
+        localItems={localAwards}
+        setLocalItems={setLocalAwards}
+        setItemsStep={setAwardsStep}
       />
     );
   } else if (awardsStep === "details") {
     return (
       <Details
-        localAwards={localAwards}
-        setLocalAwards={setLocalAwards}
-        setAwardsStep={setAwardsStep}
+        Form={AwardForm}
+        itemType="award"
+        localItems={localAwards}
+        setLocalItems={setLocalAwards}
+        setItemsStep={setAwardsStep}
       />
     );
   } else {
     return (
-      <Additional localAwards={localAwards} setLocalAwards={setLocalAwards} />
+      <AddItems<AwardType>
+        baseItem={{ id: uuidv4(), title: "", date: "" }}
+        Form={AwardForm}
+        header="Awards"
+        itemType="award"
+        localItems={localAwards}
+        setGlobalItems={setAwards}
+        setLocalItems={setLocalAwards}
+        setNext={completeAndMoveOn}
+      />
     );
   }
 }

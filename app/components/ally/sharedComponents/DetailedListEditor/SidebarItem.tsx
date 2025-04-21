@@ -1,27 +1,29 @@
-import styles from "../../ally.module.css";
 import {
   AwardType,
+  EducationType,
   SpecializedExperienceType,
-  TopicType,
   UserJobQualificationType,
   UserJobType,
 } from "@/app/utils/responseSchemas";
+import styles from "../../ally.module.css";
 
-export default function SidebarItem({
+export default function SidebarItem<
+  T extends
+    | AwardType
+    | EducationType
+    | UserJobType
+    | UserJobQualificationType
+    | SpecializedExperienceType
+>({
   currentIndex,
   index,
-  setCurrentIndex,
   item,
+  setCurrentIndex,
 }: {
   currentIndex: number;
   index: number;
+  item: T;
   setCurrentIndex: Function;
-  item:
-    | UserJobType
-    | AwardType
-    | SpecializedExperienceType
-    | TopicType
-    | UserJobQualificationType;
 }) {
   let content;
   if ("keywords" in item && Array.isArray(item.keywords)) {
@@ -35,12 +37,9 @@ export default function SidebarItem({
   } else if ("description" in item) {
     content = <div>{item.description}</div>;
   }
-  console.log(item);
   let headingText = "";
   if ("organization" in item && "title" in item) {
-    // Properly narrow the type for both organization and name properties
-    const typedItem = item as { title: string; organization: string };
-    headingText = `${typedItem.title} at ${typedItem.organization}`;
+    headingText = `${item.title} at ${item["organization"]}`;
   } else if ("title" in item) {
     headingText = `${item.title}`;
   } else if ("name" in item && typeof (item as any).name === "string") {

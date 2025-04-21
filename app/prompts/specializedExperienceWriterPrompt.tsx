@@ -1,6 +1,6 @@
 /* this gets consumed in api/specializedExperienceWriter/route.tsx
 It's just over here so that George can see and mess with the prompts.
-tk could have the specializedExperienceExtractor label the items like "certificate or degree" "life experience" etc and customize this for differnt ones.
+tk give it access to other specialized Experiences and say not to ask the same questions that are already covered in those.
 */
 export const specializedExperienceAssistantName = "USA Federal Resume Writer";
 export const specializedExperienceAssistantInstructions = `You are an expert in writing resumes for federal jobs. 

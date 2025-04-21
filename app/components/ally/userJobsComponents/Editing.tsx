@@ -1,5 +1,5 @@
 import { AllyContext } from "@/app/providers";
-import { UserJobType } from "@/app/utils/responseSchemas";
+import { StepType, UserJobType } from "@/app/utils/responseSchemas";
 import { JSX, useContext, useEffect, useState } from "react";
 
 import Sidebar from "../sharedComponents/DetailedListEditor/Sidebar";
@@ -13,12 +13,12 @@ import { TextBlinkLoader } from "../../loader/Loader";
 
 export default function Details({
   localUserJobs,
+  nextStep,
   setLocalUserJobs,
-  setUserJobsStep,
 }: {
   localUserJobs: UserJobType[];
+  nextStep: StepType;
   setLocalUserJobs: Function;
-  setUserJobsStep: Function;
 }) {
   let itemsList: JSX.Element[] = [];
   const context = useContext(AllyContext);
@@ -36,7 +36,6 @@ export default function Details({
     setLoading,
     setLoadingText,
     setTopics,
-    setUserJobs,
   } = context;
   const [currentJobIndex, setCurrentJobIndex] = useState(0);
   const [currentItem, setCurrentItem] = useState<UserJobType>(
@@ -129,6 +128,7 @@ export default function Details({
             <EditSingleJob
               currentJobIndex={currentJobIndex}
               localUserJobs={localUserJobs}
+              nextStep={nextStep}
               userJob={localUserJobs[currentJobIndex]}
               userJobsLength={localUserJobs.length}
               setCurrentJobIndex={setCurrentJobIndex}

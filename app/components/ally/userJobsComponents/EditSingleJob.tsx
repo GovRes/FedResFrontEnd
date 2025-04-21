@@ -1,19 +1,20 @@
 import { AllyContext } from "@/app/providers";
-import { useContext, useState } from "react";
+import { useContext } from "react";
 import DetailedListEditor from "../sharedComponents/DetailedListEditor/Container";
 import {
   userJobsAssistantName,
   userJobsAssistantInstructions,
 } from "@/app/prompts/userJobsWriterPrompt";
 import {
+  StepType,
   UserJobQualificationType,
   UserJobType,
 } from "@/app/utils/responseSchemas";
-import { TextBlinkLoader } from "../../loader/Loader";
 
 export default function EditSingleJob({
   currentJobIndex,
   localUserJobs,
+  nextStep,
   userJob,
   userJobsLength,
   setCurrentJobIndex,
@@ -21,6 +22,7 @@ export default function EditSingleJob({
 }: {
   currentJobIndex: number;
   localUserJobs: UserJobType[];
+  nextStep: StepType;
   userJob: UserJobType;
   userJobsLength: number;
   setCurrentJobIndex: (index: number) => void;
@@ -76,9 +78,8 @@ export default function EditSingleJob({
     if (currentJobIndex + 1 < userJobsLength) {
       setCurrentJobIndex(currentJobIndex + 1);
     } else {
-      console.log(localUserJobs);
       setUserJobs(localUserJobs);
-      setStep("awards");
+      setStep(nextStep);
     }
   }
 

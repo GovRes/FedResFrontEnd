@@ -3,6 +3,7 @@
 import React, { createContext, useState, ReactNode } from "react";
 import {
   AwardType,
+  EducationType,
   JobType,
   SpecializedExperienceType,
   StepType,
@@ -14,6 +15,7 @@ import {
 export interface AllyContextType {
   // State properties
   awards: AwardType[];
+  educations: EducationType[];
   email: string;
   job?: JobType;
   keywords: string[];
@@ -28,6 +30,7 @@ export interface AllyContextType {
 
   // Methods
   setAwards: (value: AwardType[]) => void;
+  setEducations: (value: EducationType[]) => void;
   setEmail: (value: string) => void;
   setJob: (value: JobType) => void;
   setKeywords: (value: string[]) => void;
@@ -48,6 +51,7 @@ export const AllyContext = createContext<AllyContextType | undefined>(
 export const AllyProvider = ({ children }: { children: ReactNode }) => {
   // State declarations
   const [awards, setAwards] = useState<AwardType[]>([]);
+  const [educations, setEducations] = useState<EducationType[]>([]);
   const [email, setEmail] = useState("");
   const [job, setJob] = useState<JobType>();
   // const [job, setJob] = useState<JobType>({
@@ -295,6 +299,7 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
   // Context value object - spread all values directly
   const value = {
     awards,
+    educations,
     email,
     job,
     keywords,
@@ -307,6 +312,7 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
     topics,
     userJobs,
     setAwards,
+    setEducations,
     setEmail,
     setJob,
     setKeywords,

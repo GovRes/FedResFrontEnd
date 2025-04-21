@@ -1,6 +1,4 @@
-import { AllyContext } from "@/app/providers";
-import { JSX, useContext, useEffect, useState } from "react";
-import { Message, useAssistant } from "@ai-sdk/react";
+import { JSX, useEffect, useState } from "react";
 import styles from "../../ally.module.css";
 import {
   SpecializedExperienceType,
