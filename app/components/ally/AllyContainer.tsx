@@ -9,6 +9,9 @@ import UsaJobs from "./UsaJobs";
 import UserJobs from "./UserJobs";
 import { AllyContext } from "@/app/providers";
 import Volunteer from "./Volunteer";
+import ExtractKeywords from "./ExtractKeywords";
+import SortTopics from "./SortTopics";
+import UserJobDetails from "./UserJobDetails";
 
 export default function AllyContainer() {
   const context = useContext(AllyContext);
@@ -24,10 +27,16 @@ export default function AllyContainer() {
       return <UsaJobs />;
     case "specialized_experience":
       return <SpecializedExperience />;
+    case "extract_keywords":
+      return <ExtractKeywords />;
+    case "sort_topics":
+      return <SortTopics />;
     case "resume":
       return <Resume />;
     case "user_jobs":
       return <UserJobs />;
+    case "user_job_details":
+      return <UserJobDetails />;
     case "awards":
       return <Awards />;
     case "education":

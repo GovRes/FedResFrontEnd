@@ -53,7 +53,9 @@ export default function SidebarItem<
         index === currentIndex ? `${styles.active}` : ""
       }`}
     >
-      {headingText}
+      <div className={styles.qualificationEditorMapItemHeader}>
+        {headingText}
+      </div>
       {index === currentIndex && content ? content : <></>}
     </div>
   );

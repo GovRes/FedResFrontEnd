@@ -3,11 +3,11 @@ import BaseForm from "../../forms/BaseForm";
 import { SubmitButton, TextWithLabel } from "../../forms/Inputs";
 
 export default function EducationForm({
-  education,
+  item,
   onChange,
   onSubmit,
 }: {
-  education?: EducationType;
+  item?: EducationType;
   onChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => void;
@@ -18,25 +18,25 @@ export default function EducationForm({
       <TextWithLabel
         label="Degree"
         name="degree"
-        value={education?.degree || ""}
+        value={item?.degree || ""}
         onChange={onChange}
       />
       <TextWithLabel
         label="Major"
         name="major"
-        value={education?.major || ""}
+        value={item?.major || ""}
         onChange={onChange}
       />
       <TextWithLabel
         label="School or Institution"
         name="school"
-        value={education?.school || ""}
+        value={item?.school || ""}
         onChange={onChange}
       />
       <TextWithLabel
         label="Graduation Date"
         name="date"
-        value={education?.date || ""}
+        value={item?.date || ""}
         onChange={onChange}
       />
       <SubmitButton type="submit">Submit</SubmitButton>

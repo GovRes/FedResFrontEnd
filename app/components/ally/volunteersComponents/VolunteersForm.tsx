@@ -6,11 +6,11 @@ import {
   TextWithLabel,
 } from "../../forms/Inputs";
 export default function VolunteersForm({
-  userJob,
+  item,
   onChange,
   onSubmit,
 }: {
-  userJob?: UserJobType;
+  item?: UserJobType;
   onChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => void;
@@ -21,37 +21,37 @@ export default function VolunteersForm({
       <TextWithLabel
         label="Title"
         name="title"
-        value={userJob?.title}
+        value={item?.title}
         onChange={onChange}
       />
       <TextWithLabel
         label="Organization"
         name="organization"
-        value={userJob?.organization}
+        value={item?.organization}
         onChange={onChange}
       />
       <TextWithLabel
         label="Start Date"
         name="startDate"
-        value={userJob?.startDate}
+        value={item?.startDate}
         onChange={onChange}
       />
       <TextWithLabel
         label="End Date"
         name="endDate"
-        value={userJob?.endDate}
+        value={item?.endDate}
         onChange={onChange}
       />
       <TextWithLabel
         label="Hours worked per week"
         name="hours"
-        value={userJob?.hours}
+        value={item?.hours}
         onChange={onChange}
       />
       <TextAreaWithLabel
         label="Responsibilities"
         name="responsibilities"
-        value={userJob?.responsibilities}
+        value={item?.responsibilities}
         onChange={onChange}
       />
       <SubmitButton type="submit">Submit</SubmitButton>

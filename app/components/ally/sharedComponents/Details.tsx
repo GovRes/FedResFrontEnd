@@ -4,9 +4,10 @@ import {
   UserJobQualificationType,
   UserJobType,
 } from "@/app/utils/responseSchemas";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from "../sharedComponents/DetailedListEditor/Sidebar";
 import styles from "../ally.module.css";
+import EditItem from "./EditItem";
 
 export default function Details<
   T extends AwardType | EducationType | UserJobType | UserJobQualificationType
@@ -15,7 +16,7 @@ export default function Details<
   itemType,
   localItems,
   setLocalItems,
-  setItemsStep,
+  setNext,
 }: {
   Form: React.ComponentType<{
     item: T;
@@ -27,8 +28,15 @@ export default function Details<
   itemType: string;
   localItems: T[];
   setLocalItems: React.Dispatch<React.SetStateAction<T[]>>;
-  setItemsStep: React.Dispatch<React.SetStateAction<string>>;
+  setNext: Function;
 }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentItem, setCurrentItem] = useState<T>(localItems[currentIndex]);
+
+  useEffect(() => {
+    setCurrentItem(localItems[currentIndex]);
+  }, [currentIndex, localItems]);
+
   // Create a function to generate default items
   function createDefaultItem(): T {
     if (itemType === "award") {
@@ -58,43 +66,37 @@ export default function Details<
     }
   }
 
-  const [localItem, setLocalItem] = useState<T>(createDefaultItem());
-
-  function onChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) {
-    const { name, value } = e.target;
-    setLocalItem({ ...localItem, [name]: value });
+  function removeItem(id: string) {
+    setLocalItems((prev) => prev.filter((item) => item.id !== id));
   }
-
-  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setLocalItems((prev) => [...prev, localItem]);
-    setLocalItem(createDefaultItem());
-  }
-
-  function completeAndMoveOn() {
-    setItemsStep("editing");
+  function saveItem(item: T) {
+    setLocalItems((prev) =>
+      prev.map((prevItem) => (prevItem.id === item.id ? item : prevItem))
+    );
   }
 
   return (
     <div className={styles.detailedListEditorContainer}>
-      <h3>Add Details</h3>
+      <h3>Job Details</h3>
       <div className={styles.detailedListEditorContent}>
+        {/* sidebar */}
         <Sidebar
-          currentIndex={0}
-          setCurrentIndex={() => {}}
+          currentIndex={currentIndex}
+          setCurrentIndex={setCurrentIndex}
           items={localItems}
-          titleText={itemType + "s"}
+          titleText="Past Jobs"
         />
-        <div>
-          <h3>Additional {itemType}s</h3>
-          <p>
-            If you have any other {itemType}s to add, you can include them here.
-          </p>
-          <Form item={localItem} onChange={onChange} onSubmit={onSubmit} />
-          <button onClick={completeAndMoveOn}>Done adding {itemType}s</button>
-        </div>
+        <EditItem
+          currentIndex={currentIndex}
+          Form={Form}
+          item={currentItem}
+          itemType={itemType}
+          itemsLength={localItems.length}
+          removeItem={removeItem}
+          saveItem={saveItem}
+          setCurrentIndex={setCurrentIndex}
+          setNext={setNext}
+        />
       </div>
     </div>
   );

@@ -124,6 +124,11 @@ button.negative {
   list-style-type: disc;
 }
 
+.qualificationEditorMapItemHeader {
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
 .qualificationEditorAllyChat {
   flex: 3;
 }

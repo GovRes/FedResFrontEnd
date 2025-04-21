@@ -47,7 +47,10 @@ export default function AddItems<T extends AwardType | EducationType>({
   }
 
   function completeAndMoveOn() {
+    console.log("completeAndMoveOn called");
+    console.log("localItems:", localItems);
     setGlobalItems(localItems);
+    console.log("Global items set, calling setNext()");
     setNext();
   }
 
@@ -80,6 +83,7 @@ export default function AddItems<T extends AwardType | EducationType>({
           <h3>Additional {itemType}s</h3>
           <p>
             If you have any other {itemType}s to add, you can include them here.
+            if you want
           </p>
           <Form item={localItem} onChange={onChange} onSubmit={onSubmit} />
           <button onClick={completeAndMoveOn}>Done adding {itemType}s</button>

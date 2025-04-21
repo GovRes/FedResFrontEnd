@@ -8,6 +8,7 @@ import { AllyContext } from "@/app/providers";
 import { userJobsExtractor } from "../aiProcessing/userJobsExtractor";
 import { TextBlinkLoader } from "../loader/Loader";
 const UserJobs = () => {
+  // const [userJobsStep, setUserJobsStep] = useState("initial");
   const [userJobsStep, setUserJobsStep] = useState("initial");
   const [localUserJobs, setLocalUserJobs] = useState<UserJobType[]>([]);
   const context = useContext(AllyContext);
@@ -16,7 +17,20 @@ const UserJobs = () => {
       "AllyContainer must be used within an AllyContext.Provider"
     );
   }
-  const { loading, loadingText, resumes, setLoading, setLoadingText } = context;
+  const {
+    loading,
+    loadingText,
+    resumes,
+    setLoading,
+    setLoadingText,
+    setStep,
+    setUserJobs,
+  } = context;
+
+  function setNext() {
+    setUserJobs(localUserJobs);
+    setStep("user_job_details");
+  }
   const hasFetched = useRef(false);
   useEffect(() => {
     if (hasFetched.current) return;
@@ -47,22 +61,14 @@ const UserJobs = () => {
         setItemsStep={setUserJobsStep}
       />
     );
-  } else if (userJobsStep === "details") {
+  } else {
     return (
       <Details
         Form={UserJobsForm}
         itemType="past job"
         localItems={localUserJobs}
         setLocalItems={setLocalUserJobs}
-        setItemsStep={setUserJobsStep}
-      />
-    );
-  } else {
-    return (
-      <Editing
-        localUserJobs={localUserJobs}
-        nextStep="awards"
-        setLocalUserJobs={setLocalUserJobs}
+        setNext={setNext}
       />
     );
   }

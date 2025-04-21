@@ -30,28 +30,32 @@ export default function Educations({}) {
   } = context;
 
   function completeAndMoveOn() {
+    console.log("complete");
     setEducations(localEducations);
     setStep("volunteer");
   }
+
   const hasFetched = useRef(false);
   useEffect(() => {
     if (hasFetched.current) return;
 
-    async function fetchEducations() {
+    const fetchEducations = async () => {
       if (resumes) {
         const educationsRes = await educationExtractor({
           resumes,
           setLoading,
           setLoadingText,
         });
-        if (educationsRes.length === 0) {
+        console.log(educationsRes);
+        if (educationsRes?.length === 0) {
           setEducationsStep("additional");
         }
         setLocalEducations(educationsRes);
       }
-    }
+      hasFetched.current = true;
+    };
+
     fetchEducations();
-    hasFetched.current = true;
   }, [resumes, setLoading, setLoadingText, setLocalEducations]);
   if (loading) {
     return <TextBlinkLoader text={loadingText} />;
@@ -69,10 +73,10 @@ export default function Educations({}) {
     return (
       <Details
         Form={EducationForm}
-        itemType="education"
+        itemType="educational experience"
         localItems={localEducations}
         setLocalItems={setLocalEducations}
-        setItemsStep={setEducationsStep}
+        setNext={() => setEducationsStep("additional")}
       />
     );
   } else {

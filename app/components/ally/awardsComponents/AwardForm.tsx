@@ -3,11 +3,11 @@ import BaseForm from "../../forms/BaseForm";
 import { SubmitButton, TextWithLabel } from "../../forms/Inputs";
 
 export default function AwardForm({
-  award,
+  item,
   onChange,
   onSubmit,
 }: {
-  award?: AwardType;
+  item?: AwardType;
   onChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => void;
@@ -18,13 +18,13 @@ export default function AwardForm({
       <TextWithLabel
         label="Title"
         name="title"
-        value={award?.title || ""}
+        value={item?.title || ""}
         onChange={onChange}
       />
       <TextWithLabel
         label="Date(s)"
         name="date"
-        value={award?.date || ""}
+        value={item?.date || ""}
         onChange={onChange}
       />
       <SubmitButton type="submit">Submit</SubmitButton>

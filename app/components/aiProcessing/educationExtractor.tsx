@@ -31,8 +31,7 @@ export const educationExtractor = async ({
       //has to match line 26 in api/ai/route.tsx
       name: "education",
     });
-
-    return res.educations as EducationType[];
+    return res.education as EducationType[];
   } catch (error) {
     console.error("Error extracting educations", error);
     throw error;

@@ -6,6 +6,7 @@ import {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from "openai/resources/index.mjs";
+import { formatJobDescriptionForAI } from "@/app/utils/aiInteractionUtils";
 
 export const topicsCategorizer = async ({
   job,
@@ -13,17 +14,15 @@ export const topicsCategorizer = async ({
   setLoading,
   setLoadingText,
 }: {
-  job?: JobType;
+  job: JobType;
   keywords?: Array<string>;
   setLoading: Function;
   setLoadingText: Function;
 }) => {
-  setLoadingText("Organizing keywords into topics");
-  setLoading(true);
-
+  const jobDescription = formatJobDescriptionForAI({ job });
   const userMessage: ChatCompletionUserMessageParam = {
     role: "user",
-    content: `Job description: ${job}. Key words: ${
+    content: `Job description: ${jobDescription}. Key words: ${
       Array.isArray(keywords) ? keywords.join(", ") : ""
     }`,
   };
@@ -31,6 +30,9 @@ export const topicsCategorizer = async ({
     | ChatCompletionUserMessageParam
     | ChatCompletionSystemMessageParam
   )[] = [userMessage, topicsCategorizerPrompt];
+  setLoadingText("Organizing keywords into topics");
+  setLoading(true);
+
   let res = await sendMessages({
     messages: messagesForQualificationsReviewer,
     name: "topics",

@@ -13,10 +13,9 @@ export default function InDepthReview() {
       "AllyContainer must be used within an AllyContext.Provider"
     );
   }
-  const { setStep } = context;
-  const { job } = context;
-  const { specializedExperiences, setSpecializedExperiences } = context;
-
+  const { job, specializedExperiences, setStep, setSpecializedExperiences } =
+    context;
+  console.log(18, specializedExperiences);
   if (specializedExperiences && specializedExperiences.length > 0) {
     let otherExperiences = specializedExperiences.filter(
       (ex) =>
@@ -36,7 +35,7 @@ export default function InDepthReview() {
             ] as typeof specializedExperiences;
             setSpecializedExperiences(updatedExperiences);
           }}
-          setNext={() => setStep("resume")}
+          setNext={() => setStep("extract_keywords")}
           sidebarTitleText="Specialized Experiences"
         />
       </>
