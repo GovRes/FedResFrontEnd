@@ -13,7 +13,7 @@ const schema = a.schema({
       educations: a.hasMany("EducationUserResume", "userResumeId"),
       id: a.id().required(),
       jobId: a.id().required(),
-      job: a.hasOne("Job", "id").required(),
+        job: a.belongsTo("Job", "jobId"),
       resumes: a.hasMany("ResumeUserResume", "userResumeId"),
       specializedExperiences: a.hasMany("SpecializedExperienceUserResume", "userResumeId"),
       userJobs: a.hasMany("UserJobUserResume", "userResumeId"),
@@ -43,6 +43,7 @@ const schema = a.schema({
      userResumes: a.hasMany("EducationUserResume", "educationId")
    })
    .authorization((allow) => [allow.owner()]),
+
   Job: a
     .model({
       id: a.id().required(),
@@ -53,6 +54,7 @@ const schema = a.schema({
       qualificationsSummary: a.string().required(),
       requiredDocuments: a.string().required(),
       title: a.string().required(),
+      userResumes: a.hasMany("UserResume", "jobId"),
     })
     .authorization((allow) => [allow.authenticated()]),
 
