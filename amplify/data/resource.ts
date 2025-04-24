@@ -115,6 +115,7 @@ const schema = a.schema({
     description: a.string().required(),
     paragraph: a.string(),
     userConfirmed: a.boolean().required(),
+    topicId: a.id().required(),
     topic: a.hasOne("Topic", "id").required(),
     userJobs: a.hasMany("UserJobUserJobQualification", "userJobQualificationId"),
     volunteers: a.hasMany("UserJobQualificationVolunteer", "userJobQualificationId"),
