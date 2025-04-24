@@ -108,7 +108,7 @@ const schema = a.schema({
     .authorization((allow) => [allow.owner()]),
 
     // Define UserJobQualification model
-  UserJobQualification: a
+    UserJobQualification: a
   .model({
     id: a.id().required(),
     title: a.string().required(),
@@ -116,7 +116,7 @@ const schema = a.schema({
     paragraph: a.string(),
     userConfirmed: a.boolean().required(),
     topicId: a.id().required(),
-    topic: a.hasOne("Topic", "id").required(),
+    topic: a.belongsTo("Topic", "topicId"),
     userJobs: a.hasMany("UserJobUserJobQualification", "userJobQualificationId"),
     volunteers: a.hasMany("UserJobQualificationVolunteer", "userJobQualificationId"),
   })
