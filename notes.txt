@@ -1,11 +1,4 @@
-STEP 4: Resume upload - in process - S3 still blocked, but unclear why
-
-STEP 5: USAJOBS URL receiver - in process - currently set up for copy + paste job descriptions (we should probably develop some instructions around this). eventually switch to paste URL and fetch from USA JOBS api
-
-STEP 6: Career coach - with loops.
-
-
-Stuff about getting data:
+stuff about getting data:
 const client = generateClient<Schema>({
   authMode: 'userPool',
 }); #this auth mode thing is important
