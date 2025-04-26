@@ -4,15 +4,17 @@ import {
   positionScheduleType,
   travelPercentage,
 } from "@/app/utils/usaJobsCodes";
-import { JobSearchObject } from "./UsaJobsSearch";
+import { JobSearchObject } from "@/app/utils/responseSchemas";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 export default function UsaJobsNoResults({
   searchObject,
-  setShowSearchForm,
-}: {
+}: // setShowSearchForm,
+{
   searchObject: JobSearchObject;
-  setShowSearchForm: Function;
+  // setShowSearchForm: Function;
 }) {
+  const router = useRouter();
   return (
     <div className={styles.noResultsContainer}>
       Unfortunately, your search returned no results. Here is what you searched:
@@ -68,7 +70,12 @@ export default function UsaJobsNoResults({
           </ul>
         </div>
       )}
-      <button onClick={() => setShowSearchForm(true)}>Back to search</button>
+      <button
+        onClick={() => router.push("/ally/job_search")}
+        className={styles.backButton}
+      >
+        Back to search
+      </button>
     </div>
   );
 }

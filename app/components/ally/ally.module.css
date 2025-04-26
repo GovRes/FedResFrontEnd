@@ -148,6 +148,17 @@ button.negative {
   margin: 25px 0;
 }
 
+.stepItem {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background-color: var(--blue-dark);
+  border: 1px solid var(--blue-med);
+  color: var(--white);
+}
+
 .tableContainer {
   padding: 20px;
 }

@@ -1,12 +1,12 @@
 import { GrFavorite } from "react-icons/gr";
-import { MatchedObjectDescriptor } from "./UsaJobsResults";
+import { Result } from "./UsaJobsResults";
 import { formatSalary } from "@/app/utils/numberFormating";
 
 export default function UsaJobsResultsItem({
   job,
   selectJob,
 }: {
-  job: MatchedObjectDescriptor;
+  job: Result;
   selectJob: Function;
 }) {
   function setJob() {
@@ -21,21 +21,26 @@ export default function UsaJobsResultsItem({
         <GrFavorite />
       </td>
       <td className="tableData" role="cell">
-        {job.PositionTitle}
+        {job.MatchedObjectDescriptor.PositionTitle}
       </td>
       <td className="tableData" role="cell">
-        {job.DepartmentName}
+        {job.MatchedObjectDescriptor.DepartmentName}
       </td>
       <td className="tableData" role="cell">
-        {formatSalary(job.PositionRemuneration[0].MinimumRange)} -{" "}
-        {formatSalary(job.PositionRemuneration[0].MaximumRange)} (
-        {job.PositionRemuneration[0].Description})
+        {formatSalary(
+          job.MatchedObjectDescriptor.PositionRemuneration[0].MinimumRange
+        )}{" "}
+        -{" "}
+        {formatSalary(
+          job.MatchedObjectDescriptor.PositionRemuneration[0].MaximumRange
+        )}{" "}
+        ({job.MatchedObjectDescriptor.PositionRemuneration[0].Description})
       </td>
       <td className="tableData" role="cell">
-        {job.PositionLocation[0].LocationName}
+        {job.MatchedObjectDescriptor.PositionLocation[0].LocationName}
       </td>
       <td className="tableData" role="cell">
-        <a href={job.PositionURI} target="_blank">
+        <a href={job.MatchedObjectDescriptor.PositionURI} target="_blank">
           Learn More
         </a>
       </td>

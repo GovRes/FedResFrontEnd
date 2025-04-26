@@ -1,3 +1,4 @@
+"use client";
 import { useEffect, useState } from "react";
 import UsaJobsSearch, {
   JobSearchObject,
@@ -36,20 +37,20 @@ export default function UsaJobs() {
         setShowSearchForm={setShowSearchForm}
       />
     );
-  } else if (searchResults.length === 0 && searchObject) {
-    return (
-      <UsaJobsNoResults
-        searchObject={searchObject}
-        setShowSearchForm={setShowSearchForm}
-      />
-    );
-  } else if (searchResults.length > 0) {
-    return (
-      <UsaJobsResults
-        searchResults={searchResults}
-        setShowSearchForm={setShowSearchForm}
-      />
-    );
+    // } else if (searchResults.length === 0 && searchObject) {
+    //   return (
+    //     <UsaJobsNoResults
+    //       searchObject={searchObject}
+    //       setShowSearchForm={setShowSearchForm}
+    //     />
+    //   );
+    // } else if (searchResults.length > 0) {
+    //   return (
+    //     <UsaJobsResults
+    //       searchResults={searchResults}
+    //       setShowSearchForm={setShowSearchForm}
+    //     />
+    //   );
   } else {
     return <TextBlinkLoader text="Warming up the engines" />;
   }

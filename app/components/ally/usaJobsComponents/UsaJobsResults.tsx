@@ -1,10 +1,15 @@
+"use client";
 import React, { useContext, useState } from "react";
 import UsaJobsResultsItem from "./UsaJobsResultsItem";
 import styles from "../ally.module.css";
+import { createAndSaveJob } from "@/app/crud/job";
 import Modal from "../../modal/Modal";
 import { AllyContext } from "@/app/providers";
 import { formatJobDescription } from "@/app/utils/usaJobsSearch";
 import indefiniteArticle from "@/app/utils/indefiniteArticles";
+import { createAndSaveUserResume } from "@/app/crud/userResume";
+import { useAuthenticator } from "@aws-amplify/ui-react";
+import { useRouter } from "next/navigation";
 export interface MatchedObjectDescriptor {
   PositionTitle: string;
   DepartmentName: string;
@@ -29,6 +34,7 @@ export interface MatchedObjectDescriptor {
 }
 
 export interface Result {
+  MatchedObjectId: string;
   MatchedObjectDescriptor: MatchedObjectDescriptor;
 }
 
@@ -45,11 +51,12 @@ export default function UsaJobsResults({
       "AllyContainer must be used within an AllyContext.Provider"
     );
   }
-  const { setJob, setStep } = context;
+  const { setUserResumeId } = context;
+  const router = useRouter();
+  const { user } = useAuthenticator();
   const [modalOpen, setModalOpen] = useState<boolean>(false);
-  const [currentJob, setCurrentJob] =
-    useState<MatchedObjectDescriptor | null>();
-  function selectJob({ job }: { job: MatchedObjectDescriptor }) {
+  const [currentJob, setCurrentJob] = useState<Result | null>();
+  function selectJob({ job }: { job: Result }) {
     setModalOpen(true);
     setCurrentJob(job);
   }
@@ -57,27 +64,36 @@ export default function UsaJobsResults({
     setShowSearchForm(true);
     window.scrollTo(0, 0);
   }
-  function setJobAndProceed() {
+  async function setJobAndProceed() {
     if (currentJob) {
       setModalOpen(false);
-      setStep("specialized_experience");
 
       let formattedJobDescription = formatJobDescription({ job: currentJob });
-      console.log(currentJob);
-      console.log(formattedJobDescription);
-      setJob(formattedJobDescription);
+      let jobRes = await createAndSaveJob({ ...formattedJobDescription });
+      let userResumeRes = await createAndSaveUserResume({
+        jobId: jobRes.id,
+        userId: user.userId,
+      });
+      setUserResumeId(userResumeRes.id);
+      router.push("/ally/specialized_experience");
     }
   }
+
   return (
     <div className={styles.resultsContainer}>
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
         {currentJob && (
           <>
-            <div>You want apply for {currentJob.PositionTitle}, correct?</div>
+            <div>
+              You want apply for{" "}
+              {currentJob.MatchedObjectDescriptor.PositionTitle}, correct?
+            </div>
             <button onClick={setJobAndProceed}>
               Yes, let's apply to be{" "}
-              {indefiniteArticle({ phrase: currentJob.PositionTitle })}{" "}
-              {currentJob?.PositionTitle}!
+              {indefiniteArticle({
+                phrase: currentJob.MatchedObjectDescriptor.PositionTitle,
+              })}{" "}
+              {currentJob?.MatchedObjectDescriptor.PositionTitle}!
             </button>
             <button onClick={() => setModalOpen(false)}>
               No, please take me back to the search results.
@@ -99,11 +115,7 @@ export default function UsaJobsResults({
         </thead>
         <tbody>
           {searchResults.map((job, index) => (
-            <UsaJobsResultsItem
-              key={index}
-              job={job.MatchedObjectDescriptor}
-              selectJob={selectJob}
-            />
+            <UsaJobsResultsItem key={index} job={job} selectJob={selectJob} />
           ))}
         </tbody>
       </table>

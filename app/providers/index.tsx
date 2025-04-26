@@ -7,6 +7,7 @@ import {
   JobType,
   SpecializedExperienceType,
   StepType,
+  StepsType,
   TopicType,
   UserJobType,
 } from "../utils/responseSchemas";
@@ -25,8 +26,10 @@ export interface AllyContextType {
   resumes?: string[];
   specializedExperiences: SpecializedExperienceType[];
   step: StepType;
+  steps: StepsType[];
   topics?: TopicType[];
   userJobs: UserJobType[];
+  userResumeId: string;
   volunteers: UserJobType[];
 
   // Methods
@@ -43,6 +46,7 @@ export interface AllyContextType {
   setStep: (value: StepType) => void;
   setTopics: (value: TopicType[]) => void;
   setUserJobs: (value: UserJobType[]) => void;
+  setUserResumeId: (value: string) => void;
   setVolunteers: (value: UserJobType[]) => void;
 }
 
@@ -52,6 +56,92 @@ export const AllyContext = createContext<AllyContextType | undefined>(
 
 export const AllyProvider = ({ children }: { children: ReactNode }) => {
   // State declarations
+  const [steps, setSteps] = useState<StepsType[]>([
+    {
+      id: "usa_jobs",
+      title: "USA Jobs",
+      description: "Select a federal job",
+      completed: false,
+      path: "/job_search",
+    },
+    {
+      id: "specialized_experience",
+      title: "Specialized Experience",
+      description: "Add specialized experience",
+      completed: false,
+      path: "/specialized_experience",
+    },
+    {
+      id: "extract_keywords",
+      title: "Extract Keywords",
+      description: "Extract keywords from the job description",
+      completed: false,
+      path: "/extract_keywords",
+    },
+    {
+      id: "sort_topics",
+      title: "Sort Topics",
+      description: "Organize keywords into topics",
+      completed: false,
+      path: "/sort_topics",
+    },
+    {
+      id: "resume",
+      title: "Resume",
+      description: "Select a past resume",
+      completed: false,
+      path: "/resume",
+    },
+    {
+      id: "user_jobs",
+      title: "Past Jobs",
+      description: "Add and edit past jobs",
+      completed: false,
+      path: "/user_jobs",
+    },
+    {
+      id: "user_job_details",
+      title: "User Job Details",
+      description: "Write a description of past jobs",
+      completed: false,
+      path: "/user_job_details",
+    },
+    {
+      id: "awards",
+      title: "Awards",
+      description: "Add and edit awards",
+      completed: false,
+      path: "/awards",
+    },
+    {
+      id: "education",
+      title: "Education",
+      description: "Add and edit educational experiences",
+      completed: false,
+      path: "/education",
+    },
+    {
+      id: "volunteer",
+      title: "Volunteer",
+      description: "Add and edit volunteer experiences",
+      completed: false,
+      path: "/volunteer",
+    },
+    {
+      id: "volunteer_details",
+      title: "Volunteer Details",
+      description: "Write a description of volunteer experiences",
+      completed: false,
+      path: "/volunteer_details",
+    },
+    {
+      id: "return_resume",
+      title: "Final Resume",
+      description: "A resume you can use in your job application",
+      completed: false,
+      path: "/return_resume",
+    },
+  ]);
   const [awards, setAwards] = useState<AwardType[]>([]);
   const [educations, setEducations] = useState<EducationType[]>([]);
   const [email, setEmail] = useState("");
@@ -190,6 +280,7 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
   //     question: "",
   //   },
   // ]);
+  const [userResumeId, setUserResumeId] = useState("");
   const [userJobs, setUserJobs] = useState<UserJobType[]>([]);
   // const [userJobs, setUserJobs] = useState<UserJobType[]>([
   //   {
@@ -312,8 +403,10 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
     resumes,
     specializedExperiences,
     step,
+    steps,
     topics,
     userJobs,
+    userResumeId,
     volunteers,
     setAwards,
     setEducations,
@@ -326,8 +419,10 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
     setResumes,
     setSpecializedExperiences,
     setStep,
+    setSteps,
     setTopics,
     setUserJobs,
+    setUserResumeId,
     setVolunteers,
   };
 

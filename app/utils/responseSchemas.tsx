@@ -1,5 +1,7 @@
 import { title } from "process";
 import { z } from "zod";
+import { UserType } from "@/app/utils/userAttributeInterface";
+import { agencies } from "@/app/utils/usaJobsCodes";
 
 export const Keywords = z.object({
   keywords: z.array(z.string()),
@@ -47,6 +49,18 @@ export const AwardsArraySchema = z.object({
   awards: z.array(Award),
 });
 export type AwardType = z.infer<typeof Award>;
+
+export interface JobSearchObject {
+  keyword?: string;
+  locationName?: string;
+  radius?: number;
+  organization?: keyof typeof agencies;
+  positionTitle?: string;
+  positionScheduleType?: string;
+  remote?: boolean;
+  travelPercentage?: string;
+  user: UserType;
+}
 
 export const SpecializedExperience = z.object({
   id: z.string(),
@@ -146,6 +160,14 @@ export type StepType =
   | "return_resume"
   | "pause";
 
+export type StepsType = {
+  id: string;
+  title: string;
+  description: string;
+  completed: boolean;
+  path: string;
+};
+
 export interface JobType {
   agencyDescription: string;
   department: string;
@@ -154,4 +176,5 @@ export interface JobType {
   qualificationsSummary: string;
   requiredDocuments: string;
   title: string;
+  usaJobsId: string;
 }

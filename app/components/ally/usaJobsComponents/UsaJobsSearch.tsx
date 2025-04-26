@@ -5,7 +5,6 @@ import {
   SelectWithLabel,
   TextWithLabel,
   NumberWithLabel,
-  CheckboxWithLabel,
   ToggleWithLabel,
 } from "../../forms/Inputs";
 import { FormEvent, useEffect, useState } from "react";
@@ -14,35 +13,25 @@ import {
   positionScheduleType,
   travelPercentage,
 } from "@/app/utils/usaJobsCodes";
+import { JobSearchObject } from "@/app/utils/responseSchemas";
 import { TextBlinkLoader } from "@/app/components/loader/Loader";
 
 import { delayAllyChat } from "@/app/utils/allyChat";
 import { usaJobsSearch } from "@/app/utils/usaJobsSearch";
-import { UserType } from "@/app/utils/userAttributeInterface";
-
-export interface JobSearchObject {
-  keyword?: string;
-  locationName?: string;
-  radius?: number;
-  organization?: keyof typeof agencies;
-  positionTitle?: string;
-  positionScheduleType?: string;
-  remote?: boolean;
-  travelPercentage?: string;
-  user: UserType;
-}
+import { useRouter } from "next/navigation";
 
 export default function UsaJobsSearch({
   searchObject,
   setSearchObject,
   setSearchResults,
-  setShowSearchForm,
-}: {
+}: // setShowSearchForm,
+{
   searchObject: JobSearchObject;
   setSearchObject: Function;
   setSearchResults: Function;
-  setShowSearchForm: Function;
+  // setShowSearchForm: Function;
 }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   useEffect(() => {
     setSearchObject({
@@ -56,7 +45,6 @@ export default function UsaJobsSearch({
       remote: null,
       travelPercentage: null,
     });
-    console.log({ searchObject });
   }, []);
 
   const onChange = (
@@ -92,8 +80,12 @@ export default function UsaJobsSearch({
     event.preventDefault();
     window.scrollTo(0, 0);
     let results = await search();
-
-    setShowSearchForm(false);
+    if (results.length > 0) {
+      router.push("/ally/job_search/results");
+    } else {
+      router.push("/ally/job_search/no_results");
+    }
+    // setShowSearchForm(false);
     setSearchResults(results);
   }
 

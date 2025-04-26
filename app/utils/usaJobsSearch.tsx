@@ -1,7 +1,6 @@
 import axios from "axios";
-import { MatchedObjectDescriptor } from "../components/ally/usaJobsComponents/UsaJobsResults";
-import { JobSearchObject } from "../components/ally/usaJobsComponents/UsaJobsSearch";
-
+import { Result } from "../components/ally/usaJobsComponents/UsaJobsResults";
+import { JobSearchObject } from "./responseSchemas";
 var host = "data.usajobs.gov";
 var userAgent = process.env.USA_JOBS_EMAIL;
 var authKey = process.env.USA_JOBS_API_KEY;
@@ -66,18 +65,19 @@ export async function usaJobsSearch({
   }
 }
 
-export function formatJobDescription({
-  job,
-}: {
-  job: MatchedObjectDescriptor;
-}) {
+export function formatJobDescription({ job }: { job: Result }) {
+  console.log(73, job);
   return {
-    agencyDescription: job.UserArea.Details.AgencyMarketingStatement,
-    department: job.DepartmentName,
-    duties: job.UserArea.Details.MajorDuties.join("; "),
-    evaluationCriteria: job.UserArea.Details.Evaluations,
-    qualificationsSummary: job.QualificationSummary,
-    requiredDocuments: job.UserArea.Details.RequiredDocuments,
-    title: job.PositionTitle,
+    agencyDescription:
+      job.MatchedObjectDescriptor.UserArea.Details.AgencyMarketingStatement,
+    department: job.MatchedObjectDescriptor.DepartmentName,
+    duties: job.MatchedObjectDescriptor.UserArea.Details.MajorDuties.join("; "),
+    evaluationCriteria:
+      job.MatchedObjectDescriptor.UserArea.Details.Evaluations,
+    qualificationsSummary: job.MatchedObjectDescriptor.QualificationSummary,
+    requiredDocuments:
+      job.MatchedObjectDescriptor.UserArea.Details.RequiredDocuments,
+    title: job.MatchedObjectDescriptor.PositionTitle,
+    usaJobsId: job.MatchedObjectId,
   };
 }

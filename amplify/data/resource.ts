@@ -1,11 +1,4 @@
 import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
-import { Topic } from 'aws-cdk-lib/aws-sns';
-/*== STEP 1 ===============================================================
-The section below creates a Todo database table with a "content" field. Try
-adding a new "isDone" field as a boolean. The authorization rule below
-specifies that any unauthenticated user can "create", "read", "update", 
-and "delete" any "Todo" records.
-=========================================================================*/
 const schema = a.schema({
     UserResume: a
     .model({
@@ -16,6 +9,7 @@ const schema = a.schema({
         job: a.belongsTo("Job", "jobId"),
       resumes: a.hasMany("ResumeUserResume", "userResumeId"),
       specializedExperiences: a.hasMany("SpecializedExperienceUserResume", "userResumeId"),
+      userId: a.id().required(),
       userJobs: a.hasMany("UserJobUserResume", "userResumeId"),
       volunteers: a.hasMany("VolunteerUserResume", "userResumeId"),
     })
@@ -26,6 +20,7 @@ const schema = a.schema({
     id: a.id().required(),
     title: a.string().required(),
     date: a.string().required(),
+    userId: a.id().required(),
     userResumes: a.hasMany("AwardUserResume", "awardId")
   })
   .authorization((allow) => [allow.owner()]),
@@ -40,6 +35,7 @@ const schema = a.schema({
      title: a.string().required(),
      gpa: a.string(),
      userConfirmed: a.boolean(),
+     userId: a.id().required(),
      userResumes: a.hasMany("EducationUserResume", "educationId")
    })
    .authorization((allow) => [allow.owner()]),
@@ -54,6 +50,7 @@ const schema = a.schema({
       qualificationsSummary: a.string().required(),
       requiredDocuments: a.string().required(),
       title: a.string().required(),
+      usaJobsId: a.string().required(),
       userResumes: a.hasMany("UserResume", "jobId"),
     })
     .authorization((allow) => [allow.authenticated()]),
@@ -63,6 +60,7 @@ const schema = a.schema({
     .model({
       id: a.id().required(),
       fileName: a.string().required(),
+      userId: a.id().required(),
       userResumes: a.hasMany("ResumeUserResume", "resumeId"),
     })
     .authorization((allow) => [allow.owner()]),
@@ -75,6 +73,7 @@ const schema = a.schema({
     userConfirmed: a.boolean(),
     paragraph: a.string(),
     initialMessage: a.string().required(),
+    userId: a.id().required(),
     userResumes: a.hasMany("SpecializedExperienceUserResume", "specializedExperienceId")
   })
   .authorization((allow) => [allow.owner()]),
@@ -102,6 +101,7 @@ const schema = a.schema({
       hours: a.string(),
       gsLevel: a.string(),
       responsibilities: a.string(),
+      userId: a.id().required(),
       userJobQualifications: a.hasMany("UserJobUserJobQualification", "userJobId"),
       userResumes: a.hasMany("UserJobUserResume", "userJobId")
     })
@@ -117,6 +117,7 @@ const schema = a.schema({
     userConfirmed: a.boolean().required(),
     topicId: a.id().required(),
     topic: a.belongsTo("Topic", "topicId"),
+    userId: a.id().required(),
     userJobs: a.hasMany("UserJobUserJobQualification", "userJobQualificationId"),
     volunteers: a.hasMany("UserJobQualificationVolunteer", "userJobQualificationId"),
   })
@@ -133,6 +134,7 @@ const schema = a.schema({
       hours: a.string(),
       gsLevel: a.string(),
       responsibilities: a.string(),
+      userId: a.id().required(),
       userJobQualifications:a.hasMany("UserJobQualificationVolunteer", "volunteerId"),
       userResumes: a.hasMany("VolunteerUserResume", "volunteerId")
     })
