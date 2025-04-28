@@ -1,3 +1,4 @@
+"use client";
 import { AllyContext } from "@/app/providers";
 import { useContext } from "react";
 import DetailedListEditor from "../sharedComponents/DetailedListEditor/Container";
@@ -5,7 +6,12 @@ import {
   specializedExperienceAssistantInstructions,
   specializedExperienceAssistantName,
 } from "@/app/prompts/specializedExperienceWriterPrompt";
-import { spec } from "node:test/reporters";
+import { SpecializedExperienceContext } from "@/app/providers/providers";
+import { SpecializedExperienceType } from "@/app/utils/responseSchemas";
+import { createAndSaveSpecializedExperiences } from "@/app/crud/specializedExperience";
+import { useAuthenticator } from "@aws-amplify/ui-react";
+import { useRouter } from "next/navigation";
+import { completeSteps } from "@/app/utils/stepUpdater";
 export default function InDepthReview() {
   const context = useContext(AllyContext);
   if (!context) {
@@ -13,9 +19,41 @@ export default function InDepthReview() {
       "AllyContainer must be used within an AllyContext.Provider"
     );
   }
-  const { job, specializedExperiences, setStep, setSpecializedExperiences } =
-    context;
-  console.log(18, specializedExperiences);
+  const router = useRouter();
+  const { specializedExperiences, setSpecializedExperiences } = useContext(
+    SpecializedExperienceContext
+  );
+  const { user } = useAuthenticator();
+  const { job, steps, userResumeId, setSteps } = context;
+  async function saveSpecializedExperiences({
+    specializedExperiences,
+    userResumeId,
+    userId,
+  }: {
+    specializedExperiences: SpecializedExperienceType[];
+    userResumeId: string;
+    userId: string;
+  }) {
+    await createAndSaveSpecializedExperiences({
+      specializedExperiences,
+      userResumeId,
+      userId,
+    });
+    return;
+  }
+  function setNext() {
+    saveSpecializedExperiences({
+      specializedExperiences,
+      userResumeId,
+      userId: user.userId,
+    });
+    const updatedSteps = completeSteps({
+      steps,
+      stepId: "specialized_experiences",
+    });
+    setSteps(updatedSteps);
+    router.push("/ally/past_jobs");
+  }
   if (specializedExperiences && specializedExperiences.length > 0) {
     let otherExperiences = specializedExperiences.filter(
       (ex) =>
@@ -35,7 +73,7 @@ export default function InDepthReview() {
             ] as typeof specializedExperiences;
             setSpecializedExperiences(updatedExperiences);
           }}
-          setNext={() => setStep("extract_keywords")}
+          setNext={setNext}
           sidebarTitleText="Specialized Experiences"
         />
       </>

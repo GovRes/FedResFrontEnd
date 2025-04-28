@@ -5,7 +5,7 @@ import {
   AwardType,
   EducationType,
   JobType,
-  SpecializedExperienceType,
+  // SpecializedExperienceType,
   StepType,
   StepsType,
   TopicType,
@@ -24,7 +24,7 @@ export interface AllyContextType {
   loadingText: string;
   name: string;
   resumes?: string[];
-  specializedExperiences: SpecializedExperienceType[];
+  // specializedExperiences: SpecializedExperienceType[];
   step: StepType;
   steps: StepsType[];
   topics?: TopicType[];
@@ -42,8 +42,9 @@ export interface AllyContextType {
   setLoadingText: (value: string) => void;
   setName: (value: string) => void;
   setResumes: (value: string[]) => void;
-  setSpecializedExperiences: (value: SpecializedExperienceType[]) => void;
+  // setSpecializedExperiences: (value: SpecializedExperienceType[]) => void;
   setStep: (value: StepType) => void;
+  setSteps: (value: StepsType[]) => void;
   setTopics: (value: TopicType[]) => void;
   setUserJobs: (value: UserJobType[]) => void;
   setUserResumeId: (value: string) => void;
@@ -166,9 +167,9 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
   // const [resumes, setResumes] = useState<string[]>([
   //   "HANNAH LOPEZ  1721 Pilots Lane Chicago, IL, 60616 Cell Phone: (555) 555-1234 Email: hlopez@email.com Citizenship: U.S. Citizen Veterans’ Preference: No Highest GS Grade: N/A Security Clearance: N/A Desired Location: US-IL-Cook County-Chicago  PROFESSIONAL SUMMARY  Motivated Information Technology professional with skills in application development and support. Proven experience with application upgrades, computer maintenance, troubleshooting and help desk support across a variety of environments including Windows and Linux. Works well in a team, able to take and give direction and used to high-pressure situations. Self-motivated and determined to see a task through to the end. Good time management skills, able to handle multiple projects. Excellent communicator, both orally and written. Twice recognized for outstanding customer support.  EMPLOYMENT HISTORY  SYSTEM SUPPORT SPECIALIST , 40 hrs/week—04/23/2015–Present First American Bank, 123 Cherry Harvest Lane, Chicago, IL, 60616 Manager: Brian Briggs (773) 555-5656. May contact.  Responsibilities:  ●   Managing and maintaining software and applications used by the Auto Services line of business.  ●   Liaising with vendor support to troubleshoot and fix third-party software issues.  ●   Installing server and operating system updates.  ●   Monitoring for potential malware or other server attacks. Managing software upgrades.  ●   Managing, maintaining and repairing hardware (PCs, printers, and servers) used by the Auto Services line of business. Working with vendors to troubleshoot printer issues.  ●   Designing and developing small productivity applications for the business using C# and Access.  ●   Interfacing with business partners, providing telephone and face-to-face assistance with their needs.  Accomplishments:  ●   Received corporate recognition award for customer service in February 2018.  ●   Developed an application for performing special billing functionality not supported by the business’s third-party software.  ●   Kept business going when the servers went down during peak hours. Re-routed traffic to backup servers, traced the fault, fixed it and restored production servers within two hours.  SYSTEM SUPPORT ANALYST,   40 hrs/week—1/10/2013–04/23/2015 First American Bank, 123 Cherry Harvest Lane, Chicago, IL, 60616 Manager: Brian Briggs (773) 555-5656. May contact.  Responsibilities:  ●   Maintaining software and applications used by the Auto Services line of business. Installing operating system updates.  ●   Maintaining and repairing hardware (PCs, printers, and servers) used by the Auto Services line of business.  ●   Providing telephone and face-to-face assistance to our business partners.●   Creating reports for management using Microsoft Word and Excel. Developing PowerPoint presentations for the monthly IT team meeting.  Accomplishments:  ●   Received corporate recognition for customer service, 09/21/2014.  ●   Consistently completed federal regulatory reporting ahead of schedule every month between 2013 and 2015.  ●   Received MCSE Certification (Microsoft Certified Solutions Expert), March 2015.  HELP DESK SUPPORT,   40 hrs/week—07/03/2011–11/10/2013 First American Bank, 123 Cherry Harvest Lane, Chicago, IL, 60616 Manager: Julie-Ann Glover (773) 555-0902. May contact.  Responsibilities:  ●   Providing level 3 technology phone support.  ●   Assisting employees with software and hardware issues. Using screen-sharing technology to access employee workstations for enhanced support.  ●   Logging help desk tickets and working through assigned tickets.  ●   Maintaining and updating the help desk internal wiki page.  ●   Creating weekly reports for management using Crystal Reports.  Accomplishments:  ●   Successfully mentored 12 new hires to the help desk between 2011 and 2013.  ●   Completed training in C# and advanced server maintenance.  TECH SUPPORT ASSISTANT,   40 hrs/week—06/22/2008–07/03/2011 FirstCare Hospital, 903 Surgery Street, Chicago, IL, 60616 Manager: Terry Flynn (773) 555-8398. May contact.  Responsibilities:  ●   Providing level 1 and 2 technology phone support.  ●   Assessing and redirecting support calls for further assistance.  ●   Helping employees with basic computer and software issues.  ●   Logging support tickets into the help desk management system.  ●   Generating reports from the help desk management system using Crystal Reports and Access.  Accomplishments:  ●   Completed training in software support and computer maintenance.  ●   Received the IT “Star Help” award for excellence in tech support.  EDUCATION  University of Illinois, IL, 61820  Bachelor of Arts, Business,   magna cum laude —2008 Concentration: Business technology; 128 semester hours GPA: 3.6/4.0  Terrence B. Outhwaite High School, Chicago, IL, 60007  High School Diploma—2004 GPA: 3.9/4.0  ADDITIONAL TRAINING  ●   Visual Basic for Applications, Chicago Community College, 06/2004  ●   UNIX Essentials, Chicago Technical College, 10/2013  ●   Linux for UNIX Users, Chicago Technical College, 02/2014  PROGRAMMING LANGUAGES  ●   C# (Proficient)  ●   JavaScript (Proficient)●   HTML/CSS (Proficient)  VOLUNTEER WORK  ●   Animal Rescue Center, Downtown Chicago, IL  ●   Tech4All, a community initiative to train disadvantaged kids to use and maintain computers, Chicago, IL  AFFILIATIONS  ●   Phi Sigma Rho, 2004-2008",
   // ]);
-  const [specializedExperiences, setSpecializedExperiences] = useState<
-    SpecializedExperienceType[]
-  >([]);
+  // const [specializedExperiences, setSpecializedExperiences] = useState<
+  //   SpecializedExperienceType[]
+  // >([]);
   // const [specializedExperiences, setSpecializedExperiences] = useState<
   //   SpecializedExperienceType[]
   // >([
@@ -401,7 +402,7 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
     loadingText,
     name,
     resumes,
-    specializedExperiences,
+    // specializedExperiences,
     step,
     steps,
     topics,
@@ -417,7 +418,7 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
     setLoadingText,
     setName,
     setResumes,
-    setSpecializedExperiences,
+    // setSpecializedExperiences,
     setStep,
     setSteps,
     setTopics,

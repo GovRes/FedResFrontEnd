@@ -1,9 +1,10 @@
-import { useContext, useEffect, useRef } from "react";
-import { TextBlinkLoader } from "../loader/Loader";
+"use client";
+import { useContext, useEffect } from "react";
+import { TextBlinkLoader } from "@/app/components/loader/Loader";
 import { AllyContext } from "@/app/providers";
-import { jobDescriptionKeywordFinder } from "../aiProcessing/jobDescriptionKeywordFinder";
+import { jobDescriptionKeywordFinder } from "@/app/components/aiProcessing/jobDescriptionKeywordFinder";
 import { useRouter } from "next/navigation";
-import { topicsCategorizer } from "../aiProcessing/topicCategorizer";
+import { topicsCategorizer } from "@/app/components/aiProcessing/topicCategorizer";
 import { TopicType } from "@/app/utils/responseSchemas";
 
 export default function ExtractKeywords() {

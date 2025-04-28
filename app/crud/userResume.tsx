@@ -1,5 +1,44 @@
 import { generateClient } from "aws-amplify/api";
 import { fetchAuthSession } from "aws-amplify/auth";
+export const listUserResumes = async () => {
+  try {
+    const session = await fetchAuthSession();
+    if (!session.tokens) {
+      throw new Error("No valid authentication session found");
+    }
+  } catch (error) {
+    console.error("No user is signed in");
+    return;
+  }
+
+  const client = generateClient();
+  try {
+    const response = await client.graphql({
+      query: `
+        query ListUserResumes {
+          listUserResumes {
+            items {
+              id
+              jobId
+              userId
+              createdAt
+              updatedAt
+            }
+          }
+        }
+      `,
+      authMode: "userPool",
+    });
+
+    if ("data" in response) {
+      return response.data.listUserResumes.items;
+    }
+    throw new Error("Unexpected response format from GraphQL operation");
+  } catch (error) {
+    console.error("Error fetching UserResumes:", error);
+    throw error;
+  }
+};
 
 export const createAndSaveUserResume = async ({
   jobId,
@@ -58,6 +97,55 @@ export const createAndSaveUserResume = async ({
     throw new Error("Unexpected response format from GraphQL operation");
   } catch (error) {
     console.error("Error creating UserResume:", error);
+    throw error;
+  }
+};
+
+export const getUserResumeWithJob = async ({ id }: { id: string }) => {
+  try {
+    const session = await fetchAuthSession();
+    if (!session.tokens) {
+      throw new Error("No valid authentication session found");
+    }
+  } catch (error) {
+    console.error("No user is signed in");
+    return;
+  }
+  const client = generateClient();
+  try {
+    const response = await client.graphql({
+      query: `
+      query GetUserResume($id: ID!) {
+        getUserResume(id: $id) {
+        id
+        jobId
+        userId
+        job {
+          id
+            title
+            department
+            agencyDescription
+            duties
+            evaluationCriteria
+            qualificationsSummary
+            requiredDocuments
+            usaJobsId
+        }
+        createdAt
+        updatedAt
+        }
+      }
+      `,
+      variables: { id },
+      authMode: "userPool",
+    });
+
+    if ("data" in response) {
+      return response.data.getUserResume;
+    }
+    throw new Error("Unexpected response format from GraphQL operation");
+  } catch (error) {
+    console.error("Error fetching UserResume:", error);
     throw error;
   }
 };

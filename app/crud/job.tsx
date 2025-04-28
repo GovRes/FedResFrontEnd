@@ -197,3 +197,59 @@ export const createAndSaveJob = async ({
     throw error;
   }
 };
+
+/**
+ * Retrieves a job from the database by its ID
+ *
+ * @param {string} jobId - The unique identifier of the job
+ * @returns {Promise<JobType|null>} - The job object or null if not found
+ */
+export const getJobById = async (jobId: string): Promise<JobType | null> => {
+  const client = generateClient();
+  try {
+    // Ensure we have an authenticated session
+    try {
+      const session = await fetchAuthSession();
+      if (!session.tokens) {
+        throw new Error("No valid authentication session found");
+      }
+    } catch (error) {
+      console.error("No user is signed in");
+      return null;
+    }
+
+    const response = await client.graphql({
+      query: `
+        query GetJob($id: ID!) {
+          getJob(id: $id) {
+            id
+            title
+            department
+            agencyDescription
+            duties
+            evaluationCriteria
+            qualificationsSummary
+            requiredDocuments
+            usaJobsId
+            createdAt
+            updatedAt
+          }
+        }
+      `,
+      variables: {
+        id: jobId,
+      },
+      authMode: "userPool",
+    });
+
+    // Check if response has data and job exists
+    if ("data" in response && response.data?.getJob) {
+      return response.data.getJob;
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Error fetching job by ID:", error);
+    throw error;
+  }
+};

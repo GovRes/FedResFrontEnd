@@ -1,14 +1,14 @@
 import { AllyContext } from "@/app/providers";
 import { useContext, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { specializedExperienceExtractor } from "../../aiProcessing/specializedExperienceExtractor";
 import styles from "../ally.module.css";
 import { SpecializedExperienceType } from "@/app/utils/responseSchemas";
 import { TextBlinkLoader } from "../../loader/Loader";
-
-export default function InitialReview({
-  setReviewing,
-}: {
-  setReviewing: (reviewing: boolean) => void;
+import { SpecializedExperienceContext } from "@/app/providers/providers";
+export default function InitialReview({}: // setReviewing,
+{
+  // setReviewing: (reviewing: boolean) => void;
 }) {
   const context = useContext(AllyContext);
   if (!context) {
@@ -16,37 +16,26 @@ export default function InitialReview({
       "AllyContainer must be used within an AllyContext.Provider"
     );
   }
-  const {
-    job,
-    loading,
-    specializedExperiences,
-    setLoading,
-    setLoadingText,
-    setSpecializedExperiences,
-    setStep,
-  } = context;
-  const [isLoading, setIsLoading] = useState(loading);
-  const hasFetched = useRef(false);
-  useEffect(() => {
-    if (hasFetched.current) return;
+  const { loading, job, setLoading, setLoadingText } = context;
+  const { specializedExperiences, setSpecializedExperiences } = useContext(
+    SpecializedExperienceContext
+  );
+  const router = useRouter();
+  // const userResumeId = "1dfd50fb-e594-412d-a62b-be45e8117dc3"; //for testing
+  const [isLoading, setIsLoading] = useState(true);
 
-    async function fetchSpecializedExperience() {
-      if (job) {
-        const specializedExperienceRes = await specializedExperienceExtractor({
-          job,
-          setLoading,
-          setLoadingText,
-        });
-        setSpecializedExperiences(specializedExperienceRes);
-      }
+  useEffect(() => {
+    async function fetchSpecializedExperience({ job }: { job: any }) {
+      const specializedExperienceRes = await specializedExperienceExtractor({
+        job,
+        setLoading,
+        setLoadingText,
+      });
+      setSpecializedExperiences(specializedExperienceRes);
     }
-    fetchSpecializedExperience();
-    hasFetched.current = true;
-  }, [job, setLoading, setLoadingText, setSpecializedExperiences]);
-  function backToSearch() {
-    setStep("usa_jobs");
-    setLoadingText("Returning to search");
-  }
+    fetchSpecializedExperience({ job });
+  }, []);
+
   if (!context) {
     throw new Error(
       "AllyContainer must be used within an AllyContext.Provider"
@@ -60,7 +49,10 @@ export default function InitialReview({
   //   }, [isLoading, specializedExperiences, setStep]);
 
   //tk redo this section like jobs section, with preserving local state and sending to provider only when ready
-
+  function backToSearch() {
+    setSpecializedExperiences([]);
+    router.push("/ally/job_search");
+  }
   useEffect(() => {
     setIsLoading(loading);
   }, [loading]);
@@ -83,11 +75,21 @@ export default function InitialReview({
       </div>
       <div>Do you have experience in all of these areas?</div>
       <div>
-        <button onClick={() => setReviewing(true)}>Yes, I do.</button>
+        <button
+          onClick={() =>
+            router.push("/ally/specialized_experience/experience_writer")
+          }
+        >
+          Yes, I do.
+        </button>
         <button onClick={backToSearch}>
           No, I don't. Take me back to the search.
         </button>
-        <button onClick={() => setReviewing(true)}>
+        <button
+          onClick={() =>
+            router.push("/ally/specialized_experience/experience_writer")
+          }
+        >
           I have some of this experience, and I would like to continue.
         </button>
       </div>

@@ -4,8 +4,7 @@ import UsaJobsResults from "@/app/components/ally/usaJobsComponents/UsaJobsResul
 import { JobSearchContext } from "@/app/providers/providers";
 
 export default function JobSearchResults() {
-  const { searchResults, searchObject, setSearchObject } =
-    useContext(JobSearchContext);
+  const { searchResults, setSearchObject } = useContext(JobSearchContext);
 
   return (
     <UsaJobsResults

@@ -10,6 +10,7 @@ import indefiniteArticle from "@/app/utils/indefiniteArticles";
 import { createAndSaveUserResume } from "@/app/crud/userResume";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { useRouter } from "next/navigation";
+import { completeSteps } from "@/app/utils/stepUpdater";
 export interface MatchedObjectDescriptor {
   PositionTitle: string;
   DepartmentName: string;
@@ -51,7 +52,7 @@ export default function UsaJobsResults({
       "AllyContainer must be used within an AllyContext.Provider"
     );
   }
-  const { setUserResumeId } = context;
+  const { steps, setJob, setUserResumeId, setSteps } = context;
   const router = useRouter();
   const { user } = useAuthenticator();
   const [modalOpen, setModalOpen] = useState<boolean>(false);
@@ -66,7 +67,7 @@ export default function UsaJobsResults({
   }
   async function setJobAndProceed() {
     if (currentJob) {
-      setModalOpen(false);
+      // setModalOpen(false);
 
       let formattedJobDescription = formatJobDescription({ job: currentJob });
       let jobRes = await createAndSaveJob({ ...formattedJobDescription });
@@ -74,8 +75,13 @@ export default function UsaJobsResults({
         jobId: jobRes.id,
         userId: user.userId,
       });
+      const updatedSteps = completeSteps({ steps, stepId: "usa_jobs" });
+      setSteps(updatedSteps);
+      setJob(formattedJobDescription);
       setUserResumeId(userResumeRes.id);
-      router.push("/ally/specialized_experience");
+
+      // router.push("/ally/specialized_experience");
+      router.push("/ally/extract_keywords");
     }
   }
 
