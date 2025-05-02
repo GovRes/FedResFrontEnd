@@ -8,15 +8,9 @@ import {
 
 export const educationExtractor = async ({
   resumes,
-  setLoading,
-  setLoadingText,
 }: {
   resumes: string[];
-  setLoading: Function;
-  setLoadingText: Function;
 }) => {
-  setLoadingText("Extracting your educations from your resumes");
-  setLoading(true);
   const userMessage: ChatCompletionUserMessageParam = {
     role: "user",
     content: `resumes: ${resumes}`,
@@ -36,6 +30,5 @@ export const educationExtractor = async ({
     console.error("Error extracting educations", error);
     throw error;
   } finally {
-    setLoading(false);
   }
 };

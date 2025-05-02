@@ -81,9 +81,9 @@ export default function UsaJobsSearch({
     window.scrollTo(0, 0);
     let results = await search();
     if (results.length > 0) {
-      router.push("/ally/job_search/results");
+      router.push("/ally/job-search/results");
     } else {
-      router.push("/ally/job_search/no_results");
+      router.push("/ally/job-search/no-results");
     }
     // setShowSearchForm(false);
     setSearchResults(results);

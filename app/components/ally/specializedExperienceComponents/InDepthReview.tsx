@@ -1,30 +1,26 @@
 "use client";
-import { AllyContext } from "@/app/providers";
 import { useContext } from "react";
 import DetailedListEditor from "../sharedComponents/DetailedListEditor/Container";
 import {
   specializedExperienceAssistantInstructions,
   specializedExperienceAssistantName,
 } from "@/app/prompts/specializedExperienceWriterPrompt";
-import { SpecializedExperienceContext } from "@/app/providers/providers";
+import { SpecializedExperienceContext } from "@/app/providers/specializedExperienceContext";
 import { SpecializedExperienceType } from "@/app/utils/responseSchemas";
 import { createAndSaveSpecializedExperiences } from "@/app/crud/specializedExperience";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { useRouter } from "next/navigation";
 import { completeSteps } from "@/app/utils/stepUpdater";
+import { useUserResume } from "@/app/providers/userResumeContext";
+import { useAlly } from "@/app/providers";
 export default function InDepthReview() {
-  const context = useContext(AllyContext);
-  if (!context) {
-    throw new Error(
-      "AllyContainer must be used within an AllyContext.Provider"
-    );
-  }
   const router = useRouter();
   const { specializedExperiences, setSpecializedExperiences } = useContext(
     SpecializedExperienceContext
   );
   const { user } = useAuthenticator();
-  const { job, steps, userResumeId, setSteps } = context;
+  const { job } = useAlly();
+  const { steps, userResumeId, setSteps } = useUserResume();
   async function saveSpecializedExperiences({
     specializedExperiences,
     userResumeId,
@@ -41,15 +37,16 @@ export default function InDepthReview() {
     });
     return;
   }
-  function setNext() {
+  async function setNext() {
     saveSpecializedExperiences({
       specializedExperiences,
       userResumeId,
       userId: user.userId,
     });
-    const updatedSteps = completeSteps({
+    const updatedSteps = await completeSteps({
       steps,
-      stepId: "specialized_experiences",
+      stepId: "specialized-experiences",
+      userResumeId,
     });
     setSteps(updatedSteps);
     router.push("/ally/past_jobs");
@@ -80,4 +77,3 @@ export default function InDepthReview() {
     );
   }
 }
-// }

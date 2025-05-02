@@ -1,4 +1,4 @@
-import { AllyContext } from "@/app/providers";
+import { AllyContext, useAlly } from "@/app/providers";
 import { useContext } from "react";
 import DetailedListEditor from "../sharedComponents/DetailedListEditor/Container";
 import {
@@ -28,13 +28,7 @@ export default function EditSingleVolunteer({
   setCurrentVolunteerIndex: (index: number) => void;
   saveVolunteer: (userVolunteer: UserJobType) => void;
 }) {
-  const context = useContext(AllyContext);
-  if (!context) {
-    throw new Error(
-      "AllyContainer must be used within an AllyContext.Provider"
-    );
-  }
-  const { job, setStep, setVolunteers } = context;
+  const { job, setStep, setVolunteers } = useAlly();
 
   console.log({
     currentVolunteerIndex,

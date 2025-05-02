@@ -3,10 +3,11 @@ const schema = a.schema({
     UserResume: a
     .model({
       awards: a.hasMany("AwardUserResume", "userResumeId"),
+      completedSteps: a.string().array(),
       educations: a.hasMany("EducationUserResume", "userResumeId"),
       id: a.id().required(),
       jobId: a.id().required(),
-        job: a.belongsTo("Job", "jobId"),
+      job: a.belongsTo("Job", "jobId"),
       resumes: a.hasMany("ResumeUserResume", "userResumeId"),
       specializedExperiences: a.hasMany("SpecializedExperienceUserResume", "userResumeId"),
       userId: a.id().required(),
@@ -50,6 +51,7 @@ const schema = a.schema({
       qualificationsSummary: a.string().required(),
       requiredDocuments: a.string().required(),
       title: a.string().required(),
+      topics: a.hasMany("Topic", "jobId"),
       usaJobsId: a.string().required(),
       userResumes: a.hasMany("UserResume", "jobId"),
     })
@@ -60,7 +62,7 @@ const schema = a.schema({
     .model({
       id: a.id().required(),
       fileName: a.string().required(),
-      userId: a.id().required(),
+      userId: a.id(),
       userResumes: a.hasMany("ResumeUserResume", "resumeId"),
     })
     .authorization((allow) => [allow.owner()]),
@@ -85,6 +87,8 @@ const schema = a.schema({
     keywords: a.string().array().required(),
     description: a.string(),
     evidence: a.string(),
+    jobId: a.id().required(),
+    job: a.belongsTo("Job", "jobId"),
     question: a.string(),
     userJobQualifications: a.hasMany("UserJobQualification", "topicId"),
   })

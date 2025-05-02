@@ -1,4 +1,4 @@
-import { AllyContext } from "@/app/providers";
+import { AllyContext, useAlly } from "@/app/providers";
 import { useContext } from "react";
 import DetailedListEditor from "../sharedComponents/DetailedListEditor/Container";
 import {
@@ -14,7 +14,7 @@ import {
 export default function EditSingleJob({
   currentJobIndex,
   localUserJobs,
-  nextStep,
+  // nextStep,
   userJob,
   userJobsLength,
   setCurrentJobIndex,
@@ -22,19 +22,13 @@ export default function EditSingleJob({
 }: {
   currentJobIndex: number;
   localUserJobs: UserJobType[];
-  nextStep: StepType;
+  // nextStep: StepType;
   userJob: UserJobType;
   userJobsLength: number;
   setCurrentJobIndex: (index: number) => void;
   saveUserJob: (userJob: UserJobType) => void;
 }) {
-  const context = useContext(AllyContext);
-  if (!context) {
-    throw new Error(
-      "AllyContainer must be used within an AllyContext.Provider"
-    );
-  }
-  const { job, setStep, setUserJobs } = context;
+  const { job, setStep, setUserJobs } = useAlly();
 
   console.log({ currentJobIndex, localUserJobs, userJob, userJobsLength });
   function saveUserJobQualification(

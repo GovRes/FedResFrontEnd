@@ -9,10 +9,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 export default function UsaJobsNoResults({
   searchObject,
-}: // setShowSearchForm,
-{
+}: {
   searchObject: JobSearchObject;
-  // setShowSearchForm: Function;
 }) {
   const router = useRouter();
   return (
@@ -71,7 +69,7 @@ export default function UsaJobsNoResults({
         </div>
       )}
       <button
-        onClick={() => router.push("/ally/job_search")}
+        onClick={() => router.push("/ally/job-search")}
         className={styles.backButton}
       >
         Back to search

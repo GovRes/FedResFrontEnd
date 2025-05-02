@@ -1,5 +1,5 @@
-import { AllyContext } from "@/app/providers";
-import { FormEvent, useContext, useEffect, useState } from "react";
+import { useAlly } from "@/app/providers";
+import { FormEvent, useEffect, useState } from "react";
 import styles from "../ally.module.css";
 import {
   AwardType,
@@ -13,34 +13,20 @@ export default function ReviewItemsList<
   T extends AwardType | EducationType | UserJobType
 >({
   itemType,
-  job,
   localItems,
   onSubmit,
 }: {
   itemType: string;
-  job: { title: string };
   localItems: T[];
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
-  const context = useContext(AllyContext);
-  if (!context) {
-    throw new Error(
-      "AllyContainer must be used within an AllyContext.Provider"
-    );
-  }
-
+  const { job } = useAlly();
   const [itemOptions, setItemOptions] = useState(
     localItems.map((item) => ({
       id: item.id,
       name: generateHeadingText(item),
     }))
   );
-
-  if (!context) {
-    throw new Error(
-      "AllyContainer must be used within an AllyContext.Provider"
-    );
-  }
 
   useEffect(() => {
     setItemOptions(

@@ -1,13 +1,13 @@
 "use client";
 
-import React, { createContext, useState, ReactNode } from "react";
+import React, { createContext, useState, ReactNode, useContext } from "react";
 import {
   AwardType,
   EducationType,
   JobType,
   // SpecializedExperienceType,
   StepType,
-  StepsType,
+  // StepsType,
   TopicType,
   UserJobType,
 } from "../utils/responseSchemas";
@@ -19,17 +19,17 @@ export interface AllyContextType {
   educations: EducationType[];
   email: string;
   job?: JobType;
-  keywords: string[];
+  // keywords: string[];
   loading: boolean;
   loadingText: string;
   name: string;
   resumes?: string[];
   // specializedExperiences: SpecializedExperienceType[];
   step: StepType;
-  steps: StepsType[];
+  // steps: StepsType[];
   topics?: TopicType[];
   userJobs: UserJobType[];
-  userResumeId: string;
+  // userResumeId: string;
   volunteers: UserJobType[];
 
   // Methods
@@ -37,17 +37,17 @@ export interface AllyContextType {
   setEducations: (value: EducationType[]) => void;
   setEmail: (value: string) => void;
   setJob: (value: JobType) => void;
-  setKeywords: (value: string[]) => void;
+  // setKeywords: (value: string[]) => void;
   setLoading: (value: boolean) => void;
   setLoadingText: (value: string) => void;
   setName: (value: string) => void;
   setResumes: (value: string[]) => void;
   // setSpecializedExperiences: (value: SpecializedExperienceType[]) => void;
   setStep: (value: StepType) => void;
-  setSteps: (value: StepsType[]) => void;
+  // setSteps: (value: StepsType[]) => void;
   setTopics: (value: TopicType[]) => void;
   setUserJobs: (value: UserJobType[]) => void;
-  setUserResumeId: (value: string) => void;
+  // setUserResumeId: (value: string) => void;
   setVolunteers: (value: UserJobType[]) => void;
 }
 
@@ -57,92 +57,87 @@ export const AllyContext = createContext<AllyContextType | undefined>(
 
 export const AllyProvider = ({ children }: { children: ReactNode }) => {
   // State declarations
-  const [steps, setSteps] = useState<StepsType[]>([
-    {
-      id: "usa_jobs",
-      title: "USA Jobs",
-      description: "Select a federal job",
-      completed: false,
-      path: "/job_search",
-    },
-    {
-      id: "specialized_experience",
-      title: "Specialized Experience",
-      description: "Add specialized experience",
-      completed: false,
-      path: "/specialized_experience",
-    },
-    {
-      id: "extract_keywords",
-      title: "Extract Keywords",
-      description: "Extract keywords from the job description",
-      completed: false,
-      path: "/extract_keywords",
-    },
-    {
-      id: "sort_topics",
-      title: "Sort Topics",
-      description: "Organize keywords into topics",
-      completed: false,
-      path: "/sort_topics",
-    },
-    {
-      id: "resume",
-      title: "Resume",
-      description: "Select a past resume",
-      completed: false,
-      path: "/resume",
-    },
-    {
-      id: "user_jobs",
-      title: "Past Jobs",
-      description: "Add and edit past jobs",
-      completed: false,
-      path: "/user_jobs",
-    },
-    {
-      id: "user_job_details",
-      title: "User Job Details",
-      description: "Write a description of past jobs",
-      completed: false,
-      path: "/user_job_details",
-    },
-    {
-      id: "awards",
-      title: "Awards",
-      description: "Add and edit awards",
-      completed: false,
-      path: "/awards",
-    },
-    {
-      id: "education",
-      title: "Education",
-      description: "Add and edit educational experiences",
-      completed: false,
-      path: "/education",
-    },
-    {
-      id: "volunteer",
-      title: "Volunteer",
-      description: "Add and edit volunteer experiences",
-      completed: false,
-      path: "/volunteer",
-    },
-    {
-      id: "volunteer_details",
-      title: "Volunteer Details",
-      description: "Write a description of volunteer experiences",
-      completed: false,
-      path: "/volunteer_details",
-    },
-    {
-      id: "return_resume",
-      title: "Final Resume",
-      description: "A resume you can use in your job application",
-      completed: false,
-      path: "/return_resume",
-    },
-  ]);
+  // const [steps, setSteps] = useState<StepsType[]>([
+  //   {
+  //     id: "usa-jobs",
+  //     title: "USA Jobs",
+  //     description: "Select a federal job",
+  //     completed: false,
+  //     path: "/job-search",
+  //   },
+  //   {
+  //     id: "specialized-experience",
+  //     title: "Specialized Experience",
+  //     description: "Add specialized experience",
+  //     completed: false,
+  //     path: "/specialized-experience",
+  //   },
+  //   {
+  //     id: "extract-keywords",
+  //     title: "Extract Keywords",
+  //     description: "Extract keywords from the job description",
+  //     completed: false,
+  //     path: "/extract-keywords",
+  //   },
+
+  //   {
+  //     id: "past-experience",
+  //     title: "Past Experience",
+  //     description: "Select past job experiences",
+  //     completed: false,
+  //     path: "/past-experience",
+  //   },
+  //   {
+  //     id: "user_jobs",
+  //     title: "Past Jobs",
+  //     description: "Add and edit past jobs",
+  //     completed: false,
+  //     path: "/past-jobs",
+  //   },
+
+  //   {
+  //     id: "awards",
+  //     title: "Awards",
+  //     description: "Add and edit awards",
+  //     completed: false,
+  //     path: "/awards",
+  //   },
+  //   {
+  //     id: "education",
+  //     title: "Education",
+  //     description: "Add and edit educational experiences",
+  //     completed: false,
+  //     path: "/education",
+  //   },
+  //   {
+  //     id: "volunteer",
+  //     title: "Volunteer Experience",
+  //     description: "Add and edit volunteer experiences",
+  //     completed: false,
+  //     path: "/volunteer",
+  //   },
+  //   {
+  //     id: "user_job_details",
+  //     title: "User Job Details",
+  //     description: "Write a description of past jobs",
+  //     completed: false,
+  //     path: "/past-job-details",
+  //   },
+  //   {
+  //     id: "volunteer-details",
+  //     title: "Volunteer Details",
+  //     description: "Write a description of volunteer experiences",
+  //     completed: false,
+  //     path: "/volunteer-details",
+  //   },
+  //   {
+  //     id: "return_resume",
+  //     title: "Final Resume",
+  //     description: "A resume you can use in your job application",
+  //     completed: false,
+  //     path: "/return-resume",
+  //   },
+  // ]);
   const [awards, setAwards] = useState<AwardType[]>([]);
   const [educations, setEducations] = useState<EducationType[]>([]);
   const [email, setEmail] = useState("");
@@ -160,8 +155,9 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
   //   requiredDocuments:
   //     "A complete resume is required. Your resume must show relevant experience, job title, duties and accomplishments. Your resume must show complete information for each job entry to support minimum qualifications. The following information should be provided in your resume, but it is acceptable to provide elsewhere in your application package: employer's name, starting and end dates (Mo/Yr), hours per week, and pay plan, series and grade level (e.g. GS-0201-09) for relevant federal experience. TIP: A good way to ensure you include all essential information is to use the Resume Builder in USAJOBS to create your resume. Are you claiming membership in any professional organizations, or possession of a license, certificate or credentials? Check the Conditions of Employment section above to see if any are required. If you claim membership, license, certification, or credentials, you must submit a copy of said document in your application package. Are you using education as a substitute for some or all of the experience requirement? Is there a basic education requirement for this position? Check the Education section above to see what is allowed and what is required. Any claims you make in your resume or assessment questionnaire regarding education or degrees MUST be supported by submitting with your application official or unofficial transcripts or a list of courses, grades earned, completion dates, and quarter and semester hours earned issued from your school. While unofficial transcripts are acceptable for initial application, an official transcript will ultimately be required if you are selected for the position. You may submit a copy your degree(s) if specific coursework does not have to be verified. Are you a veteran claiming 5-point veterans' preference or claiming sole survivorship preference? You must submit a copy of your latest DD-214 Certificate of Release or Discharge from Active Duty (any copy that shows all dates of service, as well as character of service [Honorable, General, etc.] is acceptable) OR a VA letter that shows dates of service or service connected disability AND character of service. If you have more than one DD-214 for multiple periods of active duty service, submit a copy for each period of service. If you were issued a DD-215 to amend aforementioned information on the DD-214 you must submit that too. If you are not sure of your preference eligibility, visit the Department of Labor's website: Veterans' Preference Advisor Are you a disabled veteran or claiming 10-point veterans' preference? If you are eligible to claim 10 point veterans preference you must submit a DD-214 Certificate of Release or Discharge from Active Duty as described above for 5-point preference. You must also provide the applicable supporting documentation of your disability (e.g. disability letter from the VA) as described on Standard Form-15 (SF-15). http://www.opm.gov/forms/pdf_fill/SF15.pdf. Are you an active duty service member? Active Duty Service Members are required to submit a statement of service printed on command letterhead and signed by the command. The statement of service must provide the branch of service, rate/rank, all dates of service, the expected date of discharge and anticipated character of service (Honorable, General, etc.). Documents submitted as part of the application package, to include supplemental documents, may be shared beyond the Human Resources Office. Some supplemental documents contain personal information such as SSN and DOB and some documents such as military orders and marriage certificates may contain personal information for someone other than you. You may sanitize these documents to remove said personal information before you submit your application. You must provide an un-sanitized version of the documents if you are selected.",
   //   title: "IT SPECIALIST (POLICY PLANNING)",
+  //   usaJobsId: "123456789",
   // });
-  const [keywords, setKeywords] = useState<string[]>([]);
+  // const [keywords, setKeywords] = useState<string[]>([]);
   const [name, setName] = useState("");
   const [resumes, setResumes] = useState<string[]>();
   // const [resumes, setResumes] = useState<string[]>([
@@ -211,7 +207,7 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
   //   },
   // ]);
   // const [step, setStep] = useState<StepType>("volunteer");
-  const [step, setStep] = useState<StepType>("usa_jobs");
+  const [step, setStep] = useState<StepType>("usa-jobs");
   const [topics, setTopics] = useState<TopicType[]>();
   // const [topics, setTopics] = useState<TopicType[]>([
   //   {
@@ -397,35 +393,43 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
     educations,
     email,
     job,
-    keywords,
+    // keywords,
     loading,
     loadingText,
     name,
     resumes,
     // specializedExperiences,
     step,
-    steps,
+    // steps,
     topics,
     userJobs,
-    userResumeId,
+    // userResumeId,
     volunteers,
     setAwards,
     setEducations,
     setEmail,
     setJob,
-    setKeywords,
+    // setKeywords,
     setLoading,
     setLoadingText,
     setName,
     setResumes,
     // setSpecializedExperiences,
     setStep,
-    setSteps,
+    // setSteps,
     setTopics,
     setUserJobs,
-    setUserResumeId,
+    // setUserResumeId,
     setVolunteers,
   };
 
   return <AllyContext.Provider value={value}>{children}</AllyContext.Provider>;
 };
+
+export function useAlly() {
+  const context = useContext(AllyContext);
+  if (context === undefined) {
+    throw new Error("useAlly must be used within a AllyContextProvider");
+  }
+  return context;
+}

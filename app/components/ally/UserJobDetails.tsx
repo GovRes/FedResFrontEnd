@@ -1,16 +1,10 @@
-import { useContext, useState } from "react";
+import { useState } from "react";
 import Editing from "./userJobsComponents/Editing";
-import { AllyContext } from "@/app/providers";
+import { useAlly } from "@/app/providers";
 import { UserJobType } from "@/app/utils/responseSchemas";
 
 export default function UserJobDetails() {
-  const context = useContext(AllyContext);
-  if (!context) {
-    throw new Error(
-      "AllyContainer must be used within an AllyContext.Provider"
-    );
-  }
-  const { userJobs } = context;
+  const { userJobs } = useAlly();
   const [localUserJobs, setLocalUserJobs] = useState<UserJobType[]>(userJobs);
   return (
     <Editing

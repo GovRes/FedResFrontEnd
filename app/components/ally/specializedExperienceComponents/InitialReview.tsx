@@ -1,22 +1,16 @@
-import { AllyContext } from "@/app/providers";
+import { AllyContext, useAlly } from "@/app/providers";
 import { useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { specializedExperienceExtractor } from "../../aiProcessing/specializedExperienceExtractor";
 import styles from "../ally.module.css";
 import { SpecializedExperienceType } from "@/app/utils/responseSchemas";
 import { TextBlinkLoader } from "../../loader/Loader";
-import { SpecializedExperienceContext } from "@/app/providers/providers";
+import { SpecializedExperienceContext } from "@/app/providers/specializedExperienceContext";
 export default function InitialReview({}: // setReviewing,
 {
   // setReviewing: (reviewing: boolean) => void;
 }) {
-  const context = useContext(AllyContext);
-  if (!context) {
-    throw new Error(
-      "AllyContainer must be used within an AllyContext.Provider"
-    );
-  }
-  const { loading, job, setLoading, setLoadingText } = context;
+  const { loading, job, setLoading, setLoadingText } = useAlly();
   const { specializedExperiences, setSpecializedExperiences } = useContext(
     SpecializedExperienceContext
   );
@@ -36,11 +30,6 @@ export default function InitialReview({}: // setReviewing,
     fetchSpecializedExperience({ job });
   }, []);
 
-  if (!context) {
-    throw new Error(
-      "AllyContainer must be used within an AllyContext.Provider"
-    );
-  }
   // tk need to figure out what to do if there is ever NOT specialized experience
   //   useEffect(() => {
   //     if (!isLoading && specializedExperiences?.length === 0) {
@@ -51,7 +40,7 @@ export default function InitialReview({}: // setReviewing,
   //tk redo this section like jobs section, with preserving local state and sending to provider only when ready
   function backToSearch() {
     setSpecializedExperiences([]);
-    router.push("/ally/job_search");
+    router.push("/ally/job-search");
   }
   useEffect(() => {
     setIsLoading(loading);
@@ -77,7 +66,7 @@ export default function InitialReview({}: // setReviewing,
       <div>
         <button
           onClick={() =>
-            router.push("/ally/specialized_experience/experience_writer")
+            router.push("/ally/specialized-experience/experience_writer")
           }
         >
           Yes, I do.
@@ -87,7 +76,7 @@ export default function InitialReview({}: // setReviewing,
         </button>
         <button
           onClick={() =>
-            router.push("/ally/specialized_experience/experience_writer")
+            router.push("/ally/specialized-experience/experience_writer")
           }
         >
           I have some of this experience, and I would like to continue.

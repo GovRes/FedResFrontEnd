@@ -11,6 +11,10 @@ import { createAndSaveUserResume } from "@/app/crud/userResume";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { useRouter } from "next/navigation";
 import { completeSteps } from "@/app/utils/stepUpdater";
+import {
+  UserResumeContext,
+  useUserResume,
+} from "@/app/providers/userResumeContext";
 export interface MatchedObjectDescriptor {
   PositionTitle: string;
   DepartmentName: string;
@@ -46,13 +50,15 @@ export default function UsaJobsResults({
   searchResults: Result[];
   setShowSearchForm: Function;
 }) {
-  const context = useContext(AllyContext);
-  if (!context) {
+  const allyContext = useContext(AllyContext);
+  if (!allyContext) {
     throw new Error(
       "AllyContainer must be used within an AllyContext.Provider"
     );
   }
-  const { steps, setJob, setUserResumeId, setSteps } = context;
+  const { setJob } = allyContext;
+
+  const { steps, userResumeId, setSteps, setUserResumeId } = useUserResume();
   const router = useRouter();
   const { user } = useAuthenticator();
   const [modalOpen, setModalOpen] = useState<boolean>(false);
@@ -67,21 +73,22 @@ export default function UsaJobsResults({
   }
   async function setJobAndProceed() {
     if (currentJob) {
-      // setModalOpen(false);
-
       let formattedJobDescription = formatJobDescription({ job: currentJob });
       let jobRes = await createAndSaveJob({ ...formattedJobDescription });
+      console.log("jobRes", jobRes);
       let userResumeRes = await createAndSaveUserResume({
         jobId: jobRes.id,
         userId: user.userId,
       });
-      const updatedSteps = completeSteps({ steps, stepId: "usa_jobs" });
-      setSteps(updatedSteps);
-      setJob(formattedJobDescription);
       setUserResumeId(userResumeRes.id);
-
-      // router.push("/ally/specialized_experience");
-      router.push("/ally/extract_keywords");
+      const updatedSteps = await completeSteps({
+        steps,
+        stepId: "usa-jobs",
+        userResumeId: userResumeRes.id,
+      });
+      setSteps(updatedSteps);
+      setJob(jobRes);
+      router.push("/ally/extract-keywords");
     }
   }
 

@@ -1,31 +1,24 @@
 import { list } from "aws-amplify/storage";
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import pdfToText from "react-pdftotext";
 
 import styles from "./ally.module.css";
 import ResumesTable from "./resumeComponents/ResumesTable";
-import ResumeUploader from "../profile/resumeComponents/ResumeUploader";
+import ResumeUploader from "../../profile/components/resumeComponents/ResumeUploader";
 import { ResumeType } from "@/app/utils/responseSchemas";
 import { getFileUrl } from "@/app/utils/client-utils";
 import { TextBlinkLoader } from "../loader/Loader";
-import { setHeapSnapshotNearHeapLimit } from "v8";
-import { AllyContext } from "@/app/providers";
+import { useAlly } from "@/app/providers";
 
 export default function Resumes() {
-  const context = useContext(AllyContext);
-  if (!context) {
-    throw new Error(
-      "AllyContainer must be used within an AllyContext.Provider"
-    );
-  }
-  const { setResumes, setStep, specializedExperiences } = context;
+  const { setResumes, setStep } = useAlly();
   const [loading, setLoading] = useState(false);
   const [loadingText, setLoadingText] = useState("Loading Resumes");
   const [localResumes, setLocalResumes] = useState<ResumeType[]>([]);
   const [selectedResumes, setSelectedResumes] = useState<ResumeType[]>([]);
   const [refresh, setRefresh] = useState(true);
   const [showUploader, setShowUploader] = useState(false);
-  console.log({ specializedExperiences });
+
   async function processResumes() {
     setLoadingText("Processing Resumes");
     setLoading(true);
@@ -36,7 +29,7 @@ export default function Resumes() {
     setResumes(resolvedResumes);
     setLoading(false);
 
-    setStep("user_jobs");
+    setStep("user-jobs");
   }
 
   async function processResume(resume: ResumeType) {

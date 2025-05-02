@@ -1,4 +1,4 @@
-import { AllyContext } from "@/app/providers";
+import { AllyContext, useAlly } from "@/app/providers";
 import { StepType, UserJobType } from "@/app/utils/responseSchemas";
 import { JSX, useContext, useEffect, useRef, useState } from "react";
 
@@ -19,12 +19,7 @@ export default function Editing({
   setLocalUserJobs: Function;
 }) {
   let itemsList: JSX.Element[] = [];
-  const context = useContext(AllyContext);
-  if (!context) {
-    throw new Error(
-      "AllyContainer must be used within an AllyContext.Provider"
-    );
-  }
+
   const {
     job,
     loading,
@@ -33,7 +28,7 @@ export default function Editing({
     userJobs,
     setLoading,
     setLoadingText,
-  } = context;
+  } = useAlly();
   const [currentJobIndex, setCurrentJobIndex] = useState(0);
   const [currentItem, setCurrentItem] = useState<UserJobType>(
     userJobs[currentJobIndex]

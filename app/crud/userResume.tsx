@@ -1,5 +1,94 @@
 import { generateClient } from "aws-amplify/api";
 import { fetchAuthSession } from "aws-amplify/auth";
+export const associateItemsWithUserResume = async ({
+  userResumeId,
+  items,
+  associationType,
+}: {
+  userResumeId: string;
+  items: { id: string }[] | string[];
+  associationType:
+    | "Award"
+    | "Education"
+    | "SpecializedExperience"
+    | "UserJob"
+    | "Volunteer"
+    | "Resume";
+}) => {
+  try {
+    const session = await fetchAuthSession();
+    if (!session.tokens) {
+      throw new Error("No valid authentication session found");
+    }
+  } catch (error) {
+    console.error("No user is signed in");
+    return;
+  }
+
+  const client = generateClient();
+
+  try {
+    // Validate required parameters
+    if (!userResumeId || !items || items.length === 0) {
+      throw new Error(
+        `userResumeId and non-empty ${associationType} items array are required`
+      );
+    }
+
+    // Map to get the item IDs whether we received objects with IDs or just ID strings
+    const itemIds = items.map((item) =>
+      typeof item === "string" ? item : item.id
+    );
+
+    // Build the mutation name based on the associationType
+    const mutationName = `create${associationType}UserResume`;
+
+    // Build the input field name based on the associationType (lowercase first letter)
+    const itemIdFieldName = `${
+      associationType.charAt(0).toLowerCase() + associationType.slice(1)
+    }Id`;
+
+    // Create connections one at a time to avoid complex filter expressions
+    const createdConnections = [];
+
+    for (const itemId of itemIds) {
+      const input = {
+        [itemIdFieldName]: itemId,
+        userResumeId,
+      };
+
+      const response = await client.graphql({
+        query: `
+          mutation Create${associationType}UserResume($input: Create${associationType}UserResumeInput!) {
+            ${mutationName}(input: $input) {
+              id
+              ${itemIdFieldName}
+              userResumeId
+            }
+          }
+        `,
+        variables: { input },
+        authMode: "userPool",
+      });
+
+      if ("data" in response) {
+        createdConnections.push(response.data[mutationName]);
+      } else {
+        throw new Error(
+          `Unexpected response format from GraphQL operation for ${associationType}`
+        );
+      }
+    }
+    console.log(createdConnections);
+    return createdConnections;
+  } catch (error) {
+    console.error(
+      `Error associating ${associationType} with UserResume:`,
+      error
+    );
+    throw error;
+  }
+};
 export const listUserResumes = async () => {
   try {
     const session = await fetchAuthSession();
@@ -146,6 +235,223 @@ export const getUserResumeWithJob = async ({ id }: { id: string }) => {
     throw new Error("Unexpected response format from GraphQL operation");
   } catch (error) {
     console.error("Error fetching UserResume:", error);
+    throw error;
+  }
+};
+
+export const updateUserResume = async ({
+  id,
+  input,
+}: {
+  id: string;
+  input: {
+    completedSteps?: string[];
+  };
+}) => {
+  try {
+    const session = await fetchAuthSession();
+    if (!session.tokens) {
+      throw new Error("No valid authentication session found");
+    }
+  } catch (error) {
+    console.error("No user is signed in");
+    return;
+  }
+
+  const client = generateClient();
+
+  try {
+    // Validate required parameters
+    if (!id) {
+      throw new Error("UserResume id is required");
+    }
+
+    if (Object.keys(input).length === 0) {
+      throw new Error("At least one field to update is required");
+    }
+
+    const response = await client.graphql({
+      query: `
+        mutation UpdateUserResume($input: UpdateUserResumeInput!) {
+          updateUserResume(input: $input) {
+            id
+          }
+        }
+      `,
+      variables: {
+        input: {
+          id,
+          ...input,
+        },
+      },
+      authMode: "userPool",
+    });
+
+    if ("data" in response) {
+      return response.data.updateUserResume;
+    }
+
+    throw new Error("Unexpected response format from GraphQL operation");
+  } catch (error) {
+    console.error("Error updating UserResume:", error);
+    throw error;
+  }
+};
+
+export const getUserResumeAssociations = async ({
+  userResumeId,
+  associationType,
+}: {
+  userResumeId: string;
+  associationType:
+    | "Award"
+    | "Education"
+    | "SpecializedExperience"
+    | "UserJob"
+    | "Volunteer"
+    | "Resume";
+}) => {
+  try {
+    const session = await fetchAuthSession();
+    if (!session.tokens) {
+      throw new Error("No valid authentication session found");
+    }
+  } catch (error) {
+    console.error("No user is signed in");
+    return;
+  }
+
+  const client = generateClient();
+
+  try {
+    // Validate required parameters
+    if (!userResumeId) {
+      throw new Error("userResumeId is required");
+    }
+
+    // Build the query name based on the associationType
+    const queryName = `list${associationType}UserResumes`;
+
+    // Build the filter to match the userResumeId
+    const filter = {
+      userResumeId: { eq: userResumeId },
+    };
+
+    // Define the fields to fetch based on the associationType
+    const getSpecificFields = () => {
+      switch (associationType) {
+        case "Award":
+          return `
+            title
+            date
+            userId
+          `;
+        case "Education":
+          return `
+            degree
+            major
+            school
+            date
+            title
+            gpa
+            userConfirmed
+            userId
+          `;
+        case "SpecializedExperience":
+          return `
+            title
+            description
+            userConfirmed
+            paragraph
+            initialMessage
+            userId
+          `;
+        case "UserJob":
+          return `
+            title
+            organization
+            startDate
+            endDate
+            hours
+            gsLevel
+            responsibilities
+            userId
+          `;
+        case "Volunteer":
+          return `
+            title
+            organization
+            startDate
+            endDate
+            hours
+            gsLevel
+            responsibilities
+            userId
+          `;
+        case "Resume":
+          return `
+            fileName
+            userId
+          `;
+        default:
+          return "";
+      }
+    };
+
+    // Execute the query to get the junction table entries
+    const junctionResponse = await client.graphql({
+      query: `
+        query List${associationType}UserResumes($filter: Model${associationType}UserResumeFilterInput) {
+          ${queryName}(filter: $filter) {
+            items {
+              id
+              userResumeId
+              ${
+                associationType.charAt(0).toLowerCase() +
+                associationType.slice(1)
+              }Id
+              ${
+                associationType.charAt(0).toLowerCase() +
+                associationType.slice(1)
+              } {
+                id
+                ${getSpecificFields()}
+                createdAt
+                updatedAt
+              }
+              createdAt
+              updatedAt
+            }
+          }
+        }
+      `,
+      variables: { filter },
+      authMode: "userPool",
+    });
+
+    if ("data" in junctionResponse) {
+      // Extract and return just the associated items, not the junction records
+      const junctionItems = junctionResponse.data[queryName].items;
+      const associatedItems = junctionItems
+        .map(
+          (item: any) =>
+            item[
+              associationType.charAt(0).toLowerCase() + associationType.slice(1)
+            ]
+        )
+        .filter(Boolean); // Filter out any null items
+
+      return associatedItems;
+    }
+
+    throw new Error(
+      `Unexpected response format from GraphQL operation for ${associationType}`
+    );
+  } catch (error) {
+    console.error(
+      `Error fetching ${associationType} associations for UserResume:`,
+      error
+    );
     throw error;
   }
 };

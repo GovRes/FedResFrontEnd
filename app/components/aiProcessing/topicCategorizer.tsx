@@ -11,13 +11,9 @@ import { formatJobDescriptionForAI } from "@/app/utils/aiInteractionUtils";
 export const topicsCategorizer = async ({
   job,
   keywords,
-  setLoading,
-  setLoadingText,
 }: {
   job: JobType;
   keywords?: Array<string>;
-  setLoading: Function;
-  setLoadingText: Function;
 }) => {
   const jobDescription = formatJobDescriptionForAI({ job });
   const userMessage: ChatCompletionUserMessageParam = {
@@ -30,14 +26,10 @@ export const topicsCategorizer = async ({
     | ChatCompletionUserMessageParam
     | ChatCompletionSystemMessageParam
   )[] = [userMessage, topicsCategorizerPrompt];
-  setLoadingText("Organizing keywords into topics");
-  setLoading(true);
-
   let res = await sendMessages({
     messages: messagesForQualificationsReviewer,
     name: "topics",
   });
-  setLoading(false);
 
   return res.topics as TopicType[];
 };

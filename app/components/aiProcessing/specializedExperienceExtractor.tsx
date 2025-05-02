@@ -18,7 +18,6 @@ export const specializedExperienceExtractor = async ({
 }) => {
   setLoadingText("Reviewing job description for specialized experience.");
   setLoading(true);
-  console.log(job);
   const userMessage: ChatCompletionUserMessageParam = {
     role: "user",
     content: `Qualifications summary: ${job?.qualificationsSummary}`,

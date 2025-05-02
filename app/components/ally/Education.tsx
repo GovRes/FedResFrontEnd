@@ -1,24 +1,19 @@
 import { EducationType } from "@/app/utils/responseSchemas";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import InitialReview from "./sharedComponents/InitialReview";
 import Details from "./sharedComponents/Details";
 import EducationForm from "./educationComponents/EducationForm";
 import AddItems from "./sharedComponents/AddItems";
 
 import { v4 as uuidv4 } from "uuid";
-import { AllyContext } from "@/app/providers";
+import { useAlly } from "@/app/providers";
 import { educationExtractor } from "../aiProcessing/educationExtractor";
 import { TextBlinkLoader } from "../loader/Loader";
 
 export default function Educations({}) {
   const [educationsStep, setEducationsStep] = useState("initial");
   const [localEducations, setLocalEducations] = useState<EducationType[]>([]);
-  const context = useContext(AllyContext);
-  if (!context) {
-    throw new Error(
-      "AllyContainer must be used within an AllyContext.Provider"
-    );
-  }
+
   const {
     loading,
     loadingText,
@@ -27,7 +22,7 @@ export default function Educations({}) {
     setLoading,
     setLoadingText,
     setStep,
-  } = context;
+  } = useAlly();
 
   function completeAndMoveOn() {
     console.log("complete");

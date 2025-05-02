@@ -1,64 +1,104 @@
-import { AllyContext } from "@/app/providers";
-import { FormEvent, useContext } from "react";
+import { useAlly } from "@/app/providers";
+import { FormEvent, useEffect, useState } from "react";
 import {
   AwardType,
   EducationType,
   UserJobType,
+  VolunteerType,
 } from "@/app/utils/responseSchemas";
 import { getCheckboxValues } from "@/app/utils/formUtils";
 import ReviewItemsList from "../sharedComponents/ReviewItemsList";
+import { completeSteps } from "@/app/utils/stepUpdater";
+import { useRouter } from "next/navigation";
+import { associateItemsWithUserResume } from "@/app/crud/userResume";
+import { useUserResume } from "@/app/providers/userResumeContext";
+import { TextBlinkLoader } from "../../loader/Loader";
 
 export default function InitialReview<
-  T extends AwardType | EducationType | UserJobType
+  T extends AwardType | EducationType | UserJobType | VolunteerType
 >({
+  currentStepId,
   localItems,
   itemType,
   setLocalItems,
-  setItemsStep,
+  nextPath,
 }: {
+  currentStepId: string;
   localItems: T[];
-  itemType: string;
+  itemType:
+    | "Award"
+    | "Education"
+    | "SpecializedExperience"
+    | "UserJob"
+    | "Volunteer"
+    | "Resume";
   setLocalItems: Function;
-  setItemsStep: Function;
+  nextPath: string;
 }) {
-  const context = useContext(AllyContext);
-  if (!context) {
-    throw new Error(
-      "AllyContainer must be used within an AllyContext.Provider"
-    );
-  }
-  const { job } = context;
+  console.log("loaded initial review");
+  console.log(localItems);
+  // Create a local state to track the items for rendering purposes
+  const router = useRouter();
+  const [items, setItems] = useState<T[]>(localItems);
+  // Update local state whenever localItems prop changes
+  useEffect(() => {
+    setItems(localItems);
+  }, [localItems]);
 
-  if (!context) {
-    throw new Error(
-      "AllyContainer must be used within an AllyContext.Provider"
-    );
-  }
+  const [loading, setLoading] = useState(false);
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const { job } = useAlly();
+  const { steps, userResumeId, setSteps } = useUserResume();
+  console.log("user resume", userResumeId);
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    window.scrollTo(0, 0);
     const values = getCheckboxValues(event);
-    // Filter out jobs whose IDs are in the values array
+    console.log("submit called");
+    // Filter out items whose IDs are in the values array
     const updatedItems = localItems.filter((item) => !values.includes(item.id));
+    console.log("updatedItems", updatedItems);
+
+    // Update parent state
     setLocalItems(updatedItems);
-    if (updatedItems.length === 0) {
-      setItemsStep("additional");
-    } else {
-      setItemsStep("details");
+    if (userResumeId && items.length > 0) {
+      console.log("associating items with user resume", userResumeId);
+      setLoading(true);
+      await associateItemsWithUserResume({
+        userResumeId,
+        items: updatedItems,
+        associationType: itemType,
+      });
+
+      const updatedSteps = await completeSteps({
+        steps,
+        stepId: currentStepId,
+        userResumeId,
+      });
+      setSteps(updatedSteps);
+      router.push(nextPath);
     }
   };
 
-  if (localItems.length > 0 && job) {
+  // Split the condition to better understand what's happening
+  const hasItems = items.length > 0;
+  const hasJob = Boolean(job);
+  if (loading) return <TextBlinkLoader text={`Saving ${itemType}s`} />;
+  if (hasItems && hasJob) {
     return (
       <ReviewItemsList
         itemType={itemType}
-        job={job}
-        localItems={localItems}
+        localItems={items} // Use local state for rendering
         onSubmit={onSubmit}
       />
     );
   } else {
-    return <div>no items found</div>;
+    // Add more details about why nothing is shown
+    return (
+      <div>
+        {!hasItems && <p>No items found. The items list is empty.</p>}
+        {!hasJob && <p>Job context is missing or undefined.</p>}
+      </div>
+    );
   }
 }

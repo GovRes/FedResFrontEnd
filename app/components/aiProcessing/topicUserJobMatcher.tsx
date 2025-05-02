@@ -9,13 +9,9 @@ import {
 export const topicUserJobMatcher = async ({
   userJobs,
   topics,
-  setLoading,
-  setLoadingText,
 }: {
   topics: TopicType[];
   userJobs: UserJobType[];
-  setLoading: Function;
-  setLoadingText: Function;
 }) => {
   const userMessage: ChatCompletionUserMessageParam = {
     role: "user",
@@ -29,15 +25,11 @@ export const topicUserJobMatcher = async ({
     | ChatCompletionUserMessageParam
     | ChatCompletionSystemMessageParam
   )[] = [userMessage, topicUserJobMatcherPrompt];
-  setLoadingText("matching future job requirements to past jobs");
-  setLoading(true);
   let res = await sendMessages({
     messages: messagesForTopicUserJobMatcher,
     //has to match line 26 in api/ai/route.tsx
     name: "userJobs",
   });
-  console.log("received", res);
-  setLoading(false);
   const result = res.userJobs as UserJobType[];
   return result;
 };

@@ -1,24 +1,19 @@
 import { AwardType } from "@/app/utils/responseSchemas";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import InitialReview from "./sharedComponents/InitialReview";
 import Details from "./sharedComponents/Details";
 import AwardForm from "./awardsComponents/AwardForm";
 import AddItems from "./sharedComponents/AddItems";
 
 import { v4 as uuidv4 } from "uuid";
-import { AllyContext } from "@/app/providers";
+import { useAlly } from "@/app/providers";
 import { awardsExtractor } from "../aiProcessing/awardsExtractor";
 import { TextBlinkLoader } from "../loader/Loader";
 
 export default function Awards({}) {
   const [awardsStep, setAwardsStep] = useState("initial");
   const [localAwards, setLocalAwards] = useState<AwardType[]>([]);
-  const context = useContext(AllyContext);
-  if (!context) {
-    throw new Error(
-      "AllyContainer must be used within an AllyContext.Provider"
-    );
-  }
+
   const {
     loading,
     loadingText,
@@ -27,7 +22,7 @@ export default function Awards({}) {
     setLoading,
     setLoadingText,
     setStep,
-  } = context;
+  } = useAlly();
 
   function completeAndMoveOn() {
     setAwards(localAwards);

@@ -17,3 +17,8 @@ const [resumes, setResumes] = useState<Schema["Resume"]["type"][]>([]);
 // create a utility for sending and receiving messages - move code out of app.tsx and make a way to included prompts
 
 //tk add https://github.com/instructor-ai/instructor-js
+
+//tk optimize contexts & ask AI about splitting out components (did this with keyword sorter)
+tk add ability to select past jobs and awards
+
+tk load from userResume, including completed steps - load those items.

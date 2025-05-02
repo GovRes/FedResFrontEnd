@@ -1,22 +1,16 @@
 import React, { useState, useEffect, useRef, useContext } from "react";
 import InitialReview from "./sharedComponents/InitialReview";
-import Editing from "./userJobsComponents/Editing";
 import Details from "./sharedComponents/Details";
 import VolunteersForm from "./volunteersComponents/VolunteersForm";
 import { UserJobType } from "@/app/utils/responseSchemas";
-import { AllyContext } from "@/app/providers";
+import { useAlly } from "@/app/providers";
 import { volunteersExtractor } from "../aiProcessing/volunteersExtractor";
 import { TextBlinkLoader } from "../loader/Loader";
 import AddItems from "./sharedComponents/AddItems";
 const Volunteer = () => {
   const [volunteersStep, setVolunteersStep] = useState("initial");
   const [localVolunteers, setLocalVolunteers] = useState<UserJobType[]>([]);
-  const context = useContext(AllyContext);
-  if (!context) {
-    throw new Error(
-      "AllyContainer must be used within an AllyContext.Provider"
-    );
-  }
+
   const {
     loading,
     loadingText,
@@ -25,7 +19,7 @@ const Volunteer = () => {
     setLoadingText,
     setStep,
     setVolunteers,
-  } = context;
+  } = useAlly();
 
   function setNext() {
     setVolunteers(localVolunteers);

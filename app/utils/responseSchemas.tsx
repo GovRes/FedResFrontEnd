@@ -1,4 +1,3 @@
-import { title } from "process";
 import { z } from "zod";
 import { UserType } from "@/app/utils/userAttributeInterface";
 import { agencies } from "@/app/utils/usaJobsCodes";
@@ -35,6 +34,7 @@ export const Education = z.object({
   title: z.string(),
   gpa: z.string().optional(),
   userConfirmed: z.boolean().optional(),
+  userId: z.string(),
 });
 export const EducationArraySchema = z.object({
   education: z.array(Education),
@@ -44,6 +44,7 @@ export const Award = z.object({
   id: z.string(),
   title: z.string(),
   date: z.string(),
+  userId: z.string(),
 });
 export const AwardsArraySchema = z.object({
   awards: z.array(Award),
@@ -76,6 +77,7 @@ export const SpecializedExperience = z.object({
     "experience",
     "other",
   ]),
+  userId: z.string(),
 });
 
 export const SpecializedExperienceArraySchema = z.object({
@@ -84,6 +86,7 @@ export const SpecializedExperienceArraySchema = z.object({
 export const Topic = z.object({
   id: z.string(),
   title: z.string(),
+  jobId: z.string(),
   keywords: z.array(z.string()),
   description: z.string().optional(),
   //maybe are not needed
@@ -103,6 +106,8 @@ export type ResumeType = {
   path: string;
   lastModified: Date;
   eTag: string;
+  id: string;
+  userId?: string;
 };
 
 export const UserJobQualification = z.object({
@@ -111,6 +116,7 @@ export const UserJobQualification = z.object({
   description: z.string(),
   title: z.string(),
   paragraph: z.string().optional(),
+  userId: z.string(),
   userConfirmed: z.boolean(),
 });
 
@@ -125,6 +131,7 @@ export const UserJob = z.object({
   organization: z.string(),
   title: z.string(),
   responsibilities: z.string().optional(),
+  userId: z.string(),
   userJobQualifications: z.array(UserJobQualification),
 });
 
@@ -140,24 +147,24 @@ export const Volunteer = z.object({
   organization: z.string(),
   title: z.string(),
   responsibilities: z.string().optional(),
+  userId: z.string(),
   userJobQualifications: z.array(UserJobQualification),
 });
 export type VolunteerType = z.infer<typeof Volunteer>;
 export const VolunteerArraySchema = z.object({ volunteer: z.array(Volunteer) });
 export type StepType =
   | "temp_registration"
-  | "usa_jobs"
-  | "specialized_experience"
-  | "extract_keywords"
-  | "sort_topics"
+  | "usa-jobs"
+  | "specialized-experience"
+  | "extract-keywords"
   | "resume"
-  | "user_jobs"
-  | "user_job_details"
+  | "user-jobs"
+  | "user-job-details"
   | "awards"
   | "education"
   | "volunteer"
-  | "volunteer_details"
-  | "return_resume"
+  | "volunteer-details"
+  | "return-resume"
   | "pause";
 
 export type StepsType = {
@@ -169,6 +176,7 @@ export type StepsType = {
 };
 
 export interface JobType {
+  id?: string;
   agencyDescription: string;
   department: string;
   duties: string;
@@ -176,5 +184,6 @@ export interface JobType {
   qualificationsSummary: string;
   requiredDocuments: string;
   title: string;
+  topics?: TopicType[];
   usaJobsId: string;
 }

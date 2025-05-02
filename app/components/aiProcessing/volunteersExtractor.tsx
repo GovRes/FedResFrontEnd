@@ -8,15 +8,9 @@ import {
 
 export const volunteersExtractor = async ({
   resumes,
-  setLoading,
-  setLoadingText,
 }: {
   resumes: string[];
-  setLoading: Function;
-  setLoadingText: Function;
 }) => {
-  setLoadingText("Extracting your jobs from your resumes");
-  setLoading(true);
   const userMessage: ChatCompletionUserMessageParam = {
     role: "user",
     content: `resumes: ${resumes}`,
@@ -37,6 +31,5 @@ export const volunteersExtractor = async ({
     console.error("Error extracting volunteer experiences", error);
     throw error;
   } finally {
-    setLoading(false);
   }
 };

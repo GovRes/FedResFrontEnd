@@ -6,28 +6,18 @@ import {
   ChatCompletionUserMessageParam,
 } from "openai/resources/index.mjs";
 
-export const awardsExtractor = async ({
-  resumes,
-  setLoading,
-  setLoadingText,
-}: {
-  resumes: string[];
-  setLoading: Function;
-  setLoadingText: Function;
-}) => {
-  setLoadingText("Extracting your awards from your resumes");
-  setLoading(true);
+export const awardsExtractor = async ({ resumes }: { resumes: string[] }) => {
   const userMessage: ChatCompletionUserMessageParam = {
     role: "user",
     content: `resumes: ${resumes}`,
   };
-  const messagesForUserJobsExtractor: (
+  const messagesForAwardsExtractor: (
     | ChatCompletionUserMessageParam
     | ChatCompletionSystemMessageParam
   )[] = [userMessage, awardsExtractorPrompt];
   try {
     let res = await sendMessages({
-      messages: messagesForUserJobsExtractor,
+      messages: messagesForAwardsExtractor,
       //has to match line 26 in api/ai/route.tsx
       name: "awards",
     });
@@ -37,6 +27,5 @@ export const awardsExtractor = async ({
     console.error("Error extracting awards", error);
     throw error;
   } finally {
-    setLoading(false);
   }
 };

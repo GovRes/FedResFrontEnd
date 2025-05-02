@@ -6,17 +6,7 @@ import {
   ChatCompletionUserMessageParam,
 } from "openai/resources/index.mjs";
 
-export const userJobsExtractor = async ({
-  resumes,
-  setLoading,
-  setLoadingText,
-}: {
-  resumes: string[];
-  setLoading: Function;
-  setLoadingText: Function;
-}) => {
-  setLoadingText("Extracting your jobs from your resumes");
-  setLoading(true);
+export const userJobsExtractor = async ({ resumes }: { resumes: string[] }) => {
   const userMessage: ChatCompletionUserMessageParam = {
     role: "user",
     content: `resumes: ${resumes}`,
@@ -37,6 +27,5 @@ export const userJobsExtractor = async ({
     console.error("Error extracting user jobs", error);
     throw error;
   } finally {
-    setLoading(false);
   }
 };

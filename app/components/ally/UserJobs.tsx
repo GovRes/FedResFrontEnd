@@ -3,7 +3,7 @@ import InitialReview from "./sharedComponents/InitialReview";
 import Details from "./sharedComponents/Details";
 import UserJobsForm from "./userJobsComponents/UserJobsForm";
 import { UserJobType } from "@/app/utils/responseSchemas";
-import { AllyContext } from "@/app/providers";
+import { useAlly } from "@/app/providers";
 import { userJobsExtractor } from "../aiProcessing/userJobsExtractor";
 import { TextBlinkLoader } from "../loader/Loader";
 import AddItems from "./sharedComponents/AddItems";
@@ -11,12 +11,7 @@ const UserJobs = () => {
   // const [userJobsStep, setUserJobsStep] = useState("initial");
   const [userJobsStep, setUserJobsStep] = useState("initial");
   const [localUserJobs, setLocalUserJobs] = useState<UserJobType[]>([]);
-  const context = useContext(AllyContext);
-  if (!context) {
-    throw new Error(
-      "AllyContainer must be used within an AllyContext.Provider"
-    );
-  }
+
   const {
     loading,
     loadingText,
@@ -25,7 +20,7 @@ const UserJobs = () => {
     setLoadingText,
     setStep,
     setUserJobs,
-  } = context;
+  } = useAlly();
 
   function setNext() {
     setUserJobs(localUserJobs);

@@ -7,7 +7,7 @@ import {
 } from "@/app/utils/responseSchemas";
 import SpecializedExperienceItem from "./returnResumeComponents/SpecializedExperienceItem";
 import { useContext, useEffect, useState } from "react";
-import { AllyContext } from "@/app/providers";
+import { AllyContext, useAlly } from "@/app/providers";
 import UserJobItem from "./returnResumeComponents/UserJobItem";
 import EducationExperienceItem from "./returnResumeComponents/EducationExperienceItem";
 import { fetchUserAttributes } from "aws-amplify/auth";
@@ -18,13 +18,6 @@ import AwardItem from "./returnResumeComponents/AwardItem";
 import VolunteerItem from "./returnResumeComponents/VolunteerItem";
 
 export default function ReturnResume() {
-  const context = useContext(AllyContext);
-  if (!context) {
-    throw new Error(
-      "AllyContainer must be used within an AllyContext.Provider"
-    );
-  }
-
   const {
     awards,
     educations,
@@ -35,7 +28,7 @@ export default function ReturnResume() {
     specializedExperiences,
     userJobs,
     volunteers,
-  } = context;
+  } = useAlly();
   //   might want to change this store education as a separate thing from specialized experiences
   const special = specializedExperiences.filter(
     (s) => s.typeOfExperience === "other" || s.typeOfExperience === "experience"
