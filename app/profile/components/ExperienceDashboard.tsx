@@ -5,8 +5,8 @@ import {
   EducationType,
   // ResumeType,
   SpecializedExperienceType,
-  UserJobQualificationType,
-  UserJobType,
+  PastJobQualificationType,
+  PastJobType,
   VolunteerType,
 } from "@/app/utils/responseSchemas";
 import {
@@ -21,14 +21,14 @@ type ExperienceItemType =
   | EducationType
   // | ResumeType
   | SpecializedExperienceType
-  | UserJobType
-  | UserJobQualificationType
+  | PastJobType
+  | PastJobQualificationType
   | VolunteerType;
 
-export default function ResumeDashboard({
+export default function ExperienceDashboard({
   experienceType,
 }: {
-  experienceType: "UserJob" | "Award" | "Volunteer" | "Education";
+  experienceType: "PastJob" | "Award" | "Volunteer" | "Education";
 }) {
   const [items, setItems] = useState<ExperienceItemType[]>([]);
   const [loading, setLoading] = useState(false);

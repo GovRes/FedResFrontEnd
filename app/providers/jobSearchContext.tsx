@@ -52,7 +52,7 @@ export function JobSearchProvider({ children }: { children: ReactNode }) {
 export function useJobSearch() {
   const context = useContext(JobSearchContext);
   if (context === undefined) {
-    throw new Error("useUserResume must be used within a UserResumeProvider");
+    throw new Error("useApplication must be used within a ApplicationProvider");
   }
   return context;
 }

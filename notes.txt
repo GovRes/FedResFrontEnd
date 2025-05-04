@@ -21,4 +21,4 @@ const [resumes, setResumes] = useState<Schema["Resume"]["type"][]>([]);
 //tk optimize contexts & ask AI about splitting out components (did this with keyword sorter)
 tk add ability to select past jobs and awards
 
-tk load from userResume, including completed steps - load those items.
+tk load from application, including completed steps - load those items.

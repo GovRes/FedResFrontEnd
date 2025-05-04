@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef, useContext } from "react";
 import InitialReview from "./sharedComponents/InitialReview";
 import Details from "./sharedComponents/Details";
-import UserJobsForm from "./userJobsComponents/UserJobsForm";
-import { UserJobType } from "@/app/utils/responseSchemas";
+// import PastJobsForm from "./PastJobsComponents/PastJobsForm";
+import { PastJobType } from "@/app/utils/responseSchemas";
 import { useAlly } from "@/app/providers";
-import { userJobsExtractor } from "../aiProcessing/userJobsExtractor";
+import { pastJobsExtractor } from "../aiProcessing/pastJobsExtractor";
 import { TextBlinkLoader } from "../loader/Loader";
 import AddItems from "./sharedComponents/AddItems";
-const UserJobs = () => {
-  // const [userJobsStep, setUserJobsStep] = useState("initial");
-  const [userJobsStep, setUserJobsStep] = useState("initial");
-  const [localUserJobs, setLocalUserJobs] = useState<UserJobType[]>([]);
+const PastJobs = () => {
+  // const [PastJobsStep, setPastJobsStep] = useState("initial");
+  const [PastJobsStep, setPastJobsStep] = useState("initial");
+  const [localPastJobs, setLocalPastJobs] = useState<PastJobType[]>([]);
 
   const {
     loading,
@@ -19,78 +19,77 @@ const UserJobs = () => {
     setLoading,
     setLoadingText,
     setStep,
-    setUserJobs,
+    setPastJobs,
   } = useAlly();
 
   function setNext() {
-    setUserJobs(localUserJobs);
-    setStep("user_job_details");
+    setPastJobs(localPastJobs);
+    // setStep("user_job_details");
   }
   const hasFetched = useRef(false);
   useEffect(() => {
     if (hasFetched.current) return;
 
-    async function fetchUserJobs() {
+    async function fetchPastJobs() {
       if (resumes) {
-        const userJobsRes = await userJobsExtractor({
+        const PastJobsRes = await pastJobsExtractor({
           resumes,
-          setLoading,
-          setLoadingText,
         });
-        setLocalUserJobs(userJobsRes);
+        setLocalPastJobs(PastJobsRes);
       }
     }
-    fetchUserJobs();
+    fetchPastJobs();
     hasFetched.current = true;
-  }, [resumes, setLoading, setLoadingText, setLocalUserJobs]);
+  }, [resumes, setLoading, setLoadingText, setLocalPastJobs]);
 
-  if (loading) {
-    return <TextBlinkLoader text={loadingText} />;
-  }
-  if (userJobsStep === "initial") {
-    return (
-      <InitialReview
-        itemType="past job"
-        localItems={localUserJobs}
-        setLocalItems={setLocalUserJobs}
-        setItemsStep={setUserJobsStep}
-      />
-    );
-  } else if (userJobsStep === "details") {
-    return (
-      <Details
-        Form={UserJobsForm}
-        itemType="past job"
-        localItems={localUserJobs}
-        setLocalItems={setLocalUserJobs}
-        setNext={setNext}
-      />
-    );
-  } else if (userJobsStep === "additional") {
-    return (
-      <AddItems<UserJobType>
-        baseItem={
-          {
-            id: crypto.randomUUID(),
-            title: "",
-            organization: "",
-            startDate: "",
-            endDate: "",
-            gsLevel: "",
-            responsibilities: "",
-            userJobQualifications: [],
-          } as UserJobType
-        }
-        Form={UserJobsForm}
-        header="Add a past job"
-        itemType="past job"
-        localItems={localUserJobs}
-        setGlobalItems={setUserJobs}
-        setLocalItems={setLocalUserJobs}
-        setNext={setNext}
-      />
-    );
-  }
+  // if (loading) {
+  return <TextBlinkLoader text={loadingText} />;
 };
+// }
+//   if (PastJobsStep === "initial") {
+//     return (
+//       <InitialReview
+//         itemType="PastJob"
+//         localItems={localPastJobs}
+//         setLocalItems={setLocalPastJobs}
+//         setItemsStep={setPastJobsStep}
+//       />
+//     );
+//   } else if (PastJobsStep === "details") {
+//     return (
+//       <Details
+//         Form={PastJobsForm}
+//         itemType="past job"
+//         localItems={localPastJobs}
+//         setLocalItems={setLocalPastJobs}
+//         setNext={setNext}
+//       />
+//     );
+//   } else if (PastJobsStep === "additional") {
+//     return (
+//       <AddItems<PastJobType>
+//         baseItem={
+//           {
+//             id: crypto.randomUUID(),
+//             title: "",
+//             organization: "",
+//             startDate: "",
+//             endDate: "",
+//             gsLevel: "",
+//             responsibilities: "",
+//             PastJobQualifications: [],
+//           } as PastJobType
+//         }
+//         Form={PastJobsForm}
+//         header="Add a past job"
+//         itemType="past job"
+//         localItems={localPastJobs}
+//         setGlobalItems={setPastJobs}
+//         setLocalItems={setLocalPastJobs}
+//         setNext={setNext}
+//       />
+//     );
+//   }
+// };
 
-export default UserJobs;
+export default PastJobs;

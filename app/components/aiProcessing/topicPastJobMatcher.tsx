@@ -1,35 +1,35 @@
-import { topicUserJobMatcherPrompt } from "@/app/prompts/topicUserJobMatcherPrompt";
-import { TopicType, UserJobType } from "@/app/utils/responseSchemas";
+import { topicPastJobMatcherPrompt } from "@/app/prompts/topicPastJobMatcherPrompt";
+import { TopicType, PastJobType } from "@/app/utils/responseSchemas";
 import { sendMessages } from "@/app/utils/api";
 import {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from "openai/resources/index.mjs";
 
-export const topicUserJobMatcher = async ({
-  userJobs,
+export const topicPastJobMatcher = async ({
+  PastJobs,
   topics,
 }: {
   topics: TopicType[];
-  userJobs: UserJobType[];
+  PastJobs: PastJobType[];
 }) => {
   const userMessage: ChatCompletionUserMessageParam = {
     role: "user",
     content: `user's past jobs: ${JSON.stringify(
-      userJobs
+      PastJobs
     )}. Topically organized keywords for job listing: ${JSON.stringify(
       topics
     )}.`,
   };
-  const messagesForTopicUserJobMatcher: (
+  const messagesForTopicPastJobMatcher: (
     | ChatCompletionUserMessageParam
     | ChatCompletionSystemMessageParam
-  )[] = [userMessage, topicUserJobMatcherPrompt];
+  )[] = [userMessage, topicPastJobMatcherPrompt];
   let res = await sendMessages({
-    messages: messagesForTopicUserJobMatcher,
+    messages: messagesForTopicPastJobMatcher,
     //has to match line 26 in api/ai/route.tsx
-    name: "userJobs",
+    name: "PastJobs",
   });
-  const result = res.userJobs as UserJobType[];
+  const result = res.PastJobs as PastJobType[];
   return result;
 };

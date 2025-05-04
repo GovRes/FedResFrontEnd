@@ -1,40 +1,34 @@
 import { AllyContext, useAlly } from "@/app/providers";
-import { StepType, UserJobType } from "@/app/utils/responseSchemas";
+import { StepType, PastJobType } from "@/app/utils/responseSchemas";
 import { JSX, useContext, useEffect, useRef, useState } from "react";
 
 import Sidebar from "../sharedComponents/DetailedListEditor/Sidebar";
 import SidebarItem from "../sharedComponents/DetailedListEditor/SidebarItem";
 import styles from "../ally.module.css";
 import EditSingleVolunteer from "./EditSingleVolunteer";
-import { topicUserJobMatcher } from "../../aiProcessing/topicUserJobMatcher";
+import { topicPastJobMatcher } from "../../aiProcessing/topicPastJobMatcher";
 import { TextBlinkLoader } from "../../loader/Loader";
-// tk at some point generalize this to be not duplicative of UserJobs components - it's essentially the same
+import { useApplication } from "@/app/providers/applicationContext";
+// tk at some point generalize this to be not duplicative of PastJobs components - it's essentially the same
 export default function Editing({
   localVolunteers,
   nextStep,
   setLocalVolunteers,
 }: {
-  localVolunteers: UserJobType[];
+  localVolunteers: PastJobType[];
   nextStep: StepType;
   setLocalVolunteers: Function;
 }) {
   let itemsList: JSX.Element[] = [];
 
-  const {
-    job,
-    loading,
-    loadingText,
-    topics,
-    volunteers,
-    setLoading,
-    setLoadingText,
-  } = useAlly();
+  const { loading, loadingText, topics, volunteers } = useAlly();
+  const { job } = useApplication();
   const [currentVolunteerIndex, setCurrentVolunteerIndex] = useState(0);
-  const [currentItem, setCurrentItem] = useState<UserJobType>(
+  const [currentItem, setCurrentItem] = useState<PastJobType>(
     volunteers[currentVolunteerIndex]
   );
 
-  function saveVolunteer(item: UserJobType) {
+  function saveVolunteer(item: PastJobType) {
     let updatedItems = localVolunteers.map((i) =>
       i.id !== item.id ? i : item
     );
@@ -47,15 +41,13 @@ export default function Editing({
     async function connectJobsToTopics() {
       if (topics && localVolunteers) {
         console.log(88);
-        const result = await topicUserJobMatcher({
-          userJobs: localVolunteers,
+        const result = await topicPastJobMatcher({
+          PastJobs: localVolunteers,
           topics,
-          setLoading,
-          setLoadingText,
         });
         console.log(101, result);
         // Mark the matching as complete
-        setLocalVolunteers(result as UserJobType[]);
+        setLocalVolunteers(result as PastJobType[]);
       }
     }
     connectJobsToTopics();
@@ -71,7 +63,7 @@ export default function Editing({
   }
 
   if (localVolunteers && localVolunteers.length > 0) {
-    itemsList = localVolunteers.map((item: UserJobType, index) => {
+    itemsList = localVolunteers.map((item: PastJobType, index) => {
       return (
         <SidebarItem
           currentIndex={currentVolunteerIndex}
@@ -96,8 +88,8 @@ export default function Editing({
           titleText="Volunteer experience"
         />
         {currentItem &&
-          currentItem.userJobQualifications &&
-          currentItem.userJobQualifications.length > 0 && (
+          currentItem.pastJobQualifications &&
+          currentItem.pastJobQualifications.length > 0 && (
             <EditSingleVolunteer
               currentVolunteerIndex={currentVolunteerIndex}
               localVolunteers={localVolunteers}

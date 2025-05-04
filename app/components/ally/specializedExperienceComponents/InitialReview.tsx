@@ -6,16 +6,18 @@ import styles from "../ally.module.css";
 import { SpecializedExperienceType } from "@/app/utils/responseSchemas";
 import { TextBlinkLoader } from "../../loader/Loader";
 import { SpecializedExperienceContext } from "@/app/providers/specializedExperienceContext";
+import { useApplication } from "@/app/providers/applicationContext";
 export default function InitialReview({}: // setReviewing,
 {
   // setReviewing: (reviewing: boolean) => void;
 }) {
-  const { loading, job, setLoading, setLoadingText } = useAlly();
+  const { job } = useApplication();
+  const { loading, setLoading, setLoadingText } = useAlly();
   const { specializedExperiences, setSpecializedExperiences } = useContext(
     SpecializedExperienceContext
   );
   const router = useRouter();
-  // const userResumeId = "1dfd50fb-e594-412d-a62b-be45e8117dc3"; //for testing
+  // const applicationId = "1dfd50fb-e594-412d-a62b-be45e8117dc3"; //for testing
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {

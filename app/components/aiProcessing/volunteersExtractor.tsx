@@ -1,5 +1,5 @@
 import { volunteersExtractorPrompt } from "@/app/prompts/volunteersExtractorPrompt";
-import { UserJobType } from "@/app/utils/responseSchemas";
+import { PastJobType } from "@/app/utils/responseSchemas";
 import { sendMessages } from "@/app/utils/api";
 import {
   ChatCompletionSystemMessageParam,
@@ -15,18 +15,18 @@ export const volunteersExtractor = async ({
     role: "user",
     content: `resumes: ${resumes}`,
   };
-  const messagesForUserJobsExtractor: (
+  const messagesForPastJobsExtractor: (
     | ChatCompletionUserMessageParam
     | ChatCompletionSystemMessageParam
   )[] = [userMessage, volunteersExtractorPrompt];
   try {
     let res = await sendMessages({
-      messages: messagesForUserJobsExtractor,
+      messages: messagesForPastJobsExtractor,
       //has to match line 26 in api/ai/route.tsx
-      name: "userJobs",
+      name: "PastJobs",
     });
 
-    return res.userJobs as UserJobType[];
+    return res.PastJobs as PastJobType[];
   } catch (error) {
     console.error("Error extracting volunteer experiences", error);
     throw error;

@@ -1,18 +1,18 @@
 import { StepsType } from "./responseSchemas";
-import { updateUserResume } from "../crud/userResume";
+import { updateApplication } from "../crud/application";
 export async function completeSteps({
   steps,
   stepId,
-  userResumeId,
+  applicationId,
 }: {
   steps: StepsType[];
   stepId: string;
-  userResumeId: string;
+  applicationId: string;
 }) {
   console.log("completeSteps", steps, stepId);
 
-  await updateUserResume({
-    id: userResumeId,
+  await updateApplication({
+    id: applicationId,
     input: {
       completedSteps: steps
         .filter((step: StepsType) => step.completed)

@@ -1,59 +1,59 @@
 import { AllyContext, useAlly } from "@/app/providers";
-import { StepType, UserJobType } from "@/app/utils/responseSchemas";
+import { StepType, PastJobType } from "@/app/utils/responseSchemas";
 import { JSX, useContext, useEffect, useRef, useState } from "react";
 
 import Sidebar from "../sharedComponents/DetailedListEditor/Sidebar";
 import SidebarItem from "../sharedComponents/DetailedListEditor/SidebarItem";
 import styles from "../ally.module.css";
 import EditSingleJob from "./EditSingleJob";
-import { topicUserJobMatcher } from "../../aiProcessing/topicUserJobMatcher";
+import { topicPastJobMatcher } from "../../aiProcessing/topicPastJobMatcher";
 import { TextBlinkLoader } from "../../loader/Loader";
+import { useApplication } from "@/app/providers/applicationContext";
 
 export default function Editing({
-  localUserJobs,
+  localPastJobs,
   nextStep,
-  setLocalUserJobs,
+  setLocalPastJobs,
 }: {
-  localUserJobs: UserJobType[];
+  localPastJobs: PastJobType[];
   nextStep: StepType;
-  setLocalUserJobs: Function;
+  setLocalPastJobs: Function;
 }) {
   let itemsList: JSX.Element[] = [];
 
   const {
-    job,
+    // job,
     loading,
     loadingText,
     topics,
-    userJobs,
+    pastJobs,
     setLoading,
     setLoadingText,
   } = useAlly();
+  const { job } = useApplication();
   const [currentJobIndex, setCurrentJobIndex] = useState(0);
-  const [currentItem, setCurrentItem] = useState<UserJobType>(
-    userJobs[currentJobIndex]
+  const [currentItem, setCurrentItem] = useState<PastJobType>(
+    pastJobs[currentJobIndex]
   );
 
-  function saveUserJob(item: UserJobType) {
-    let updatedItems = localUserJobs.map((i) => (i.id !== item.id ? i : item));
+  function savePastJob(item: PastJobType) {
+    let updatedItems = localPastJobs.map((i) => (i.id !== item.id ? i : item));
     console.log({ updatedItems });
-    setLocalUserJobs(updatedItems);
+    setLocalPastJobs(updatedItems);
   }
   const hasFetched = useRef(false);
   useEffect(() => {
     if (hasFetched.current) return;
     async function connectJobsToTopics() {
-      if (topics && localUserJobs) {
+      if (topics && localPastJobs) {
         console.log(88);
-        const result = await topicUserJobMatcher({
-          userJobs: localUserJobs,
+        const result = await topicPastJobMatcher({
+          PastJobs: localPastJobs,
           topics,
-          setLoading,
-          setLoadingText,
         });
         console.log(101, result);
         // Mark the matching as complete
-        setLocalUserJobs(result as UserJobType[]);
+        setLocalPastJobs(result as PastJobType[]);
       }
     }
     connectJobsToTopics();
@@ -61,15 +61,15 @@ export default function Editing({
   }, []);
 
   useEffect(() => {
-    setCurrentItem(localUserJobs[currentJobIndex]);
-  }, [localUserJobs, currentJobIndex]);
+    setCurrentItem(localPastJobs[currentJobIndex]);
+  }, [localPastJobs, currentJobIndex]);
 
   if (loading) {
     return <TextBlinkLoader text={loadingText} />;
   }
 
-  if (localUserJobs && localUserJobs.length > 0) {
-    itemsList = localUserJobs.map((item: UserJobType, index) => {
+  if (localPastJobs && localPastJobs.length > 0) {
+    itemsList = localPastJobs.map((item: PastJobType, index) => {
       return (
         <SidebarItem
           currentIndex={currentJobIndex}
@@ -90,20 +90,20 @@ export default function Editing({
         <Sidebar
           currentIndex={currentJobIndex}
           setCurrentIndex={setCurrentJobIndex}
-          items={localUserJobs}
+          items={localPastJobs}
           titleText="Past Jobs"
         />
         {currentItem &&
-          currentItem.userJobQualifications &&
-          currentItem.userJobQualifications.length > 0 && (
+          currentItem.pastJobQualifications &&
+          currentItem.pastJobQualifications.length > 0 && (
             <EditSingleJob
               currentJobIndex={currentJobIndex}
-              localUserJobs={localUserJobs}
-              nextStep={nextStep}
-              userJob={localUserJobs[currentJobIndex]}
-              userJobsLength={localUserJobs.length}
+              localPastJobs={localPastJobs}
+              // nextStep={nextStep}
+              PastJob={localPastJobs[currentJobIndex]}
+              PastJobsLength={localPastJobs.length}
               setCurrentJobIndex={setCurrentJobIndex}
-              saveUserJob={saveUserJob}
+              savePastJob={savePastJob}
             />
           )}
       </div>

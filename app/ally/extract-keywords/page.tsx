@@ -1,19 +1,17 @@
 "use client";
 import { useEffect, useState } from "react";
 import { TextBlinkLoader } from "@/app/components/loader/Loader";
-import { useAlly } from "@/app/providers";
+import { useApplication } from "@/app/providers/applicationContext";
 import { jobDescriptionKeywordFinder } from "@/app/components/aiProcessing/jobDescriptionKeywordFinder";
 import { useRouter } from "next/navigation";
 import { topicsCategorizer } from "@/app/components/aiProcessing/topicCategorizer";
 import { JobType, TopicType } from "@/app/utils/responseSchemas";
 import { createOrFindSimilarTopics } from "@/app/crud/topic";
 import { completeSteps } from "@/app/utils/stepUpdater";
-import { useUserResume } from "@/app/providers/userResumeContext";
-import { SageMakerCreateTrainingJob } from "aws-cdk-lib/aws-stepfunctions-tasks";
 
 export default function ExtractKeywords() {
-  const { job, setJob } = useAlly();
-  const { steps, userResumeId, setSteps } = useUserResume();
+  const { job, setJob } = useApplication();
+  const { steps, applicationId, setSteps } = useApplication();
   const [keywords, setKeywords] = useState<string[]>([]);
   const [topics, setTopics] = useState<TopicType[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -76,13 +74,15 @@ export default function ExtractKeywords() {
     const updatedSteps = await completeSteps({
       steps,
       stepId: "extract-keywords",
-      userResumeId,
+      applicationId,
     });
     setSteps(updatedSteps);
     router.push("/ally/past-experience");
   }
   if (loading) {
-    return <TextBlinkLoader text="finding and sorting keywords from resume" />;
+    return (
+      <TextBlinkLoader text="finding and sorting keywords from job description" />
+    );
   }
   //tk make a cool animation where the words are everywhere and then they get sorted.
   if (!topics) {

@@ -5,8 +5,8 @@ import {
   EducationType,
   ResumeType,
   SpecializedExperienceType,
-  UserJobQualificationType,
-  UserJobType,
+  PastJobQualificationType,
+  PastJobType,
   VolunteerType,
 } from "@/app/utils/responseSchemas";
 import styles from "./resumeStyles.module.css";
@@ -24,18 +24,18 @@ export default function ResumeItem({
     | AwardType
     | EducationType
     | SpecializedExperienceType
-    | UserJobType
-    | UserJobQualificationType
+    | PastJobType
+    | PastJobQualificationType
     | VolunteerType;
-  itemType: "Award" | "Education" | "UserJob" | "Volunteer";
+  itemType: "Award" | "Education" | "PastJob" | "Volunteer";
   setItems: React.Dispatch<
     React.SetStateAction<
       Array<
         | AwardType
         | EducationType
         | SpecializedExperienceType
-        | UserJobType
-        | UserJobQualificationType
+        | PastJobType
+        | PastJobQualificationType
         | VolunteerType
       >
     >

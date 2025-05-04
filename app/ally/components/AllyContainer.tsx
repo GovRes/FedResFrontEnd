@@ -1,12 +1,12 @@
 "use client";
 import React from "react";
-import AllyStepItem from "./AllyStepItem";
+import AllyStepItem from "../../components/ally/AllyStepItem";
 import { StepsType } from "@/app/utils/responseSchemas";
-import { useUserResume } from "@/app/providers/userResumeContext";
+import { useApplication } from "@/app/providers/applicationContext";
 
 export default function AllyContainer() {
-  const { steps } = useUserResume();
-
+  const { steps } = useApplication();
+  console.log(9, steps);
   const mappedSteps = steps.map((step: StepsType) => (
     <AllyStepItem step={step} key={step.id} />
   ));

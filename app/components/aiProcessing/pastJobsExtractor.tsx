@@ -1,28 +1,28 @@
-import { userJobsExtractorPrompt } from "@/app/prompts/userJobsExtractorPrompt";
-import { UserJobType } from "@/app/utils/responseSchemas";
+import { pastJobsExtractorPrompt } from "@/app/prompts/pastJobsExtractorPrompt";
+import { PastJobType } from "@/app/utils/responseSchemas";
 import { sendMessages } from "@/app/utils/api";
 import {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from "openai/resources/index.mjs";
 
-export const userJobsExtractor = async ({ resumes }: { resumes: string[] }) => {
+export const pastJobsExtractor = async ({ resumes }: { resumes: string[] }) => {
   const userMessage: ChatCompletionUserMessageParam = {
     role: "user",
     content: `resumes: ${resumes}`,
   };
-  const messagesForUserJobsExtractor: (
+  const messagesForpastJobsExtractor: (
     | ChatCompletionUserMessageParam
     | ChatCompletionSystemMessageParam
-  )[] = [userMessage, userJobsExtractorPrompt];
+  )[] = [userMessage, pastJobsExtractorPrompt];
   try {
     let res = await sendMessages({
-      messages: messagesForUserJobsExtractor,
+      messages: messagesForpastJobsExtractor,
       //has to match line 26 in api/ai/route.tsx
-      name: "userJobs",
+      name: "pastJobs",
     });
 
-    return res.userJobs as UserJobType[];
+    return res.pastJobs as PastJobType[];
   } catch (error) {
     console.error("Error extracting user jobs", error);
     throw error;

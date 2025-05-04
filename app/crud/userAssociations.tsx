@@ -8,9 +8,9 @@ export type AssociationType =
   | "Education"
   // | "Resume"
   | "SpecializedExperience"
-  | "UserJob"
+  | "PastJob"
   | "Volunteer"
-  | "UserJobQualification";
+  | "PastJobQualification";
 
 /**
  * Generic type for entity records
@@ -282,7 +282,7 @@ function getFieldsForType(associationType: AssociationType): string {
       "paragraph",
       "initialMessage",
     ],
-    UserJob: [
+    PastJob: [
       "title",
       "organization",
       "startDate",
@@ -300,7 +300,7 @@ function getFieldsForType(associationType: AssociationType): string {
       "gsLevel",
       "responsibilities",
     ],
-    UserJobQualification: [
+    PastJobQualification: [
       "title",
       "description",
       "paragraph",

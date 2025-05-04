@@ -4,12 +4,12 @@ import React, { createContext, useState, ReactNode, useContext } from "react";
 import {
   AwardType,
   EducationType,
-  JobType,
+  // JobType,
   // SpecializedExperienceType,
   StepType,
   // StepsType,
   TopicType,
-  UserJobType,
+  PastJobType,
 } from "../utils/responseSchemas";
 
 // Combined interface for state + methods
@@ -18,7 +18,7 @@ export interface AllyContextType {
   awards: AwardType[];
   educations: EducationType[];
   email: string;
-  job?: JobType;
+  // job?: JobType;
   // keywords: string[];
   loading: boolean;
   loadingText: string;
@@ -28,15 +28,15 @@ export interface AllyContextType {
   step: StepType;
   // steps: StepsType[];
   topics?: TopicType[];
-  userJobs: UserJobType[];
-  // userResumeId: string;
-  volunteers: UserJobType[];
+  pastJobs: PastJobType[];
+  // applicationId: string;
+  volunteers: PastJobType[];
 
   // Methods
   setAwards: (value: AwardType[]) => void;
   setEducations: (value: EducationType[]) => void;
   setEmail: (value: string) => void;
-  setJob: (value: JobType) => void;
+  // setJob: (value: JobType) => void;
   // setKeywords: (value: string[]) => void;
   setLoading: (value: boolean) => void;
   setLoadingText: (value: string) => void;
@@ -46,9 +46,9 @@ export interface AllyContextType {
   setStep: (value: StepType) => void;
   // setSteps: (value: StepsType[]) => void;
   setTopics: (value: TopicType[]) => void;
-  setUserJobs: (value: UserJobType[]) => void;
-  // setUserResumeId: (value: string) => void;
-  setVolunteers: (value: UserJobType[]) => void;
+  setPastJobs: (value: PastJobType[]) => void;
+  // setApplicationId: (value: string) => void;
+  setVolunteers: (value: PastJobType[]) => void;
 }
 
 export const AllyContext = createContext<AllyContextType | undefined>(
@@ -141,7 +141,7 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
   const [awards, setAwards] = useState<AwardType[]>([]);
   const [educations, setEducations] = useState<EducationType[]>([]);
   const [email, setEmail] = useState("");
-  const [job, setJob] = useState<JobType>();
+  // const [job, setJob] = useState<JobType>();
   // const [job, setJob] = useState<JobType>({
   //   agencyDescription:
   //     "The Navy and Marine Corps team offers innovative, exciting and meaningful work linking military and civilian talents to achieve our mission and safeguard our freedoms. Department of the Navy provides competitive salaries, comprehensive benefits, and extensive professional development and training. From pipefitters to accountants, scientists to engineers, doctors to nurses-the careers and opportunities to make a difference are endless. Civilian careers-where purpose and patriotism unite!",
@@ -277,9 +277,9 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
   //     question: "",
   //   },
   // ]);
-  const [userResumeId, setUserResumeId] = useState("");
-  const [userJobs, setUserJobs] = useState<UserJobType[]>([]);
-  // const [userJobs, setUserJobs] = useState<UserJobType[]>([
+  const [applicationId, setApplicationId] = useState("");
+  const [pastJobs, setPastJobs] = useState<PastJobType[]>([]);
+  // const [pastJobs, setPastJobs] = useState<PastJobType[]>([
   //   {
   //     endDate: "2022-08-01",
   //     hours: "40",
@@ -290,7 +290,7 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
   //     title: "Energy Analyst",
   //     responsibilities:
   //       "Conducted analysis of energy policies and regulations, assessing their impact on market structures and consumer behavior.",
-  //     userJobQualifications: [
+  //     pastJobQualifications: [
   //       {
   //         id: "a1b2c3d4e5",
   //         topic: {
@@ -339,7 +339,7 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
   //     title: "Environmental Scientist",
   //     responsibilities:
   //       "Performed environmental assessments and contributed to policy development regarding air and water quality standards.",
-  //     userJobQualifications: [
+  //     pastJobQualifications: [
   //       {
   //         id: "k1l2m3n4o5",
   //         topic: {
@@ -384,7 +384,7 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
   //     ],
   //   },
   // ]);
-  const [volunteers, setVolunteers] = useState<UserJobType[]>([]);
+  const [volunteers, setVolunteers] = useState<PastJobType[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingText, setLoadingText] = useState("");
   // Context value object - spread all values directly
@@ -392,7 +392,7 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
     awards,
     educations,
     email,
-    job,
+    // job,
     // keywords,
     loading,
     loadingText,
@@ -402,13 +402,13 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
     step,
     // steps,
     topics,
-    userJobs,
-    // userResumeId,
+    pastJobs,
+    // applicationId,
     volunteers,
     setAwards,
     setEducations,
     setEmail,
-    setJob,
+    // setJob,
     // setKeywords,
     setLoading,
     setLoadingText,
@@ -418,8 +418,8 @@ export const AllyProvider = ({ children }: { children: ReactNode }) => {
     setStep,
     // setSteps,
     setTopics,
-    setUserJobs,
-    // setUserResumeId,
+    setPastJobs,
+    // setApplicationId,
     setVolunteers,
   };
 

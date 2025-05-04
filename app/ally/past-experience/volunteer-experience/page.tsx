@@ -3,7 +3,7 @@ import React, { useState, useEffect, useContext } from "react";
 import InitialReview from "@/app/components/ally/sharedComponents/InitialReview";
 import { VolunteerType } from "@/app/utils/responseSchemas";
 import { TextBlinkLoader } from "@/app/components/loader/Loader";
-import { fetchUserPositionRecords } from "@/app/crud/userJobAndVolunteer";
+import { fetchUserPositionRecords } from "@/app/crud/pastJobAndVolunteer";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 export default function VolunteerExperiencePage() {
   const [localVolunteers, setLocalVolunteers] = useState<VolunteerType[]>([]);

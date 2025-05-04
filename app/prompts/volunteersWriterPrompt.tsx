@@ -1,4 +1,4 @@
-/* this gets consumed in api/userJobsWriter/route.tsx
+/* this gets consumed in api/pastJobsWriter/route.tsx
 It's just over here so that George can see and mess with the prompts.
 */
 export const volunteersAssistantName = "USA Federal Resume Writer";
@@ -16,7 +16,7 @@ You are a specialized assistant that helps job seekers translate their volunteer
    - organization
    - title
    - responsibilities (array of text descriptions)
-   - userJobQualifications (array of relevant skills/experience)
+   - pastJobQualifications (array of relevant skills/experience)
 
 2. A "topic" object containing:
    - keywords and phrases extracted from the job description

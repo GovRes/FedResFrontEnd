@@ -7,9 +7,10 @@ import {
 } from "@/app/prompts/volunteersWriterPrompt";
 import {
   StepType,
-  UserJobQualificationType,
-  UserJobType,
+  PastJobQualificationType,
+  PastJobType,
 } from "@/app/utils/responseSchemas";
+import { useApplication } from "@/app/providers/applicationContext";
 
 export default function EditSingleVolunteer({
   currentVolunteerIndex,
@@ -21,14 +22,15 @@ export default function EditSingleVolunteer({
   saveVolunteer,
 }: {
   currentVolunteerIndex: number;
-  localVolunteers: UserJobType[];
+  localVolunteers: PastJobType[];
   nextStep: StepType;
-  volunteer: UserJobType;
+  volunteer: PastJobType;
   volunteersLength: number;
   setCurrentVolunteerIndex: (index: number) => void;
-  saveVolunteer: (userVolunteer: UserJobType) => void;
+  saveVolunteer: (userVolunteer: PastJobType) => void;
 }) {
-  const { job, setStep, setVolunteers } = useAlly();
+  const { setStep, setVolunteers } = useAlly();
+  const { job } = useApplication();
 
   console.log({
     currentVolunteerIndex,
@@ -37,8 +39,8 @@ export default function EditSingleVolunteer({
     volunteersLength,
   });
   function saveVolunteerQualification(
-    updatedUserJobQualifications:
-      | UserJobQualificationType[]
+    updatedPastJobQualifications:
+      | PastJobQualificationType[]
       | {
           id: string;
           title: string;
@@ -57,13 +59,13 @@ export default function EditSingleVolunteer({
     try {
       // Check if it's UserVolunteerQualificationType[] before assigning
       if (
-        updatedUserJobQualifications.length > 0 &&
-        "topic" in updatedUserJobQualifications[0]
+        updatedPastJobQualifications.length > 0 &&
+        "topic" in updatedPastJobQualifications[0]
       ) {
         let tempVolunteer = {
           ...volunteer,
-          userJobQualifications:
-            updatedUserJobQualifications as UserJobQualificationType[],
+          PastJobQualifications:
+            updatedPastJobQualifications as PastJobQualificationType[],
         };
         saveVolunteer(tempVolunteer);
       } else {
@@ -88,7 +90,7 @@ export default function EditSingleVolunteer({
       assistantInstructions={volunteersAssistantInstructions}
       assistantName={volunteersAssistantName}
       heading={`${volunteer?.title} - Applicable Volunteer or Community Service Experience`}
-      items={volunteer.userJobQualifications}
+      items={volunteer.pastJobQualifications}
       jobString={`${job?.title} at the ${job?.department}`}
       setFunction={saveVolunteerQualification}
       setNext={setNextVolunteer}

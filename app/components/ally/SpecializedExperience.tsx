@@ -5,7 +5,7 @@ import InDepthReview from "./specializedExperienceComponents/InDepthReview";
 const SpecializedExperience = () => {
   const [reviewing, setReviewing] = useState(false);
   if (!reviewing) {
-    return <InitialReview setReviewing={setReviewing} />;
+    return <InitialReview />;
   } else {
     return <InDepthReview />;
   }

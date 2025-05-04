@@ -1,9 +1,9 @@
 import { generateClient } from "aws-amplify/api";
-import { UserJobType, VolunteerType } from "../utils/responseSchemas";
+import { PastJobType, VolunteerType } from "../utils/responseSchemas";
 /**
- * Creates and saves multiple records (UserJob or Volunteer), checking if each one already exists.
+ * Creates and saves multiple records (PastJob or Volunteer), checking if each one already exists.
  *
- * @param {string} modelType - The type of model ("UserJob" or "Volunteer")
+ * @param {string} modelType - The type of model ("PastJob" or "Volunteer")
  * @param {Object[]} recordsInput - Array of record data objects
  * @param {string} recordsInput[].title - The position title
  * @param {string} recordsInput[].organization - The organization name
@@ -17,26 +17,26 @@ import { UserJobType, VolunteerType } from "../utils/responseSchemas";
  */
 export async function createAndSavePositionRecords(
   modelType: string,
-  recordsInput: UserJobType[] | VolunteerType[],
+  recordsInput: PastJobType[] | VolunteerType[],
   userId: string
 ) {
-  if (modelType !== "UserJob" && modelType !== "Volunteer") {
+  if (modelType !== "PastJob" && modelType !== "Volunteer") {
     throw new Error(
-      `Invalid model type: ${modelType}. Must be "UserJob" or "Volunteer"`
+      `Invalid model type: ${modelType}. Must be "PastJob" or "Volunteer"`
     );
   }
 
   // Set up queries based on model type
   const listQueryName =
-    modelType === "UserJob" ? "listUserJobs" : "listVolunteers";
+    modelType === "PastJob" ? "listPastJobs" : "listVolunteers";
   const createMutationName =
-    modelType === "UserJob" ? "createUserJob" : "createVolunteer";
+    modelType === "PastJob" ? "createPastJob" : "createVolunteer";
   const filterInputType =
-    modelType === "UserJob"
-      ? "ModelUserJobFilterInput"
+    modelType === "PastJob"
+      ? "ModelPastJobFilterInput"
       : "ModelVolunteerFilterInput";
   const createInputType =
-    modelType === "UserJob" ? "CreateUserJobInput" : "CreateVolunteerInput";
+    modelType === "PastJob" ? "CreatePastJobInput" : "CreateVolunteerInput";
 
   const client = generateClient();
   const results = [];
@@ -164,9 +164,9 @@ export async function createAndSavePositionRecords(
   return results;
 }
 
-const deleteUserJobMutation = /* GraphQL */ `
-  mutation DeleteUserJob($input: DeleteUserJobInput!) {
-    deleteUserJob(input: $input) {
+const deletePastJobMutation = /* GraphQL */ `
+  mutation DeletePastJob($input: DeletePastJobInput!) {
+    deletePastJob(input: $input) {
       id
     }
   }
@@ -176,7 +176,7 @@ const deleteUserJobMutation = /* GraphQL */ `
 const client = generateClient();
 
 // Example function to delete a job by its ID
-export async function deleteUserJob(jobId: string) {
+export async function deletePastJob(jobId: string) {
   try {
     // Prepare the input object with the job ID
     const input = {
@@ -185,7 +185,7 @@ export async function deleteUserJob(jobId: string) {
 
     // Execute the delete mutation
     const response = await client.graphql({
-      query: deleteUserJobMutation,
+      query: deletePastJobMutation,
       variables: {
         input: input,
       },
@@ -193,7 +193,7 @@ export async function deleteUserJob(jobId: string) {
     });
     console.log(response);
     // Explicit type checking for the create response
-    if ("data" in response && response.data?.[deleteUserJobMutation]) {
+    if ("data" in response && response.data?.[deletePastJobMutation]) {
       return response.data.deleteJob;
     } else {
       throw new Error(`Failed to delete job record: ${jobId}`);
@@ -205,9 +205,9 @@ export async function deleteUserJob(jobId: string) {
 }
 
 /**
- * Fetches all UserJob or Volunteer records for a specific user
+ * Fetches all PastJob or Volunteer records for a specific user
  *
- * @param {string} modelType - The type of model ("UserJob" or "Volunteer")
+ * @param {string} modelType - The type of model ("PastJob" or "Volunteer")
  * @param {string} userId - The user ID to fetch records for
  * @param {number} [limit=100] - Maximum number of records to retrieve
  * @param {string} [nextToken] - Token for pagination
@@ -219,18 +219,18 @@ export async function fetchUserPositionRecords(
   limit: number = 100,
   nextToken?: string
 ) {
-  if (modelType !== "UserJob" && modelType !== "Volunteer") {
+  if (modelType !== "PastJob" && modelType !== "Volunteer") {
     throw new Error(
-      `Invalid model type: ${modelType}. Must be "UserJob" or "Volunteer"`
+      `Invalid model type: ${modelType}. Must be "PastJob" or "Volunteer"`
     );
   }
 
   // Set up query based on model type
   const listQueryName =
-    modelType === "UserJob" ? "listUserJobs" : "listVolunteers";
+    modelType === "PastJob" ? "listPastJobs" : "listVolunteers";
   const filterInputType =
-    modelType === "UserJob"
-      ? "ModelUserJobFilterInput"
+    modelType === "PastJob"
+      ? "ModelPastJobFilterInput"
       : "ModelVolunteerFilterInput";
 
   const client = generateClient();

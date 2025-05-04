@@ -3,8 +3,8 @@ import {
   EducationType,
   ResumeType,
   SpecializedExperienceType,
-  UserJobQualificationType,
-  UserJobType,
+  PastJobQualificationType,
+  PastJobType,
   VolunteerType,
 } from "./responseSchemas";
 
@@ -14,8 +14,8 @@ export function generateHeadingText(
     | EducationType
     | ResumeType
     | SpecializedExperienceType
-    | UserJobType
-    | UserJobQualificationType
+    | PastJobType
+    | PastJobQualificationType
     | VolunteerType
 ) {
   let headingText = "";

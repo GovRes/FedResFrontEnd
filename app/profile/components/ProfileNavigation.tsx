@@ -13,8 +13,8 @@ const navItems: NavItem[] = [
   { id: "past-jobs", label: "Past Jobs", path: "/profile/past-jobs" },
   { id: "volunteer", label: "Volunteer", path: "/profile/volunteer" },
   { id: "education", label: "Education", path: "/profile/education" },
-  { id: "applications", label: "Applications", path: "/profile/applications" },
   { id: "awards", label: "Awards", path: "/profile/awards" },
+  { id: "applications", label: "Applications", path: "/profile/applications" },
 ];
 
 export default function ProfileNavigation({

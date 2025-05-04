@@ -3,8 +3,8 @@ import {
   EducationType,
   SpecializedExperienceType,
   TopicType,
-  UserJobQualificationType,
-  UserJobType,
+  PastJobQualificationType,
+  PastJobType,
 } from "@/app/utils/responseSchemas";
 import styles from "../../ally.module.css";
 import SidebarItem from "./SidebarItem";
@@ -13,8 +13,8 @@ export default function Sidebar<
     | AwardType
     | EducationType
     | SpecializedExperienceType
-    | UserJobType
-    | UserJobQualificationType
+    | PastJobType
+    | PastJobQualificationType
 >({
   currentIndex,
   items,

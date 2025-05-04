@@ -1,16 +1,16 @@
-import { UserJobType } from "@/app/utils/responseSchemas";
+import { PastJobType } from "@/app/utils/responseSchemas";
 import BaseForm from "../../forms/BaseForm";
 import {
   SubmitButton,
   TextAreaWithLabel,
   TextWithLabel,
 } from "../../forms/Inputs";
-export default function UserJobsForm({
+export default function PastJobsForm({
   item,
   onChange,
   onSubmit,
 }: {
-  item?: UserJobType;
+  item?: PastJobType;
   onChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => void;

@@ -1,11 +1,11 @@
 import {
-  UserJobQualificationType,
-  UserJobType,
+  PastJobQualificationType,
+  PastJobType,
 } from "@/app/utils/responseSchemas";
-import UserJobQualificationItem from "./UserJobQualificationItem";
+import PastJobQualificationItem from "./PastJobQualificationItem";
 import styles from "../resume.module.css";
 
-export default function UserJobItem({ userJob }: { userJob: UserJobType }) {
+export default function pastJobItem({ pastJob }: { pastJob: PastJobType }) {
   function formatDates(startDate: string, endDate: string) {
     if (endDate === "Present" || endDate === "present") {
       const start = new Date(startDate);
@@ -29,28 +29,28 @@ export default function UserJobItem({ userJob }: { userJob: UserJobType }) {
       <div className={styles.jobItemBasicInfo}>
         {/* column 1 */}
         <div>
-          <div className={styles.organization}>{userJob.organization}</div>{" "}
+          <div className={styles.organization}>{pastJob.organization}</div>{" "}
           <div>EMPLOYER ADDRESS GOES HERE</div>
-          <div className={styles.jobTitle}>{userJob.title}</div>
+          <div className={styles.jobTitle}>{pastJob.title}</div>
           <div>Supervisor: [NAME] [PHONE NUMBER]</div>
           <div>(may contact)</div>
         </div>
         {/* column 2 */}
         <div>
-          {userJob.startDate && userJob.endDate && (
-            <div>{formatDates(userJob.startDate, userJob.endDate)}</div>
+          {pastJob.startDate && pastJob.endDate && (
+            <div>{formatDates(pastJob.startDate, pastJob.endDate)}</div>
           )}
-          <div>{userJob.hours} hours per week</div>
-          {userJob.gsLevel && <div>{userJob.gsLevel}</div>}
+          <div>{pastJob.hours} hours per week</div>
+          {pastJob.gsLevel && <div>{pastJob.gsLevel}</div>}
         </div>
         <div></div>
       </div>
       <div>
-        {userJob.userJobQualifications.map(
-          (qualification: UserJobQualificationType) => (
-            <UserJobQualificationItem
+        {pastJob.pastJobQualifications.map(
+          (qualification: PastJobQualificationType) => (
+            <PastJobQualificationItem
               key={qualification.id}
-              userJobQualification={qualification}
+              pastJobQualification={qualification}
             />
           )
         )}

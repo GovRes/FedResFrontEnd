@@ -2,15 +2,15 @@
 /* the code in this file allows users to interact with an AI which will eventually generate a paragraph for them and allow them to revise it. */
 import {
   SpecializedExperienceType,
-  UserJobQualificationType,
-  UserJobType,
+  PastJobQualificationType,
+  PastJobType,
 } from "@/app/utils/responseSchemas";
 import { useState, useEffect, FormEvent } from "react";
 import styles from "../../ally.module.css";
 import DetailedListEditorReturnedParagraph from "./ReturnedParagraph";
 
 export default function Chat<
-  T extends SpecializedExperienceType | UserJobQualificationType
+  T extends SpecializedExperienceType | PastJobQualificationType
 >({
   assistantInstructions,
   assistantName,

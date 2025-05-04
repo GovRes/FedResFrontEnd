@@ -2,13 +2,13 @@ import {
   AwardType,
   EducationType,
   SpecializedExperienceType,
-  UserJobType,
+  PastJobType,
   VolunteerType,
 } from "@/app/utils/responseSchemas";
 import SpecializedExperienceItem from "./returnResumeComponents/SpecializedExperienceItem";
 import { useContext, useEffect, useState } from "react";
 import { AllyContext, useAlly } from "@/app/providers";
-import UserJobItem from "./returnResumeComponents/UserJobItem";
+import PastJobItem from "./returnResumeComponents/PastJobItem";
 import EducationExperienceItem from "./returnResumeComponents/EducationExperienceItem";
 import { fetchUserAttributes } from "aws-amplify/auth";
 import styles from "./resume.module.css";
@@ -25,20 +25,20 @@ export default function ReturnResume() {
     loadingText,
     setLoading,
     setLoadingText,
-    specializedExperiences,
-    userJobs,
+    // specializedExperiences,
+    pastJobs,
     volunteers,
   } = useAlly();
   //   might want to change this store education as a separate thing from specialized experiences
-  const special = specializedExperiences.filter(
-    (s) => s.typeOfExperience === "other" || s.typeOfExperience === "experience"
-  );
-  const education = specializedExperiences.filter(
-    (s) =>
-      s.typeOfExperience === "degree" ||
-      s.typeOfExperience === "license" ||
-      s.typeOfExperience === "certification"
-  );
+  // const special = specializedExperiences.filter(
+  //   (s) => s.typeOfExperience === "other" || s.typeOfExperience === "experience"
+  // );
+  // const education = specializedExperiences.filter(
+  //   (s) =>
+  //     s.typeOfExperience === "degree" ||
+  //     s.typeOfExperience === "license" ||
+  //     s.typeOfExperience === "certification"
+  // );
   interface UserAttributes {
     "custom:citizen"?: string;
     "custom:disabled"?: string;
@@ -87,7 +87,7 @@ export default function ReturnResume() {
           {attr["custom:veteran"] && <div>Veteran</div>}
           {attr["custom:militarySpouse"] && <div>Military Spouse</div>}
         </div>
-        <div className={styles.resumeSection}>
+        {/* <div className={styles.resumeSection}>
           <h3 className={styles.specializedExperience}>
             Specialized Experience
           </h3>
@@ -97,12 +97,12 @@ export default function ReturnResume() {
               specializedExperience={experience}
             />
           ))}
-        </div>
+        </div> */}
 
         <div className={styles.resumeSection}>
           <h3 className={styles.workExperience}>Work Experience</h3>
-          {userJobs.map((userJob: UserJobType) => (
-            <UserJobItem key={userJob.id} userJob={userJob} />
+          {pastJobs.map((pastJob: PastJobType) => (
+            <PastJobItem key={pastJob.id} pastJob={pastJob} />
           ))}
         </div>
         <div className={styles.resumeSection}>
@@ -115,7 +115,7 @@ export default function ReturnResume() {
           <h3 className={styles.additionalInfo}>
             Volunteer/Community Service Experiences
           </h3>
-          {volunteers.map((volunteer: UserJobType) => (
+          {volunteers.map((volunteer: PastJobType) => (
             <VolunteerItem key={volunteer.id} volunteer={volunteer} />
           ))}
         </div>

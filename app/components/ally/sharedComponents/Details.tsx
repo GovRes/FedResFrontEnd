@@ -1,8 +1,8 @@
 import {
   AwardType,
   EducationType,
-  UserJobQualificationType,
-  UserJobType,
+  PastJobQualificationType,
+  PastJobType,
 } from "@/app/utils/responseSchemas";
 import { useEffect, useState } from "react";
 import Sidebar from "../sharedComponents/DetailedListEditor/Sidebar";
@@ -10,7 +10,7 @@ import styles from "../ally.module.css";
 import EditItem from "./EditItem";
 
 export default function Details<
-  T extends AwardType | EducationType | UserJobType | UserJobQualificationType
+  T extends AwardType | EducationType | PastJobType | PastJobQualificationType
 >({
   Form,
   itemType,
@@ -58,7 +58,7 @@ export default function Details<
         startDate: "",
         endDate: "",
         responsibilities: "",
-        userJobQualifications: [],
+        PastJobQualifications: [],
       } as unknown as T;
     } else {
       // Fallback

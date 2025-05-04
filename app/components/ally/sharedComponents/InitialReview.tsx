@@ -3,19 +3,19 @@ import { FormEvent, useEffect, useState } from "react";
 import {
   AwardType,
   EducationType,
-  UserJobType,
+  PastJobType,
   VolunteerType,
 } from "@/app/utils/responseSchemas";
 import { getCheckboxValues } from "@/app/utils/formUtils";
 import ReviewItemsList from "../sharedComponents/ReviewItemsList";
 import { completeSteps } from "@/app/utils/stepUpdater";
 import { useRouter } from "next/navigation";
-import { associateItemsWithUserResume } from "@/app/crud/userResume";
-import { useUserResume } from "@/app/providers/userResumeContext";
+import { associateItemsWithApplication } from "@/app/crud/application";
+import { useApplication } from "@/app/providers/applicationContext";
 import { TextBlinkLoader } from "../../loader/Loader";
 
 export default function InitialReview<
-  T extends AwardType | EducationType | UserJobType | VolunteerType
+  T extends AwardType | EducationType | PastJobType | VolunteerType
 >({
   currentStepId,
   localItems,
@@ -29,7 +29,7 @@ export default function InitialReview<
     | "Award"
     | "Education"
     | "SpecializedExperience"
-    | "UserJob"
+    | "PastJob"
     | "Volunteer"
     | "Resume";
   setLocalItems: Function;
@@ -47,9 +47,9 @@ export default function InitialReview<
 
   const [loading, setLoading] = useState(false);
 
-  const { job } = useAlly();
-  const { steps, userResumeId, setSteps } = useUserResume();
-  console.log("user resume", userResumeId);
+  const { job } = useApplication();
+  const { steps, applicationId, setSteps } = useApplication();
+  console.log("user resume", applicationId);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -61,11 +61,11 @@ export default function InitialReview<
 
     // Update parent state
     setLocalItems(updatedItems);
-    if (userResumeId && items.length > 0) {
-      console.log("associating items with user resume", userResumeId);
+    if (applicationId && items.length > 0) {
+      console.log("associating items with user resume", applicationId);
       setLoading(true);
-      await associateItemsWithUserResume({
-        userResumeId,
+      await associateItemsWithApplication({
+        applicationId,
         items: updatedItems,
         associationType: itemType,
       });
@@ -73,7 +73,7 @@ export default function InitialReview<
       const updatedSteps = await completeSteps({
         steps,
         stepId: currentStepId,
-        userResumeId,
+        applicationId,
       });
       setSteps(updatedSteps);
       router.push(nextPath);

@@ -3,7 +3,7 @@ import { generateClient } from "aws-amplify/api";
 /**
  * Generic function to delete any model type from the database
  *
- * @param {string} modelName - The name of the model to delete (e.g., "Education", "UserJob")
+ * @param {string} modelName - The name of the model to delete (e.g., "Education", "pastJob")
  * @param {string} id - The ID of the record to delete
  * @returns {Promise<Object>} - The deleted record data
  * @throws {Error} - If deletion fails or model type is unsupported
@@ -13,24 +13,24 @@ export async function deleteModelRecord(modelName: string, id: string) {
 
   // List of valid model names based on your schema
   const validModelNames = [
-    "UserResume",
+    "Application",
     "Award",
     "Education",
     "Job",
     "Resume",
     "SpecializedExperience",
     "Topic",
-    "UserJob",
-    "UserJobQualification",
+    "pastJob",
+    "pastJobQualification",
     "Volunteer",
-    "AwardUserResume",
-    "EducationUserResume",
-    "ResumeUserResume",
-    "SpecializedExperienceUserResume",
-    "UserJobUserResume",
-    "VolunteerUserResume",
-    "UserJobUserJobQualification",
-    "UserJobQualificationVolunteer",
+    "AwardApplication",
+    "EducationApplication",
+    "ResumeApplication",
+    "SpecializedExperienceApplication",
+    "pastJobApplication",
+    "VolunteerApplication",
+    "pastJobpastJobQualification",
+    "pastJobQualificationVolunteer",
   ];
 
   // Validate the model name
@@ -78,7 +78,7 @@ export async function deleteModelRecord(modelName: string, id: string) {
 /**
  * Helper function for batch deletion of multiple records of the same model type
  *
- * @param {string} modelName - The name of the model to delete (e.g., "Education", "UserJob")
+ * @param {string} modelName - The name of the model to delete (e.g., "Education", "pastJob")
  * @param {string[]} ids - Array of IDs to delete
  * @returns {Promise<Object[]>} - Array of deleted record data
  */
@@ -107,6 +107,6 @@ export async function batchDeleteModelRecords(
  * // Delete a single education record
  * const deletedEducation = await deleteModelRecord("Education", "abc123");
  *
- * // Delete multiple UserJob records
- * const deletedJobs = await batchDeleteModelRecords("UserJob", ["job1", "job2", "job3"]);
+ * // Delete multiple pastJob records
+ * const deletedJobs = await batchDeleteModelRecords("pastJob", ["job1", "job2", "job3"]);
  */

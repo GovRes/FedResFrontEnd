@@ -1,14 +1,14 @@
 import {
-  UserJobQualificationType,
-  UserJobType,
+  PastJobQualificationType,
+  PastJobType,
 } from "@/app/utils/responseSchemas";
-import UserJobQualificationItem from "./UserJobQualificationItem";
+import PastJobQualificationItem from "./PastJobQualificationItem";
 import styles from "../resume.module.css";
 
 export default function VolunteerItem({
   volunteer,
 }: {
-  volunteer: UserJobType;
+  volunteer: PastJobType;
 }) {
   function formatDates(startDate: string, endDate: string) {
     if (endDate === "Present" || endDate === "present") {
@@ -50,11 +50,11 @@ export default function VolunteerItem({
         <div></div>
       </div>
       <div>
-        {volunteer.userJobQualifications.map(
-          (qualification: UserJobQualificationType) => (
-            <UserJobQualificationItem
+        {volunteer.pastJobQualifications.map(
+          (qualification: PastJobQualificationType) => (
+            <PastJobQualificationItem
               key={qualification.id}
-              userJobQualification={qualification}
+              pastJobQualification={qualification}
             />
           )
         )}

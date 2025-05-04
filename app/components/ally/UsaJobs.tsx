@@ -1,8 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import UsaJobsSearch, {
-  JobSearchObject,
-} from "./usaJobsComponents/UsaJobsSearch";
+import UsaJobsSearch from "./usaJobsComponents/UsaJobsSearch"; // JobSearchObject,
+import { JobSearchObject } from "@/app/utils/responseSchemas";
 import UsaJobsResults from "./usaJobsComponents/UsaJobsResults";
 import UsaJobsNoResults from "./usaJobsComponents/UsaJobsNoResults";
 import { useAuthenticator } from "@aws-amplify/ui-react";
@@ -34,7 +33,7 @@ export default function UsaJobs() {
         searchObject={searchObject}
         setSearchObject={setSearchObject}
         setSearchResults={setSearchResults}
-        setShowSearchForm={setShowSearchForm}
+        // setShowSearchForm={setShowSearchForm}
       />
     );
     // } else if (searchResults.length === 0 && searchObject) {

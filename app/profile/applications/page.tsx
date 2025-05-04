@@ -1,6 +1,7 @@
 "use client";
-import ExperienceDashboard from "../components/ExperienceDashboard";
+
+import ApplicationDashboard from "../components/ApplicationsDashboard";
 
 export default function AwardsPage() {
-  return <div>User Applications go here</div>;
+  return <ApplicationDashboard />;
 }

@@ -4,11 +4,11 @@ import { SpecializedExperienceType } from "../utils/responseSchemas";
 
 export const createAndSaveSpecializedExperiences = async ({
   specializedExperiences,
-  userResumeId,
+  applicationId,
   userId,
 }: {
   specializedExperiences: SpecializedExperienceType[];
-  userResumeId: string;
+  applicationId: string;
   userId: string;
 }) => {
   try {
@@ -25,9 +25,9 @@ export const createAndSaveSpecializedExperiences = async ({
   const client = generateClient();
   try {
     // Validate required parameters
-    if (!specializedExperiences.length || !userResumeId || !userId) {
+    if (!specializedExperiences.length || !applicationId || !userId) {
       throw new Error(
-        "specializedExperiences array, userResumeId, and userId are required parameters"
+        "specializedExperiences array, applicationId, and userId are required parameters"
       );
     }
 
@@ -85,18 +85,18 @@ export const createAndSaveSpecializedExperiences = async ({
       // Create the join table record
       const joinResponse = await client.graphql({
         query: `
-          mutation CreateSpecializedExperienceUserResume($input: CreateSpecializedExperienceUserResumeInput!) {
-            createSpecializedExperienceUserResume(input: $input) {
+          mutation CreateSpecializedExperienceApplication($input: CreateSpecializedExperienceApplicationInput!) {
+            createSpecializedExperienceApplication(input: $input) {
               id
               specializedExperienceId
-              userResumeId
+              applicationId
             }
           }
         `,
         variables: {
           input: {
             specializedExperienceId: specializedExperience.id,
-            userResumeId: userResumeId,
+            applicationId: applicationId,
           },
         },
         authMode: "userPool",
@@ -113,8 +113,8 @@ export const createAndSaveSpecializedExperiences = async ({
       // Add the result to our array
       results.push({
         specializedExperience,
-        specializedExperienceUserResume:
-          joinResponse.data.createSpecializedExperienceUserResume,
+        specializedExperienceApplication:
+          joinResponse.data.createSpecializedExperienceApplication,
       });
     }
 

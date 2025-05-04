@@ -11,7 +11,7 @@ import { createAndSaveSpecializedExperiences } from "@/app/crud/specializedExper
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { useRouter } from "next/navigation";
 import { completeSteps } from "@/app/utils/stepUpdater";
-import { useUserResume } from "@/app/providers/userResumeContext";
+import { useApplication } from "@/app/providers/applicationContext";
 import { useAlly } from "@/app/providers";
 export default function InDepthReview() {
   const router = useRouter();
@@ -19,20 +19,20 @@ export default function InDepthReview() {
     SpecializedExperienceContext
   );
   const { user } = useAuthenticator();
-  const { job } = useAlly();
-  const { steps, userResumeId, setSteps } = useUserResume();
+  const { job } = useApplication();
+  const { steps, applicationId, setSteps } = useApplication();
   async function saveSpecializedExperiences({
     specializedExperiences,
-    userResumeId,
+    applicationId,
     userId,
   }: {
     specializedExperiences: SpecializedExperienceType[];
-    userResumeId: string;
+    applicationId: string;
     userId: string;
   }) {
     await createAndSaveSpecializedExperiences({
       specializedExperiences,
-      userResumeId,
+      applicationId,
       userId,
     });
     return;
@@ -40,13 +40,13 @@ export default function InDepthReview() {
   async function setNext() {
     saveSpecializedExperiences({
       specializedExperiences,
-      userResumeId,
+      applicationId,
       userId: user.userId,
     });
     const updatedSteps = await completeSteps({
       steps,
       stepId: "specialized-experiences",
-      userResumeId,
+      applicationId,
     });
     setSteps(updatedSteps);
     router.push("/ally/past_jobs");

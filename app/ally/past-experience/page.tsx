@@ -1,19 +1,19 @@
 "use client";
-import { useUserResume } from "@/app/providers/userResumeContext";
+import { useApplication } from "@/app/providers/applicationContext";
 import { completeSteps } from "@/app/utils/stepUpdater";
 import { useRouter } from "next/navigation";
 export default function PastExperiencePage() {
   const router = useRouter();
 
-  const { steps, userResumeId, setSteps } = useUserResume();
+  const { steps, applicationId, setSteps } = useApplication();
   async function moveOnJobs() {
     const updatedSteps = await completeSteps({
       steps,
       stepId: "past-experience",
-      userResumeId,
+      applicationId,
     });
     setSteps(updatedSteps);
-    router.push("/ally/past-experience/user-jobs");
+    router.push("/ally/past-experience/past-jobs");
   }
   function moveOnResumes() {
     router.push("/ally/past-experience/resumes");

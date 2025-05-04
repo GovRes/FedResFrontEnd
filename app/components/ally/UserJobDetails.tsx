@@ -1,16 +1,17 @@
 import { useState } from "react";
-import Editing from "./userJobsComponents/Editing";
+import Editing from "./pastJobsComponents/Editing";
 import { useAlly } from "@/app/providers";
-import { UserJobType } from "@/app/utils/responseSchemas";
+import { PastJobType } from "@/app/utils/responseSchemas";
 
-export default function UserJobDetails() {
-  const { userJobs } = useAlly();
-  const [localUserJobs, setLocalUserJobs] = useState<UserJobType[]>(userJobs);
+export default function pastJobDetails() {
+  const { pastJobs } = useAlly();
+  const [localpastJobs, setLocalpastJobs] = useState<PastJobType[]>(pastJobs);
   return (
-    <Editing
-      localUserJobs={localUserJobs}
-      nextStep="awards"
-      setLocalUserJobs={setLocalUserJobs}
-    />
+    // <Editing
+    //   // localpastJobs={localpastJobs}
+    //   nextStep="awards"
+    //   // setLocalpastJobs={setLocalpastJobs}
+    // />
+    <div>return</div>
   );
 }

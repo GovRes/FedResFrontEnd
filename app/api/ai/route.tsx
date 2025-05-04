@@ -12,7 +12,7 @@ import {
   SpecializedExperienceArraySchema,
   Topic,
   TopicsArraySchema,
-  UserJobsArraySchema,
+  PastJobsArraySchema,
 } from "@/app/utils/responseSchemas";
 
 export async function POST(req: NextRequest) {
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     qualifications: Qualifications,
     specializedExperiences: SpecializedExperienceArraySchema,
     topics: TopicsArraySchema,
-    userJobs: UserJobsArraySchema,
+    PastJobs: PastJobsArraySchema,
   };
 
   type SchemaKey = keyof typeof schemas;

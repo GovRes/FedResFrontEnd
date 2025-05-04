@@ -4,13 +4,14 @@ import styles from "../ally.module.css";
 import {
   AwardType,
   EducationType,
-  UserJobType,
+  PastJobType,
 } from "@/app/utils/responseSchemas";
 import { Checkboxes, SubmitButton } from "../../forms/Inputs";
 import BaseForm from "../../forms/BaseForm";
 import { generateHeadingText } from "@/app/utils/stringBuilders";
+import { useApplication } from "@/app/providers/applicationContext";
 export default function ReviewItemsList<
-  T extends AwardType | EducationType | UserJobType
+  T extends AwardType | EducationType | PastJobType
 >({
   itemType,
   localItems,
@@ -20,7 +21,7 @@ export default function ReviewItemsList<
   localItems: T[];
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
-  const { job } = useAlly();
+  const { job } = useApplication();
   const [itemOptions, setItemOptions] = useState(
     localItems.map((item) => ({
       id: item.id,

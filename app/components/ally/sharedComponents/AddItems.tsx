@@ -1,7 +1,7 @@
 import {
   AwardType,
   EducationType,
-  UserJobType,
+  PastJobType,
 } from "@/app/utils/responseSchemas";
 import { JSX, useState } from "react";
 import SidebarItem from "../sharedComponents/DetailedListEditor/SidebarItem";
@@ -9,7 +9,7 @@ import Sidebar from "../sharedComponents/DetailedListEditor/Sidebar";
 import styles from "../ally.module.css";
 
 export default function AddItems<
-  T extends AwardType | EducationType | UserJobType
+  T extends AwardType | EducationType | PastJobType
 >({
   baseItem,
   Form,

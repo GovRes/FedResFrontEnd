@@ -1,4 +1,4 @@
-import { UserJobType } from "@/app/utils/responseSchemas";
+import { PastJobType } from "@/app/utils/responseSchemas";
 import BaseForm from "../../forms/BaseForm";
 import {
   SubmitButton,
@@ -10,7 +10,7 @@ export default function VolunteersForm({
   onChange,
   onSubmit,
 }: {
-  item?: UserJobType;
+  item?: PastJobType;
   onChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => void;

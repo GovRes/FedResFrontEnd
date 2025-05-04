@@ -106,6 +106,13 @@
   display: block;
 }
 
+.tabContent {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 80%;
+}
+
 @media (max-width: 465px) {
   .tabs .tab,
   .tabs label {

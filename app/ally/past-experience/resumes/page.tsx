@@ -13,18 +13,18 @@ import { useAlly } from "@/app/providers";
 import { awardsExtractor } from "@/app/components/aiProcessing/awardsExtractor";
 import { educationExtractor } from "@/app/components/aiProcessing/educationExtractor";
 import { volunteersExtractor } from "@/app/components/aiProcessing/volunteersExtractor";
-import { userJobsExtractor } from "@/app/components/aiProcessing/userJobsExtractor";
+import { pastJobsExtractor } from "@/app/components/aiProcessing/pastJobsExtractor";
 import { createAndSaveAwards } from "@/app/crud/award";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { createAndSaveEducations } from "@/app/crud/education";
-import { createAndSavePositionRecords } from "@/app/crud/userJobAndVolunteer";
+import { createAndSavePositionRecords } from "@/app/crud/pastJobAndVolunteer";
 import { completeSteps } from "@/app/utils/stepUpdater";
-import { useUserResume } from "@/app/providers/userResumeContext";
+import { useApplication } from "@/app/providers/applicationContext";
 
 export default function ResumesPage() {
   const { setResumes } = useAlly();
   const { user } = useAuthenticator();
-  const { steps, setSteps, userResumeId } = useUserResume();
+  const { steps, setSteps, applicationId } = useApplication();
   const router = useRouter();
   const [localResumes, setLocalResumes] = useState<ResumeType[]>([]);
   const [loading, setLoading] = useState(false);
@@ -38,17 +38,17 @@ export default function ResumesPage() {
       const resumePromises = selectedResumes.map(processResume);
       const resolvedResumes = await Promise.all(resumePromises);
 
-      const [awardsResult, educationResult, userJobsResult, volunteersResult] =
+      const [awardsResult, educationResult, PastJobsResult, volunteersResult] =
         await Promise.all([
           fetchAwards({ resumeStrings: resolvedResumes }),
           fetchEducation({ resumeStrings: resolvedResumes }),
-          fetchUserJobs({ resumeStrings: resolvedResumes }),
+          fetchPastJobs({ resumeStrings: resolvedResumes }),
           fetchVolunteers({ resumeStrings: resolvedResumes }),
         ]);
       if (
         awardsResult &&
         educationResult &&
-        userJobsResult &&
+        PastJobsResult &&
         volunteersResult
       ) {
         setResumes(resolvedResumes);
@@ -56,14 +56,14 @@ export default function ResumesPage() {
       const updatedSteps = await completeSteps({
         steps,
         stepId: "past-experience",
-        userResumeId,
+        applicationId,
       });
       setSteps(updatedSteps);
-      router.push("/ally/past-experience/user-jobs");
+      router.push("/ally/past-experience/past-jobs");
     } catch (error) {
       console.log(error);
     } finally {
-      console.log("process resume", userResumeId);
+      console.log("process resume", applicationId);
       setLoading(false);
     }
   }
@@ -111,12 +111,12 @@ export default function ResumesPage() {
     return educations;
   }
 
-  async function fetchUserJobs({ resumeStrings }: { resumeStrings: string[] }) {
-    let userJobs = await userJobsExtractor({
+  async function fetchPastJobs({ resumeStrings }: { resumeStrings: string[] }) {
+    let PastJobs = await pastJobsExtractor({
       resumes: resumeStrings,
     });
-    await createAndSavePositionRecords("UserJob", userJobs, user.userId);
-    return userJobs;
+    await createAndSavePositionRecords("PastJob", PastJobs, user.userId);
+    return PastJobs;
   }
   async function fetchVolunteers({
     resumeStrings,

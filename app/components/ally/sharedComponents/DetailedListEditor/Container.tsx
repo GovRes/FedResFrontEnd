@@ -2,13 +2,13 @@ import { JSX, useEffect, useState } from "react";
 import styles from "../../ally.module.css";
 import {
   SpecializedExperienceType,
-  UserJobQualificationType,
+  PastJobQualificationType,
 } from "@/app/utils/responseSchemas";
 import SidebarItem from "./SidebarItem";
 import Sidebar from "./Sidebar";
 import Chat from "./Chat";
 export default function DetailedListEditor<
-  T extends SpecializedExperienceType | UserJobQualificationType
+  T extends SpecializedExperienceType | PastJobQualificationType
 >({
   assistantInstructions,
   assistantName,

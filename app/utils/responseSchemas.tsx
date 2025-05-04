@@ -1,7 +1,20 @@
 import { z } from "zod";
 import { UserType } from "@/app/utils/userAttributeInterface";
 import { agencies } from "@/app/utils/usaJobsCodes";
-
+export type ApplicationType = {
+  awards?: AwardType[];
+  completedSteps: string[];
+  educations?: EducationType[];
+  id: string;
+  jobId: string;
+  job: JobType;
+  resumes?: ResumeType[];
+  specializedExperiences?: SpecializedExperienceType[];
+  status: string;
+  userId: string;
+  pastJobs?: PastJobType[];
+  volunteers?: VolunteerType[];
+};
 export const Keywords = z.object({
   keywords: z.array(z.string()),
 });
@@ -110,7 +123,7 @@ export type ResumeType = {
   userId?: string;
 };
 
-export const UserJobQualification = z.object({
+export const PastJobQualification = z.object({
   id: z.string(),
   topic: Topic,
   description: z.string(),
@@ -120,9 +133,9 @@ export const UserJobQualification = z.object({
   userConfirmed: z.boolean(),
 });
 
-export type UserJobQualificationType = z.infer<typeof UserJobQualification>;
+export type PastJobQualificationType = z.infer<typeof PastJobQualification>;
 
-export const UserJob = z.object({
+export const PastJob = z.object({
   endDate: z.string().optional(),
   hours: z.string().optional(),
   gsLevel: z.string().optional(),
@@ -132,12 +145,12 @@ export const UserJob = z.object({
   title: z.string(),
   responsibilities: z.string().optional(),
   userId: z.string(),
-  userJobQualifications: z.array(UserJobQualification),
+  pastJobQualifications: z.array(PastJobQualification),
 });
 
-export type UserJobType = z.infer<typeof UserJob>;
-export type UserJobQualification = z.infer<typeof UserJobQualification>;
-export const UserJobsArraySchema = z.object({ userJobs: z.array(UserJob) });
+export type PastJobType = z.infer<typeof PastJob>;
+export type PastJobQualification = z.infer<typeof PastJobQualification>;
+export const PastJobsArraySchema = z.object({ pastJobs: z.array(PastJob) });
 export const Volunteer = z.object({
   endDate: z.string().optional(),
   hours: z.string().optional(),
@@ -148,7 +161,7 @@ export const Volunteer = z.object({
   title: z.string(),
   responsibilities: z.string().optional(),
   userId: z.string(),
-  userJobQualifications: z.array(UserJobQualification),
+  pastJobQualifications: z.array(PastJobQualification),
 });
 export type VolunteerType = z.infer<typeof Volunteer>;
 export const VolunteerArraySchema = z.object({ volunteer: z.array(Volunteer) });
@@ -158,7 +171,7 @@ export type StepType =
   | "specialized-experience"
   | "extract-keywords"
   | "resume"
-  | "user-jobs"
+  | "past-jobs"
   | "user-job-details"
   | "awards"
   | "education"

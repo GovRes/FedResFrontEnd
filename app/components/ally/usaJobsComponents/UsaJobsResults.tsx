@@ -7,14 +7,11 @@ import Modal from "../../modal/Modal";
 import { AllyContext } from "@/app/providers";
 import { formatJobDescription } from "@/app/utils/usaJobsSearch";
 import indefiniteArticle from "@/app/utils/indefiniteArticles";
-import { createAndSaveUserResume } from "@/app/crud/userResume";
+import { createAndSaveApplication } from "@/app/crud/application";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { useRouter } from "next/navigation";
 import { completeSteps } from "@/app/utils/stepUpdater";
-import {
-  UserResumeContext,
-  useUserResume,
-} from "@/app/providers/userResumeContext";
+import { useApplication } from "@/app/providers/applicationContext";
 export interface MatchedObjectDescriptor {
   PositionTitle: string;
   DepartmentName: string;
@@ -56,9 +53,9 @@ export default function UsaJobsResults({
       "AllyContainer must be used within an AllyContext.Provider"
     );
   }
-  const { setJob } = allyContext;
+  const { setJob } = useApplication();
 
-  const { steps, userResumeId, setSteps, setUserResumeId } = useUserResume();
+  const { steps, applicationId, setSteps, setApplicationId } = useApplication();
   const router = useRouter();
   const { user } = useAuthenticator();
   const [modalOpen, setModalOpen] = useState<boolean>(false);
@@ -76,15 +73,15 @@ export default function UsaJobsResults({
       let formattedJobDescription = formatJobDescription({ job: currentJob });
       let jobRes = await createAndSaveJob({ ...formattedJobDescription });
       console.log("jobRes", jobRes);
-      let userResumeRes = await createAndSaveUserResume({
+      let applicationRes = await createAndSaveApplication({
         jobId: jobRes.id,
         userId: user.userId,
       });
-      setUserResumeId(userResumeRes.id);
+      setApplicationId(applicationRes.id);
       const updatedSteps = await completeSteps({
         steps,
         stepId: "usa-jobs",
-        userResumeId: userResumeRes.id,
+        applicationId: applicationRes.id,
       });
       setSteps(updatedSteps);
       setJob(jobRes);

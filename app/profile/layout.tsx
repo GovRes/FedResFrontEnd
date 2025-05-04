@@ -20,7 +20,7 @@ export default function ProfileLayout({
   return (
     <div className={styles.profileContainer}>
       <ProfileNavigation currentPath={pathname} />
-      <div className={styles.tab}>{children}</div>
+      <div className={styles.tabContent}>{children}</div>
     </div>
   );
 }
