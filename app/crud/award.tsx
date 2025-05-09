@@ -95,6 +95,61 @@ export async function createAndSaveAwards(
 
   return results;
 }
+
+/**
+ * Updates an existing award with new information.
+ *
+ * @param {string} id - The ID of the award to update
+ * @param {Object} updateData - The award data to update
+ * @param {string} [updateData.title] - The new title of the award
+ * @param {string} [updateData.date] - The new date of the award
+ * @returns {Promise<AwardType>} - The updated award object
+ */
+export async function updateAward(
+  id: string,
+  updateData: { title?: string; date?: string }
+): Promise<AwardType> {
+  const client = generateClient();
+
+  try {
+    // Create the input for the update mutation
+    const updateInput = {
+      id,
+      ...updateData,
+    };
+
+    // Execute update mutation
+    const updateAwardResult = await client.graphql({
+      query: `
+        mutation UpdateAward($input: UpdateAwardInput!) {
+          updateAward(input: $input) {
+            id
+            title
+            date
+            userId
+            createdAt
+            updatedAt
+          }
+        }
+      `,
+      variables: {
+        input: updateInput,
+      },
+      authMode: "userPool",
+    });
+
+    // Explicit type checking for the update response
+    if ("data" in updateAwardResult && updateAwardResult.data?.updateAward) {
+      return updateAwardResult.data.updateAward as AwardType;
+    } else {
+      throw new Error(`Failed to update award with ID: ${id}`);
+    }
+  } catch (error) {
+    console.error("Error updating award:", error);
+    throw error;
+  }
+}
+
 /**
  * Fetches all awards for the currently logged-in user.
  *

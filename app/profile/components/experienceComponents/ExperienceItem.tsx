@@ -14,6 +14,8 @@ import { GrEdit, GrTrash } from "react-icons/gr";
 import { useEffect, useState } from "react";
 import { generateHeadingText } from "@/app/utils/stringBuilders";
 import { deleteModelRecord } from "@/app/crud/genericDelete";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function ResumeItem({
   item,
@@ -41,6 +43,7 @@ export default function ResumeItem({
     >
   >;
 }) {
+  const router = useRouter();
   async function deleteItem() {
     setItems((prevItems) =>
       prevItems.filter((prevItem) => prevItem.id !== item.id)
@@ -53,13 +56,21 @@ export default function ResumeItem({
     }
   }
 
+  function editItem() {
+    router.push(`/profile/${itemType.toLowerCase()}s/${item.id}/edit`);
+  }
+
   return (
     <tr>
       <td className="tableData" role="cell">
-        {generateHeadingText(item)}
+        <Link href={`/profile/${itemType.toLowerCase()}s/${item.id}`}>
+          {generateHeadingText(item)}
+        </Link>
       </td>
       <td className="tableData" role="cell">
-        <GrEdit />
+        <span onClick={editItem}>
+          <GrEdit />
+        </span>
       </td>
       <td className="tableData" role="cell">
         <span onClick={deleteItem}>

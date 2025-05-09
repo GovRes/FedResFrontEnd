@@ -7,16 +7,16 @@ import {
 } from "openai/resources/index.mjs";
 
 export const topicPastJobMatcher = async ({
-  PastJobs,
+  pastJobs,
   topics,
 }: {
   topics: TopicType[];
-  PastJobs: PastJobType[];
+  pastJobs: PastJobType[];
 }) => {
   const userMessage: ChatCompletionUserMessageParam = {
     role: "user",
     content: `user's past jobs: ${JSON.stringify(
-      PastJobs
+      pastJobs
     )}. Topically organized keywords for job listing: ${JSON.stringify(
       topics
     )}.`,
@@ -28,7 +28,7 @@ export const topicPastJobMatcher = async ({
   let res = await sendMessages({
     messages: messagesForTopicPastJobMatcher,
     //has to match line 26 in api/ai/route.tsx
-    name: "PastJobs",
+    name: "pastJobs",
   });
   const result = res.PastJobs as PastJobType[];
   return result;

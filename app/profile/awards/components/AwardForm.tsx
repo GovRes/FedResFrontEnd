@@ -1,6 +1,8 @@
+"use client";
 import { AwardType } from "@/app/utils/responseSchemas";
-import BaseForm from "../../forms/BaseForm";
-import { SubmitButton, TextWithLabel } from "../../forms/Inputs";
+import BaseForm from "@/app/components/forms/BaseForm";
+import { SubmitButton, TextWithLabel } from "@/app/components/forms/Inputs";
+import { useState } from "react";
 
 export default function AwardForm({
   item,

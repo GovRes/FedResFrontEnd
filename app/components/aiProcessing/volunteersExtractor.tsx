@@ -23,7 +23,7 @@ export const volunteersExtractor = async ({
     let res = await sendMessages({
       messages: messagesForPastJobsExtractor,
       //has to match line 26 in api/ai/route.tsx
-      name: "PastJobs",
+      name: "pastJobs",
     });
 
     return res.PastJobs as PastJobType[];

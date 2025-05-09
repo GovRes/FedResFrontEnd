@@ -21,7 +21,7 @@ export default function PastJobsDetailsPage({}) {
   const [job, setJob] = useState<JobType | null>(null);
   const [loading, setLoading] = useState(false);
   const [topics, setTopics] = useState<TopicType[]>([]);
-  const [PastJobs, setPastJobs] = useState<PastJobType[]>([]);
+  const [pastJobs, setPastJobs] = useState<PastJobType[]>([]);
   const [currentJobIndex, setCurrentJobIndex] = useState(0);
   const [currentItem, setCurrentItem] = useState<PastJobType | null>(null);
 
@@ -31,15 +31,15 @@ export default function PastJobsDetailsPage({}) {
   const { applicationId } = useApplication();
 
   function savePastJob(item: PastJobType) {
-    let updatedItems = PastJobs.map((i) => (i.id !== item.id ? i : item));
+    let updatedItems = pastJobs.map((i) => (i.id !== item.id ? i : item));
     console.log({ updatedItems });
     setPastJobs(updatedItems);
   }
 
   // Navigate to specific job detail page when currentJobIndex changes
   useEffect(() => {
-    if (PastJobs.length > 0 && currentJobIndex >= 0) {
-      const selectedJob = PastJobs[currentJobIndex];
+    if (pastJobs.length > 0 && currentJobIndex >= 0) {
+      const selectedJob = pastJobs[currentJobIndex];
       if (selectedJob && selectedJob.id) {
         setCurrentItem(selectedJob);
         // Check if we're not already on this path to avoid unnecessary navigation
@@ -49,14 +49,14 @@ export default function PastJobsDetailsPage({}) {
         }
       }
     }
-  }, [PastJobs, currentJobIndex, router, pathname]);
+  }, [pastJobs, currentJobIndex, router, pathname]);
 
   useEffect(() => {
     async function connectJobsToTopics() {
-      if (topics.length > 0 && PastJobs.length > 0) {
+      if (topics.length > 0 && pastJobs.length > 0) {
         console.log(88);
         const result = await topicPastJobMatcher({
-          PastJobs,
+          pastJobs: pastJobs,
           topics,
         });
         console.log(101, result);
@@ -104,26 +104,26 @@ export default function PastJobsDetailsPage({}) {
 
   // Look for job ID in the URL path when page loads
   useEffect(() => {
-    if (!loading && PastJobs.length > 0 && pathname) {
+    if (!loading && pastJobs.length > 0 && pathname) {
       const pathParts = pathname.split("/");
       const jobId = pathParts[pathParts.length - 1];
 
       // If valid job ID found in URL, set current index to that job
       if (jobId && jobId !== "past-job-details") {
-        const jobIndex = PastJobs.findIndex((job) => job.id === jobId);
+        const jobIndex = pastJobs.findIndex((job) => job.id === jobId);
         if (jobIndex >= 0) {
           setCurrentJobIndex(jobIndex);
-          setCurrentItem(PastJobs[jobIndex]);
+          setCurrentItem(pastJobs[jobIndex]);
           return;
         }
       }
 
       // If no valid job ID in URL, redirect to the first job
-      if (PastJobs[0] && PastJobs[0].id) {
-        router.push(`/ally/past-experience/past-job-details/${PastJobs[0].id}`);
+      if (pastJobs[0] && pastJobs[0].id) {
+        router.push(`/ally/past-experience/past-job-details/${pastJobs[0].id}`);
       }
     }
-  }, [loading, PastJobs, pathname, router]);
+  }, [loading, pastJobs, pathname, router]);
 
   if (loading) {
     return (
@@ -131,8 +131,8 @@ export default function PastJobsDetailsPage({}) {
     );
   }
 
-  if (PastJobs && PastJobs.length > 0) {
-    itemsList = PastJobs.map((item: PastJobType, index) => {
+  if (pastJobs && pastJobs.length > 0) {
+    itemsList = pastJobs.map((item: PastJobType, index) => {
       return (
         <SidebarItem
           currentIndex={currentJobIndex}

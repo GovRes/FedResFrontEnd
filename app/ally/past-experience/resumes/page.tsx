@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import pdfToText from "react-pdftotext";
 import styles from "@/app/components/ally/ally.module.css";
 import ResumesTable from "@/app/components/ally/resumeComponents/ResumesTable";
-import ResumeUploader from "@/app/profile/components/resumeComponents/ResumeUploader";
+import ResumeUploader from "@/app/profile/resumes/resumeComponents/ResumeUploader";
 import { ResumeType } from "@/app/utils/responseSchemas";
 import { getFileUrl } from "@/app/utils/client-utils";
 import { TextBlinkLoader } from "@/app/components/loader/Loader";

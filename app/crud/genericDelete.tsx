@@ -29,7 +29,7 @@ export async function deleteModelRecord(modelName: string, id: string) {
     "SpecializedExperienceApplication",
     "pastJobApplication",
     "VolunteerApplication",
-    "pastJobpastJobQualification",
+    "pastJobPastJobQualification",
     "pastJobQualificationVolunteer",
   ];
 

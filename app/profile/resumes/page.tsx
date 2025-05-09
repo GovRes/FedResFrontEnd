@@ -1,5 +1,5 @@
 "use client";
-import ResumeDashboard from "../components/ResumeDashboard";
+import ResumeDashboard from "./ResumeDashboard";
 
 export default function ResumesPage() {
   return <ResumeDashboard />;

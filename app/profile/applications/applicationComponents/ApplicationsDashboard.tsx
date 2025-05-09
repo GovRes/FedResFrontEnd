@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import ApplicationsTable from "./applicationComponents/ApplicationsTable";
+import ApplicationsTable from "./ApplicationsTable";
 import { ApplicationType } from "@/app/utils/responseSchemas";
-import { TextBlinkLoader } from "../../components/loader/Loader";
+import { TextBlinkLoader } from "../../../components/loader/Loader";
 import { listUserApplications } from "@/app/crud/application";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import Link from "next/link";

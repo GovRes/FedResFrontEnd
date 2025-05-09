@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     qualifications: Qualifications,
     specializedExperiences: SpecializedExperienceArraySchema,
     topics: TopicsArraySchema,
-    PastJobs: PastJobsArraySchema,
+    pastJobs: PastJobsArraySchema,
   };
 
   type SchemaKey = keyof typeof schemas;

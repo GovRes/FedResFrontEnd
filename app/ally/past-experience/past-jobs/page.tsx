@@ -16,7 +16,7 @@ export default function pastJobsPage() {
     async function getpastJobs() {
       if (!user) return;
       setLoading(true);
-      let res = await fetchUserPositionRecords("pastJob", user.userId);
+      let res = await fetchUserPositionRecords("PastJob", user.userId);
       if (res.items.length > 0) {
         setLocalpastJobs(res.items);
       }

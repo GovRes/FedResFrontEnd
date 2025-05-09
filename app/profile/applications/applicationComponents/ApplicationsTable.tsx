@@ -1,4 +1,4 @@
-import styles from "../resumeComponents/resumeStyles.module.css";
+import styles from "../../resumes/resumeComponents/resumeStyles.module.css";
 import { ApplicationType } from "@/app/utils/responseSchemas";
 import ApplicationItem from "./ApplicationItem";
 

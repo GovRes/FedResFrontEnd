@@ -1,7 +1,7 @@
 import { useState } from "react";
 import ProfileAttributes from "./ProfileAttributes";
 import styles from "./profileStyles.module.css";
-import ResumeDashboard from "./ResumeDashboard";
+import ResumeDashboard from "../resumes/ResumeDashboard";
 import ExperienceDashboard from "./ExperienceDashboard";
 export default function Profile() {
   const [checked, setChecked] = useState("profile");

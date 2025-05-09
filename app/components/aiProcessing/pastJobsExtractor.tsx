@@ -11,13 +11,13 @@ export const pastJobsExtractor = async ({ resumes }: { resumes: string[] }) => {
     role: "user",
     content: `resumes: ${resumes}`,
   };
-  const messagesForpastJobsExtractor: (
+  const messagesForPastJobsExtractor: (
     | ChatCompletionUserMessageParam
     | ChatCompletionSystemMessageParam
   )[] = [userMessage, pastJobsExtractorPrompt];
   try {
     let res = await sendMessages({
-      messages: messagesForpastJobsExtractor,
+      messages: messagesForPastJobsExtractor,
       //has to match line 26 in api/ai/route.tsx
       name: "pastJobs",
     });

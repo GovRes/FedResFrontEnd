@@ -15,7 +15,7 @@ export default function ResumeItem({
 }) {
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const fileName = resume.path.split("/").pop();
-
+  console.log(resume);
   useEffect(() => {
     getFileUrl({ path: resume.path }).then((url) => {
       if (url) setFileUrl(url.toString());
