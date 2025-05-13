@@ -1,12 +1,12 @@
-import styles from "../ally.module.css";
-import BaseForm from "../../forms/BaseForm";
+import styles from "../../ally.module.css";
+import BaseForm from "@/app/components/forms/BaseForm";
 import {
   SubmitButton,
   SelectWithLabel,
   TextWithLabel,
   NumberWithLabel,
   ToggleWithLabel,
-} from "../../forms/Inputs";
+} from "../../../components/forms/Inputs";
 import { FormEvent, useEffect, useState } from "react";
 import {
   agencies,

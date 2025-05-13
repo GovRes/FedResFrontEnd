@@ -10,7 +10,7 @@ export default function pastJobsPage() {
 
   const { user } = useAuthenticator();
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function getpastJobs() {
@@ -35,7 +35,6 @@ export default function pastJobsPage() {
       itemType="PastJob"
       localItems={localpastJobs}
       setLocalItems={setLocalpastJobs}
-      nextPath={"/ally/past-experience/awards"}
     />
   );
 }

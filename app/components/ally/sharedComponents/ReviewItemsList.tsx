@@ -1,4 +1,3 @@
-import { useAlly } from "@/app/providers";
 import { FormEvent, useEffect, useState } from "react";
 import styles from "../ally.module.css";
 import {
@@ -8,7 +7,10 @@ import {
 } from "@/app/utils/responseSchemas";
 import { Checkboxes, SubmitButton } from "../../forms/Inputs";
 import BaseForm from "../../forms/BaseForm";
-import { generateHeadingText } from "@/app/utils/stringBuilders";
+import {
+  generateHeadingText,
+  pascalToSpaced,
+} from "@/app/utils/stringBuilders";
 import { useApplication } from "@/app/providers/applicationContext";
 export default function ReviewItemsList<
   T extends AwardType | EducationType | PastJobType
@@ -42,11 +44,10 @@ export default function ReviewItemsList<
     <>
       <div className={styles.allyChatContainer}>
         <p>
-          Here are the {itemType}s we extracted from your resume. Please select
-          any that you DO NOT think will be relevant{" "}
+          Here are the {pascalToSpaced(itemType)}s we extracted from your
+          resume. Please select any that you DO NOT think will be relevant{" "}
           {job && <>in your application for {job.title}</>}.
         </p>
-        <p>Also remove any that are actually not {itemType}s.</p>
       </div>
       <div className={`${styles.userChatContainer} ${styles.fade}`}>
         <BaseForm onSubmit={onSubmit}>

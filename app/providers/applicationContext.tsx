@@ -9,6 +9,10 @@ import React, {
 } from "react";
 import { JobType, StepsType } from "../utils/responseSchemas";
 import { getApplicationWithJob } from "../crud/application";
+import { completeSteps } from "../utils/stepUpdater";
+import { findNextIncompleteStep } from "../utils/nextStepNavigation";
+import { useRouter } from "next/navigation";
+import { getJobByApplicationId } from "../crud/job";
 
 // Combined interface for state + methods
 export interface ApplicationContextType {
@@ -16,7 +20,6 @@ export interface ApplicationContextType {
   job: JobType | undefined;
   steps: StepsType[];
   applicationId: string;
-  isReady: boolean; // Added isReady property
   setJob: (value: JobType) => void;
   setSteps: (value: StepsType[]) => void;
   setApplicationId: (value: string) => void;
@@ -37,13 +40,6 @@ export const defaultSteps: StepsType[] = [
     description: "Extract keywords from the job description",
     completed: false,
     path: "/extract-keywords",
-  },
-  {
-    id: "past-experience",
-    title: "Past Experience",
-    description: "Select past job experiences",
-    completed: false,
-    path: "/past-experience",
   },
   {
     id: "past-jobs",
@@ -71,7 +67,7 @@ export const defaultSteps: StepsType[] = [
     title: "Volunteer Experience",
     description: "Add and edit volunteer experiences",
     completed: false,
-    path: "/past-experience/volunteer",
+    path: "/past-experience/volunteer-experience",
   },
   {
     id: "user_job_details",
@@ -124,11 +120,18 @@ export const ApplicationProvider = ({
   const [job, setJob] = useState<JobType | undefined>(initialJob);
   const [steps, setSteps] = useState<StepsType[]>(initialSteps || defaultSteps);
   const [applicationId, setApplicationId] = useState(initialAppId || "");
-  const [isReady, setIsReady] = useState(!!initialJob); // isReady is true if initialJob exists
+  const router = useRouter();
 
   // Effect to save applicationId to sessionStorage when it changes
   useEffect(() => {
     // Only save if we have a value and we're in browser environment
+    async function getJob() {
+      if (applicationId) {
+        const jobRes = await getJobByApplicationId(applicationId);
+        console.log("Provider: Job loaded:", jobRes);
+        setJob(jobRes);
+      }
+    }
     if (applicationId && typeof window !== "undefined") {
       console.log(
         "Provider: Saving applicationId to sessionStorage:",
@@ -136,19 +139,14 @@ export const ApplicationProvider = ({
       );
       sessionStorage.setItem("applicationId", applicationId);
     }
+    getJob();
   }, [applicationId]); // Run whenever applicationId changes
 
   // Effect to update steps when applicationId changes (but not on initial load)
   useEffect(() => {
-    // Reset isReady when applicationId changes
-    if (!job) {
-      setIsReady(false);
-    }
-
     // Skip this effect if we already have initialSteps and this is the initial applicationId
     if (initialJob && initialSteps && applicationId === initialAppId) {
       console.log("Provider: Using initial job and steps from props");
-      setIsReady(true);
       return;
     }
 
@@ -161,6 +159,7 @@ export const ApplicationProvider = ({
           const applicationRes = await getApplicationWithJob({
             id: applicationId,
           });
+          console.log(153, applicationRes);
 
           if (applicationRes) {
             console.log("Provider: Application data loaded:", applicationRes);
@@ -187,12 +186,22 @@ export const ApplicationProvider = ({
               }));
 
               setSteps(updatedSteps);
+              console.log(steps);
             }
 
             // Mark as ready if we have a job (either existing or new)
             if (job || applicationRes.job) {
+              const updatedSteps = await completeSteps({
+                steps,
+                stepId: "usa-jobs",
+                applicationId: applicationRes.id,
+              });
+              setSteps(updatedSteps);
+              const next = findNextIncompleteStep(steps, "usa-jobs");
+              if (next) {
+                router.push(`/ally${next.path}`);
+              }
               console.log("Provider: Application is ready");
-              setIsReady(true);
             }
           }
         } catch (error) {
@@ -204,16 +213,27 @@ export const ApplicationProvider = ({
     }
   }, [applicationId, initialAppId, initialSteps, initialJob, job]);
 
-  // Effect to update isReady when job changes
+  // effect to load application ID from sessionStorage if not set
   useEffect(() => {
-    setIsReady(!!job);
-  }, [job]);
+    async function fetchApplication(storedAppId: string) {
+      let application = await getApplicationWithJob({ id: storedAppId });
+      console.log(application);
+    }
+    if (!applicationId) {
+      const storedAppId = sessionStorage.getItem("applicationId");
+      if (storedAppId) {
+        fetchApplication(storedAppId);
+        setApplicationId(storedAppId);
+      } else {
+        console.log("Provider: No applicationId found in sessionStorage");
+      }
+    }
+  }, []);
 
   const value = {
     applicationId,
     job,
     steps,
-    isReady,
     setApplicationId,
     setJob,
     setSteps,

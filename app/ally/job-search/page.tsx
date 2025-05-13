@@ -2,7 +2,7 @@
 import { useContext, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { JobSearchContext } from "@/app/providers/jobSearchContext";
-import UsaJobsSearch from "@/app/components/ally/usaJobsComponents/UsaJobsSearch";
+import UsaJobsSearch from "@/app/ally/job-search/components/UsaJobsSearch";
 import { TextBlinkLoader } from "@/app/components/loader/Loader";
 import { fetchUserAttributes } from "aws-amplify/auth";
 import { useAuthenticator } from "@aws-amplify/ui-react";

@@ -3,8 +3,6 @@
 import { ReactNode, useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import AllyContainer from "./components/AllyContainer";
-import RedirectToNextStep from "./components/RedirectToNextStep";
-import StepsDebugger from "./components/StepsDebugger";
 import styles from "./ally.module.css";
 import { ApplicationProvider } from "@/app/providers/applicationContext";
 import { getApplicationWithJob } from "@/app/crud/application";
@@ -102,9 +100,6 @@ export default function AllyLayout({ children }: { children: ReactNode }) {
         </div>
         {/* This is the "outlet" where nested routes will render */}
         <div className={styles.outlet}>{children}</div>
-
-        {/* Add debugger in development */}
-        {process.env.NODE_ENV !== "production" && <StepsDebugger />}
       </ApplicationProvider>
     </div>
   );

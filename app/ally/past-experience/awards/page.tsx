@@ -19,8 +19,6 @@ export default function AwardsPage({}) {
       let res = await listUserModelRecords("Award", user.userId);
       if (res.items.length > 0) {
         setLocalAwards(res.items);
-      } else {
-        router.push("/ally/past-experience/education");
       }
       setLoading(false);
     }

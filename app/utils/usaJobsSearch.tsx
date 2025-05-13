@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Result } from "../components/ally/usaJobsComponents/UsaJobsResults";
+import { Result } from "../ally/job-search/components/UsaJobsResults";
 import { JobSearchObject } from "./responseSchemas";
 var host = "data.usajobs.gov";
 var userAgent = process.env.USA_JOBS_EMAIL;

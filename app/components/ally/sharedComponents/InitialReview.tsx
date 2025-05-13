@@ -8,10 +8,11 @@ import {
 import { getCheckboxValues } from "@/app/utils/formUtils";
 import ReviewItemsList from "../sharedComponents/ReviewItemsList";
 import { completeSteps } from "@/app/utils/stepUpdater";
-import { useRouter } from "next/navigation";
 import { associateItemsWithApplication } from "@/app/crud/application";
 import { useApplication } from "@/app/providers/applicationContext";
 import { TextBlinkLoader } from "../../loader/Loader";
+import SkipItems from "./SkipItems";
+import { useNextStepNavigation } from "@/app/utils/nextStepNavigation";
 
 export default function InitialReview<
   T extends AwardType | EducationType | PastJobType
@@ -20,7 +21,6 @@ export default function InitialReview<
   localItems,
   itemType,
   setLocalItems,
-  nextPath,
 }: {
   currentStepId: string;
   localItems: T[];
@@ -32,23 +32,16 @@ export default function InitialReview<
     | "Volunteer"
     | "Resume";
   setLocalItems: Function;
-  nextPath: string;
 }) {
-  console.log("loaded initial review");
-  console.log(localItems);
-  // Create a local state to track the items for rendering purposes
-  const router = useRouter();
   const [items, setItems] = useState<T[]>(localItems);
-  // Update local state whenever localItems prop changes
   useEffect(() => {
     setItems(localItems);
   }, [localItems]);
 
   const [loading, setLoading] = useState(false);
 
-  const { job } = useApplication();
   const { steps, applicationId, setSteps } = useApplication();
-  console.log("user resume", applicationId);
+  const { navigateToNextIncompleteStep } = useNextStepNavigation();
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -75,29 +68,20 @@ export default function InitialReview<
         applicationId,
       });
       setSteps(updatedSteps);
-      router.push(nextPath);
+      navigateToNextIncompleteStep(currentStepId);
     }
   };
 
-  // Split the condition to better understand what's happening
-  const hasItems = items.length > 0;
-  const hasJob = Boolean(job);
   if (loading) return <TextBlinkLoader text={`Saving ${itemType}s`} />;
-  if (hasItems && hasJob) {
-    return (
-      <ReviewItemsList
-        itemType={itemType}
-        localItems={items} // Use local state for rendering
-        onSubmit={onSubmit}
-      />
-    );
-  } else {
-    // Add more details about why nothing is shown
-    return (
-      <div>
-        {!hasItems && <p>No items found. The items list is empty.</p>}
-        {!hasJob && <p>Job context is missing or undefined.</p>}
-      </div>
-    );
+  if (items.length === 0) {
+    return <SkipItems currentStepId={currentStepId} itemType={itemType} />;
   }
+
+  return (
+    <ReviewItemsList
+      itemType={itemType}
+      localItems={items} // Use local state for rendering
+      onSubmit={onSubmit}
+    />
+  );
 }

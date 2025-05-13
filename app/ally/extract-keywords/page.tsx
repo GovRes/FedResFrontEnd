@@ -3,38 +3,41 @@ import { useEffect, useState } from "react";
 import { TextBlinkLoader } from "@/app/components/loader/Loader";
 import { useApplication } from "@/app/providers/applicationContext";
 import { jobDescriptionKeywordFinder } from "@/app/components/aiProcessing/jobDescriptionKeywordFinder";
-import { useRouter } from "next/navigation";
 import { topicsCategorizer } from "@/app/components/aiProcessing/topicCategorizer";
-import { JobType, TopicType } from "@/app/utils/responseSchemas";
+import { TopicType } from "@/app/utils/responseSchemas";
 import { createOrFindSimilarTopics } from "@/app/crud/topic";
 import { completeSteps } from "@/app/utils/stepUpdater";
+import { useNextStepNavigation } from "@/app/utils/nextStepNavigation";
+import TopicLI from "./components/TopicLI";
 
 export default function ExtractKeywords() {
   const { job, setJob } = useApplication();
+  const { navigateToNextIncompleteStep } = useNextStepNavigation();
   const { steps, applicationId, setSteps } = useApplication();
   const [keywords, setKeywords] = useState<string[]>([]);
   const [topics, setTopics] = useState<TopicType[] | null>(null);
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
+
   useEffect(() => {
-    if (job && job.topics && job.topics.length > 0) {
-      return;
-    } else {
-      async function extractKeywords() {
-        if (job) {
-          const keywordsRes = await jobDescriptionKeywordFinder({
-            job,
-          });
-          setKeywords(keywordsRes);
-        }
-      }
-      extractKeywords();
+    // Only proceed if we have no job or job has no topics
+    if (job && job.topics && job.topics.length > 0) return;
+    // Extract keywords if there's a job
+    async function extractKeywords() {
+      if (!job) return;
+
+      setLoading(true);
+      const keywordsRes = await jobDescriptionKeywordFinder({ job });
+      setKeywords(keywordsRes);
+      setLoading(false);
     }
+
+    extractKeywords();
   }, [job]);
 
   function sortTopics() {
+    console.log(40, job);
     if (job && job.topics && job.topics.length > 0) {
-      console.log(job.topics);
+      console.log(job);
       setTopics(job.topics);
     } else {
       async function categorizeTopics() {
@@ -57,27 +60,23 @@ export default function ExtractKeywords() {
     }
   }
 
-  function buildTopicLI(topic: TopicType) {
-    return (
-      <li key={topic.id}>
-        <h4>{topic.title}</h4>
-        <ul>
-          {topic.keywords.map((keyword, index) => (
-            <li key={index}>{keyword}</li>
-          ))}
-        </ul>
-      </li>
-    );
-  }
+  useEffect(() => {
+    console.log(66, job);
+    if (job && job.topics && job.topics.length > 0) {
+      setTopics(job.topics);
+      setNext();
+    }
+  }, []);
 
   async function setNext() {
+    console.log("set next called");
     const updatedSteps = await completeSteps({
       steps,
       stepId: "extract-keywords",
       applicationId,
     });
     setSteps(updatedSteps);
-    router.push("/ally/past-experience");
+    navigateToNextIncompleteStep("extract-keywords");
   }
   if (loading) {
     return (
@@ -101,7 +100,7 @@ export default function ExtractKeywords() {
   return (
     <div>
       <h3>Keywords sorted into Topics</h3>
-      <ul>{topics.map((topic) => buildTopicLI(topic))}</ul>
+      <ul>{topics.map((topic) => TopicLI(topic))}</ul>
       <button onClick={setNext}>
         Help me build a federal resume that focuses on these topics.
       </button>

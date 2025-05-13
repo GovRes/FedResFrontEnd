@@ -174,14 +174,21 @@ export const getApplicationWithJob = async ({ id }: { id: string }) => {
         userId
         job {
           id
-            title
-            department
-            agencyDescription
-            duties
-            evaluationCriteria
-            qualificationsSummary
-            requiredDocuments
-            usaJobsId
+          title
+          department
+          agencyDescription
+          duties
+          evaluationCriteria
+          qualificationsSummary
+          requiredDocuments
+          usaJobsId
+          topics {
+            items {
+              id
+              keywords
+              title
+            }
+          }
         }
         createdAt
         updatedAt
@@ -193,7 +200,14 @@ export const getApplicationWithJob = async ({ id }: { id: string }) => {
     });
 
     if ("data" in response) {
-      return response.data.getApplication;
+      const application = response.data.getApplication;
+
+      // Flatten the topics.items array if it exists
+      if (application?.job?.topics?.items) {
+        application.job.topics = application.job.topics.items;
+      }
+
+      return application;
     }
     throw new Error("Unexpected response format from GraphQL operation");
   } catch (error) {

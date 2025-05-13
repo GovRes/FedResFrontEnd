@@ -48,3 +48,9 @@ export function pascalToDashed(str: string) {
   const dashed = str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
   return dashed;
 }
+
+export function pascalToSpaced(str: string) {
+  // Convert PascalCase to spaced
+  const spaced = str.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase();
+  return spaced;
+}
