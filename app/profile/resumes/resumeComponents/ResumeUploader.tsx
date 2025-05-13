@@ -2,17 +2,16 @@ import { generateClient } from "aws-amplify/api";
 import { Uploader } from "@/app/components/forms/Uploader";
 import type { Schema } from "../../../../amplify/data/resource"; // Path to your backend resource definition
 import { awardsExtractor } from "@/app/components/aiProcessing/awardsExtractor";
-import { createAndSaveAwards } from "@/app/crud/award";
+import { batchCreateModelRecords } from "@/app/crud/genericCreate";
 import { educationExtractor } from "@/app/components/aiProcessing/educationExtractor";
 import { pastJobsExtractor } from "@/app/components/aiProcessing/pastJobsExtractor";
-import { createAndSaveEducations } from "@/app/crud/education";
-import { createAndSavePositionRecords } from "@/app/crud/pastJobAndVolunteer";
 import { volunteersExtractor } from "@/app/components/aiProcessing/volunteersExtractor";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { ResumeType } from "@/app/utils/responseSchemas";
 import { useEffect, useState } from "react";
 import { getFileUrl } from "@/app/utils/client-utils";
 import pdfToText from "react-pdftotext";
+import { TextBlinkLoader } from "@/app/components/loader/Loader";
 
 const client = generateClient<Schema>();
 
@@ -31,7 +30,7 @@ export default function ResumeUploader({
     let awards = await awardsExtractor({
       resumes: resumeStrings,
     });
-    await createAndSaveAwards(awards, user.userId);
+    await batchCreateModelRecords("Award", awards, user.userId);
     return awards;
   }
   async function fetchEducation({
@@ -42,7 +41,7 @@ export default function ResumeUploader({
     let educations = await educationExtractor({
       resumes: resumeStrings,
     });
-    await createAndSaveEducations(educations, user.userId);
+    await batchCreateModelRecords("Education", educations, user.userId);
     return educations;
   }
 
@@ -50,7 +49,7 @@ export default function ResumeUploader({
     let PastJobs = await pastJobsExtractor({
       resumes: resumeStrings,
     });
-    await createAndSavePositionRecords("PastJob", PastJobs, user.userId);
+    await batchCreateModelRecords("PastJob", PastJobs, user.userId);
     return PastJobs;
   }
   async function fetchVolunteers({
@@ -61,7 +60,7 @@ export default function ResumeUploader({
     let volunteers = await volunteersExtractor({
       resumes: resumeStrings,
     });
-    await createAndSavePositionRecords("Volunteer", volunteers, user.userId);
+    await batchCreateModelRecords("Volunteer", volunteers, user.userId);
     return volunteers;
   }
 
@@ -146,14 +145,18 @@ export default function ResumeUploader({
     });
   }
   useEffect(() => {
-    console.log("localResume", localResume);
     async function findItemsFromResume() {
       await processResume();
+      setShowUploader(false);
+      setRefresh(true);
     }
     if (localResume) {
       findItemsFromResume();
     }
   }, [localResume]);
+  if (loading) {
+    <TextBlinkLoader text="loading resume data" />;
+  }
   return (
     <div>
       <div>

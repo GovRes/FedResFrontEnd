@@ -3,16 +3,17 @@
 import {
   AwardType,
   EducationType,
-  ResumeType,
   SpecializedExperienceType,
   PastJobQualificationType,
   PastJobType,
-  VolunteerType,
 } from "@/app/utils/responseSchemas";
 import styles from "./resumeStyles.module.css";
 import { GrEdit, GrTrash } from "react-icons/gr";
 import { useEffect, useState } from "react";
-import { generateHeadingText } from "@/app/utils/stringBuilders";
+import {
+  generateHeadingText,
+  pascalToDashed,
+} from "@/app/utils/stringBuilders";
 import { deleteModelRecord } from "@/app/crud/genericDelete";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -27,8 +28,8 @@ export default function ResumeItem({
     | EducationType
     | SpecializedExperienceType
     | PastJobType
-    | PastJobQualificationType
-    | VolunteerType;
+    | PastJobQualificationType;
+
   itemType: "Award" | "Education" | "PastJob" | "Volunteer";
   setItems: React.Dispatch<
     React.SetStateAction<
@@ -38,7 +39,6 @@ export default function ResumeItem({
         | SpecializedExperienceType
         | PastJobType
         | PastJobQualificationType
-        | VolunteerType
       >
     >
   >;
@@ -57,13 +57,13 @@ export default function ResumeItem({
   }
 
   function editItem() {
-    router.push(`/profile/${itemType.toLowerCase()}s/${item.id}/edit`);
+    router.push(`/profile/${pascalToDashed(itemType)}s/${item.id}/edit`);
   }
 
   return (
     <tr>
       <td className="tableData" role="cell">
-        <Link href={`/profile/${itemType.toLowerCase()}s/${item.id}`}>
+        <Link href={`/profile/${pascalToDashed(itemType)}s/${item.id}`}>
           {generateHeadingText(item)}
         </Link>
       </td>

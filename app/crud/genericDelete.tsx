@@ -1,9 +1,10 @@
 import { generateClient } from "aws-amplify/api";
+import { validateModelName } from "./modelUtils";
 
 /**
  * Generic function to delete any model type from the database
  *
- * @param {string} modelName - The name of the model to delete (e.g., "Education", "pastJob")
+ * @param {string} modelName - The name of the model to delete (e.g., "Education", "PastJob")
  * @param {string} id - The ID of the record to delete
  * @returns {Promise<Object>} - The deleted record data
  * @throws {Error} - If deletion fails or model type is unsupported
@@ -11,36 +12,8 @@ import { generateClient } from "aws-amplify/api";
 export async function deleteModelRecord(modelName: string, id: string) {
   const client = generateClient();
 
-  // List of valid model names based on your schema
-  const validModelNames = [
-    "Application",
-    "Award",
-    "Education",
-    "Job",
-    "Resume",
-    "SpecializedExperience",
-    "Topic",
-    "pastJob",
-    "pastJobQualification",
-    "Volunteer",
-    "AwardApplication",
-    "EducationApplication",
-    "ResumeApplication",
-    "SpecializedExperienceApplication",
-    "pastJobApplication",
-    "VolunteerApplication",
-    "pastJobPastJobQualification",
-    "pastJobQualificationVolunteer",
-  ];
-
   // Validate the model name
-  if (!validModelNames.includes(modelName)) {
-    throw new Error(
-      `Invalid model name: ${modelName}. Must be one of: ${validModelNames.join(
-        ", "
-      )}`
-    );
-  }
+  validateModelName(modelName);
 
   try {
     // Create the GraphQL mutation query
@@ -78,7 +51,7 @@ export async function deleteModelRecord(modelName: string, id: string) {
 /**
  * Helper function for batch deletion of multiple records of the same model type
  *
- * @param {string} modelName - The name of the model to delete (e.g., "Education", "pastJob")
+ * @param {string} modelName - The name of the model to delete (e.g., "Education", "PastJob")
  * @param {string[]} ids - Array of IDs to delete
  * @returns {Promise<Object[]>} - Array of deleted record data
  */
@@ -107,6 +80,6 @@ export async function batchDeleteModelRecords(
  * // Delete a single education record
  * const deletedEducation = await deleteModelRecord("Education", "abc123");
  *
- * // Delete multiple pastJob records
- * const deletedJobs = await batchDeleteModelRecords("pastJob", ["job1", "job2", "job3"]);
+ * // Delete multiple PastJob records
+ * const deletedJobs = await batchDeleteModelRecords("PastJob", ["job1", "job2", "job3"]);
  */

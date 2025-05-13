@@ -1,21 +1,28 @@
 import { PastJobType } from "@/app/utils/responseSchemas";
-import BaseForm from "../../forms/BaseForm";
+import BaseForm from "../../../components/forms/BaseForm";
 import {
   SubmitButton,
   TextAreaWithLabel,
   TextWithLabel,
-} from "../../forms/Inputs";
-export default function VolunteersForm({
-  item,
-  onChange,
-  onSubmit,
-}: {
+  ToggleWithLabel,
+} from "../../../components/forms/Inputs";
+interface PastJobFormProps {
   item?: PastJobType;
+  itemType: "PastJob" | "Volunteer";
   onChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => void;
+  onChangeToggle: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
-}) {
+}
+
+export default function PastJobForm({
+  item,
+  itemType,
+  onChange,
+  onChangeToggle,
+  onSubmit,
+}: PastJobFormProps) {
   return (
     <BaseForm onSubmit={onSubmit}>
       <TextWithLabel
@@ -28,6 +35,12 @@ export default function VolunteersForm({
         label="Organization"
         name="organization"
         value={item?.organization}
+        onChange={onChange}
+      />
+      <TextWithLabel
+        label="Organization Address"
+        name="organizationAddress"
+        value={item?.organizationAddress}
         onChange={onChange}
       />
       <TextWithLabel
@@ -48,12 +61,39 @@ export default function VolunteersForm({
         value={item?.hours}
         onChange={onChange}
       />
+      {itemType === "PastJob" && (
+        <TextWithLabel
+          label="GS Level"
+          name="gsLevel"
+          value={item?.gsLevel}
+          onChange={onChange}
+        />
+      )}
       <TextAreaWithLabel
         label="Responsibilities"
         name="responsibilities"
         value={item?.responsibilities}
         onChange={onChange}
       />
+      <TextWithLabel
+        label="Supervisor Name"
+        name="supervisorName"
+        value={item?.supervisorName}
+        onChange={onChange}
+      />
+      <TextWithLabel
+        label="Supervisor Phone"
+        name="supervisorPhone"
+        value={item?.supervisorPhone}
+        onChange={onChange}
+      />
+      <ToggleWithLabel
+        label="May Contact Supervisor"
+        name="supervisorMayContact"
+        checked={item?.supervisorMayContact || false}
+        onChange={onChangeToggle}
+      />
+
       <SubmitButton type="submit">Submit</SubmitButton>
     </BaseForm>
   );

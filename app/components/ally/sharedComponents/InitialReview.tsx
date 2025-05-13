@@ -4,7 +4,6 @@ import {
   AwardType,
   EducationType,
   PastJobType,
-  VolunteerType,
 } from "@/app/utils/responseSchemas";
 import { getCheckboxValues } from "@/app/utils/formUtils";
 import ReviewItemsList from "../sharedComponents/ReviewItemsList";
@@ -15,7 +14,7 @@ import { useApplication } from "@/app/providers/applicationContext";
 import { TextBlinkLoader } from "../../loader/Loader";
 
 export default function InitialReview<
-  T extends AwardType | EducationType | PastJobType | VolunteerType
+  T extends AwardType | EducationType | PastJobType
 >({
   currentStepId,
   localItems,

@@ -3,19 +3,17 @@ import {
   EducationType,
   SpecializedExperienceType,
   PastJobType,
-  VolunteerType,
 } from "@/app/utils/responseSchemas";
 import SpecializedExperienceItem from "./returnResumeComponents/SpecializedExperienceItem";
 import { useContext, useEffect, useState } from "react";
 import { AllyContext, useAlly } from "@/app/providers";
 import PastJobItem from "./returnResumeComponents/PastJobItem";
-import EducationExperienceItem from "./returnResumeComponents/EducationExperienceItem";
+import EducationExperienceItem from "./returnResumeComponents/EducationItem";
 import { fetchUserAttributes } from "aws-amplify/auth";
 import styles from "./resume.module.css";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { TextBlinkLoader } from "../loader/Loader";
 import AwardItem from "./returnResumeComponents/AwardItem";
-import VolunteerItem from "./returnResumeComponents/VolunteerItem";
 
 export default function ReturnResume() {
   const {
@@ -116,7 +114,7 @@ export default function ReturnResume() {
             Volunteer/Community Service Experiences
           </h3>
           {volunteers.map((volunteer: PastJobType) => (
-            <VolunteerItem key={volunteer.id} volunteer={volunteer} />
+            <PastJobItem key={volunteer.id} pastJob={volunteer} />
           ))}
         </div>
         <div className={styles.resumeSection}>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import ExperiencesTable from "./experienceComponents/ExperiencesTable";
 import {
   AwardType,
@@ -7,23 +8,21 @@ import {
   SpecializedExperienceType,
   PastJobQualificationType,
   PastJobType,
-  VolunteerType,
 } from "@/app/utils/responseSchemas";
 import {
   fetchUserAssociations,
   AssociationType,
 } from "@/app/crud/userAssociations";
 import { TextBlinkLoader } from "../../components/loader/Loader";
+import { pascalToDashed } from "@/app/utils/stringBuilders";
 
 // Define a type that represents all possible item types
 type ExperienceItemType =
   | AwardType
   | EducationType
-  // | ResumeType
   | SpecializedExperienceType
   | PastJobType
-  | PastJobQualificationType
-  | VolunteerType;
+  | PastJobQualificationType;
 
 export default function ExperienceDashboard({
   experienceType,
@@ -70,6 +69,9 @@ export default function ExperienceDashboard({
         experienceType={experienceType}
         setItems={setItems}
       />
+      <Link href={`/profile/${pascalToDashed(experienceType)}s/new`}>
+        <button>Add New {experienceType}</button>
+      </Link>
     </div>
   );
 }

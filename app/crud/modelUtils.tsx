@@ -1,0 +1,139 @@
+/**
+ * Utility functions for model operations
+ * This file contains shared functions used across generic database operations
+ */
+
+/**
+ * List of valid model names based on your schema
+ */
+export const validModelNames = [
+  "Application",
+  "Award",
+  "Education",
+  "Job",
+  "Resume",
+  "SpecializedExperience",
+  "Topic",
+  "PastJob",
+  "PastJobQualification",
+  "Volunteer",
+  "AwardApplication",
+  "EducationApplication",
+  "ResumeApplication",
+  "SpecializedExperienceApplication",
+  "PastJobApplication",
+  "VolunteerApplication",
+  "PastJobPastJobQualification",
+  "PastJobQualificationVolunteer",
+];
+
+/**
+ * Model field definitions for GraphQL operations
+ * Maps each model name to its list of fields
+ */
+export const modelFields: Record<string, string[]> = {
+  Application: ["completedSteps", "jobId", "status", "userId"],
+  Award: ["title", "date", "userId"],
+  Education: [
+    "date",
+    "degree",
+    "gpa",
+    "major",
+    "school",
+    "schoolCity",
+    "schoolState",
+    "title",
+    "userConfirmed",
+    "userId",
+  ],
+  Job: [
+    "agencyDescription",
+    "department",
+    "duties",
+    "evaluationCriteria",
+    "qualificationsSummary",
+    "requiredDocuments",
+    "title",
+    "usaJobsId",
+  ],
+  Resume: ["fileName", "userId"],
+  SpecializedExperience: [
+    "title",
+    "description",
+    "userConfirmed",
+    "paragraph",
+    "initialMessage",
+    "userId",
+  ],
+  Topic: ["title", "keywords", "description", "evidence", "jobId", "question"],
+  PastJob: [
+    "endDate",
+    "gsLevel",
+    "hours",
+    "organization",
+    "organizationAddress",
+    "responsibilities",
+    "startDate",
+    "supervisorMayContact",
+    "supervisorName",
+    "supervisorPhone",
+    "title",
+    "userId",
+  ],
+  PastJobQualification: [
+    "title",
+    "description",
+    "paragraph",
+    "userConfirmed",
+    "topicId",
+    "userId",
+  ],
+  Volunteer: [
+    "title",
+    "organization",
+    "startDate",
+    "endDate",
+    "hours",
+    "gsLevel",
+    "responsibilities",
+    "userId",
+  ],
+  AwardApplication: ["awardId", "applicationId"],
+  EducationApplication: ["educationId", "applicationId"],
+  ResumeApplication: ["resumeId", "applicationId"],
+  SpecializedExperienceApplication: [
+    "specializedExperienceId",
+    "applicationId",
+  ],
+  PastJobApplication: ["pastJobId", "applicationId"],
+  VolunteerApplication: ["volunteerId", "applicationId"],
+  PastJobPastJobQualification: ["pastJobId", "pastJobQualificationId"],
+  PastJobQualificationVolunteer: ["pastJobQualificationId", "volunteerId"],
+};
+
+/**
+ * Helper function to get model-specific fields for GraphQL queries
+ *
+ * @param {string} modelName - The name of the model
+ * @returns {string} - String containing the model-specific fields
+ */
+export function getModelFields(modelName: string) {
+  // Return fields joined as a string
+  return modelFields[modelName]?.join("\n          ") || "";
+}
+
+/**
+ * Validates if a model name is supported
+ *
+ * @param {string} modelName - The name of the model to validate
+ * @throws {Error} - If model name is not supported
+ */
+export function validateModelName(modelName: string) {
+  if (!validModelNames.includes(modelName)) {
+    throw new Error(
+      `Invalid model name: ${modelName}. Must be one of: ${validModelNames.join(
+        ", "
+      )}`
+    );
+  }
+}

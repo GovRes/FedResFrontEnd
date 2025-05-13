@@ -11,8 +11,8 @@ const navItems: NavItem[] = [
   { id: "profile", label: "Profile", path: "/profile" },
   { id: "resumes", label: "Resumes", path: "/profile/resumes" },
   { id: "past-jobs", label: "Past Jobs", path: "/profile/past-jobs" },
-  { id: "volunteer", label: "Volunteer", path: "/profile/volunteer" },
-  { id: "education", label: "Education", path: "/profile/education" },
+  { id: "volunteer", label: "Volunteer", path: "/profile/volunteers" },
+  { id: "education", label: "Education", path: "/profile/educations" },
   { id: "awards", label: "Awards", path: "/profile/awards" },
   { id: "applications", label: "Applications", path: "/profile/applications" },
 ];

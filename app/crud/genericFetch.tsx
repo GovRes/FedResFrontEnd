@@ -1,9 +1,10 @@
 import { generateClient } from "aws-amplify/api";
+import { getModelFields, validateModelName } from "./modelUtils";
 
 /**
  * Generic function to fetch any model type from the database
  *
- * @param {string} modelName - The name of the model to fetch (e.g., "Education", "pastJob")
+ * @param {string} modelName - The name of the model to fetch (e.g., "Education", "PastJob")
  * @param {string} id - The ID of the record to fetch
  * @returns {Promise<Object>} - The fetched record data
  * @throws {Error} - If fetching fails or model type is unsupported
@@ -11,36 +12,8 @@ import { generateClient } from "aws-amplify/api";
 export async function fetchModelRecord(modelName: string, id: string) {
   const client = generateClient();
 
-  // List of valid model names based on your schema
-  const validModelNames = [
-    "Application",
-    "Award",
-    "Education",
-    "Job",
-    "Resume",
-    "SpecializedExperience",
-    "Topic",
-    "pastJob",
-    "pastJobQualification",
-    "Volunteer",
-    "AwardApplication",
-    "EducationApplication",
-    "ResumeApplication",
-    "SpecializedExperienceApplication",
-    "pastJobApplication",
-    "VolunteerApplication",
-    "pastJobpastJobQualification",
-    "pastJobQualificationVolunteer",
-  ];
-
   // Validate the model name
-  if (!validModelNames.includes(modelName)) {
-    throw new Error(
-      `Invalid model name: ${modelName}. Must be one of: ${validModelNames.join(
-        ", "
-      )}`
-    );
-  }
+  validateModelName(modelName);
 
   try {
     // Create the GraphQL query
@@ -77,102 +50,9 @@ export async function fetchModelRecord(modelName: string, id: string) {
 }
 
 /**
- * Helper function to get model-specific fields for the GraphQL query
- *
- * @param {string} modelName - The name of the model
- * @returns {string} - String containing the model-specific fields
- */
-function getModelFields(modelName: string) {
-  // Define specific fields for each model type
-  const modelFields: Record<string, string[]> = {
-    Application: ["completedSteps", "jobId", "status", "userId"],
-    Award: ["title", "date", "userId"],
-    Education: [
-      "degree",
-      "major",
-      "school",
-      "date",
-      "title",
-      "gpa",
-      "userConfirmed",
-      "userId",
-    ],
-    Job: [
-      "agencyDescription",
-      "department",
-      "duties",
-      "evaluationCriteria",
-      "qualificationsSummary",
-      "requiredDocuments",
-      "title",
-      "usaJobsId",
-    ],
-    Resume: ["fileName", "userId"],
-    SpecializedExperience: [
-      "title",
-      "description",
-      "userConfirmed",
-      "paragraph",
-      "initialMessage",
-      "userId",
-    ],
-    Topic: [
-      "title",
-      "keywords",
-      "description",
-      "evidence",
-      "jobId",
-      "question",
-    ],
-    pastJob: [
-      "title",
-      "organization",
-      "startDate",
-      "endDate",
-      "hours",
-      "gsLevel",
-      "responsibilities",
-      "userId",
-    ],
-    pastJobQualification: [
-      "title",
-      "description",
-      "paragraph",
-      "userConfirmed",
-      "topicId",
-      "userId",
-    ],
-    Volunteer: [
-      "title",
-      "organization",
-      "startDate",
-      "endDate",
-      "hours",
-      "gsLevel",
-      "responsibilities",
-      "userId",
-    ],
-    AwardApplication: ["awardId", "applicationId"],
-    EducationApplication: ["educationId", "applicationId"],
-    ResumeApplication: ["resumeId", "applicationId"],
-    SpecializedExperienceApplication: [
-      "specializedExperienceId",
-      "applicationId",
-    ],
-    pastJobApplication: ["pastJobId", "applicationId"],
-    VolunteerApplication: ["volunteerId", "applicationId"],
-    pastJobpastJobQualification: ["pastJobId", "pastJobQualificationId"],
-    pastJobQualificationVolunteer: ["pastJobQualificationId", "volunteerId"],
-  };
-
-  // Return fields joined as a string
-  return modelFields[modelName]?.join("\n          ") || "";
-}
-
-/**
  * Function to fetch multiple records of the same model type
  *
- * @param {string} modelName - The name of the model to fetch (e.g., "Education", "pastJob")
+ * @param {string} modelName - The name of the model to fetch (e.g., "Education", "PastJob")
  * @param {Object} filter - Optional filter object for the query
  * @param {number} limit - Optional limit for the number of records to fetch
  * @param {string} nextToken - Optional pagination token
@@ -186,36 +66,8 @@ export async function listModelRecords(
 ) {
   const client = generateClient();
 
-  // List of valid model names based on your schema
-  const validModelNames = [
-    "Application",
-    "Award",
-    "Education",
-    "Job",
-    "Resume",
-    "SpecializedExperience",
-    "Topic",
-    "pastJob",
-    "pastJobQualification",
-    "Volunteer",
-    "AwardApplication",
-    "EducationApplication",
-    "ResumeApplication",
-    "SpecializedExperienceApplication",
-    "pastJobApplication",
-    "VolunteerApplication",
-    "pastJobPastJobQualification",
-    "pastJobQualificationVolunteer",
-  ];
-
   // Validate the model name
-  if (!validModelNames.includes(modelName)) {
-    throw new Error(
-      `Invalid model name: ${modelName}. Must be one of: ${validModelNames.join(
-        ", "
-      )}`
-    );
-  }
+  validateModelName(modelName);
 
   try {
     // Create the GraphQL query
@@ -265,9 +117,9 @@ export async function listModelRecords(
  * // Fetch a single education record
  * const education = await fetchModelRecord("Education", "abc123");
  *
- * // List all pastJob records for a specific user
- * const { items: userJobs, nextToken } = await listModelRecords("pastJob", { userId: { eq: "user123" } }, 10);
+ * // List all PastJob records for a specific user
+ * const { items: userJobs, nextToken } = await listModelRecords("PastJob", { userId: { eq: "user123" } }, 10);
  *
  * // Fetch the next page of results
- * const { items: moreJobs } = await listModelRecords("pastJob", { userId: { eq: "user123" } }, 10, nextToken);
+ * const { items: moreJobs } = await listModelRecords("PastJob", { userId: { eq: "user123" } }, 10, nextToken);
  */

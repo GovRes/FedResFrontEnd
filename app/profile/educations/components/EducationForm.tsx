@@ -1,6 +1,6 @@
 import { EducationType } from "@/app/utils/responseSchemas";
-import BaseForm from "../../forms/BaseForm";
-import { SubmitButton, TextWithLabel } from "../../forms/Inputs";
+import BaseForm from "@/app/components/forms/BaseForm";
+import { SubmitButton, TextWithLabel } from "@/app/components/forms/Inputs";
 
 export default function EducationForm({
   item,
@@ -34,9 +34,27 @@ export default function EducationForm({
         onChange={onChange}
       />
       <TextWithLabel
+        label="School or Institution City"
+        name="schoolCity"
+        value={item?.schoolCity || ""}
+        onChange={onChange}
+      />
+      <TextWithLabel
+        label="School or Institution State"
+        name="schoolState"
+        value={item?.schoolState || ""}
+        onChange={onChange}
+      />
+      <TextWithLabel
         label="Graduation Date"
         name="date"
         value={item?.date || ""}
+        onChange={onChange}
+      />
+      <TextWithLabel
+        label="GPA"
+        name="gpa"
+        value={item?.gpa || ""}
         onChange={onChange}
       />
       <SubmitButton type="submit">Submit</SubmitButton>

@@ -13,7 +13,7 @@ export type ApplicationType = {
   status: string;
   userId: string;
   pastJobs?: PastJobType[];
-  volunteers?: VolunteerType[];
+  volunteers?: PastJobType[];
 };
 export const Keywords = z.object({
   keywords: z.array(z.string()),
@@ -39,13 +39,15 @@ export const Qualifications = z.object({
 export type QualificationType = z.infer<typeof Qualification>;
 export type QualificationsType = z.infer<typeof Qualifications>;
 export const Education = z.object({
-  id: z.string(),
+  date: z.string(),
   degree: z.string(),
+  gpa: z.string().optional(),
+  id: z.string(),
   major: z.string(),
   school: z.string(),
-  date: z.string(),
+  schoolCity: z.string().optional(),
+  schoolState: z.string().optional(),
   title: z.string(),
-  gpa: z.string().optional(),
   userConfirmed: z.boolean().optional(),
   userId: z.string(),
 });
@@ -137,34 +139,26 @@ export type PastJobQualificationType = z.infer<typeof PastJobQualification>;
 
 export const PastJob = z.object({
   endDate: z.string().optional(),
-  hours: z.string().optional(),
   gsLevel: z.string().optional(),
+  hours: z.string().optional(),
   id: z.string(),
-  startDate: z.string().optional(),
   organization: z.string(),
-  title: z.string(),
-  responsibilities: z.string().optional(),
-  userId: z.string(),
+  organizationAddress: z.string().optional(),
   pastJobQualifications: z.array(PastJobQualification),
+  responsibilities: z.string().optional(),
+  startDate: z.string().optional(),
+  supervisorMayContact: z.boolean().optional(),
+  supervisorName: z.string().optional(),
+  supervisorPhone: z.string().optional(),
+  title: z.string(),
+  userId: z.string(),
 });
 
 export type PastJobType = z.infer<typeof PastJob>;
 export type PastJobQualification = z.infer<typeof PastJobQualification>;
 export const PastJobsArraySchema = z.object({ pastJobs: z.array(PastJob) });
-export const Volunteer = z.object({
-  endDate: z.string().optional(),
-  hours: z.string().optional(),
-  gsLevel: z.string().optional(),
-  id: z.string(),
-  startDate: z.string().optional(),
-  organization: z.string(),
-  title: z.string(),
-  responsibilities: z.string().optional(),
-  userId: z.string(),
-  pastJobQualifications: z.array(PastJobQualification),
-});
-export type VolunteerType = z.infer<typeof Volunteer>;
-export const VolunteerArraySchema = z.object({ volunteer: z.array(Volunteer) });
+
+export const VolunteerArraySchema = z.object({ volunteer: z.array(PastJob) });
 export type StepType =
   | "temp_registration"
   | "usa-jobs"

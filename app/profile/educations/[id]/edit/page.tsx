@@ -1,14 +1,14 @@
 "use client";
 import { TextBlinkLoader } from "@/app/components/loader/Loader";
-import { updateModelRecord } from "@/app/crud/genericUpdate";
 import { fetchModelRecord } from "@/app/crud/genericFetch";
-import AwardForm from "@/app/profile/awards/components/AwardForm";
-import { AwardType } from "@/app/utils/responseSchemas";
+import EducationForm from "../../components/EducationForm";
+import { updateModelRecord } from "@/app/crud/genericUpdate";
+import { EducationType } from "@/app/utils/responseSchemas";
 import { useEffect, useState } from "react";
 import { use } from "react";
 import { useRouter } from "next/navigation";
 
-export default function EditAwardPage({
+export default function EditPastJobPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -16,10 +16,17 @@ export default function EditAwardPage({
   const { id } = use(params);
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [formData, setFormData] = useState<AwardType>({
-    id: "",
-    title: "",
+  const [formData, setFormData] = useState<EducationType>({
     date: "",
+    degree: "",
+    gpa: "",
+    id: "",
+    major: "",
+    school: "",
+    schoolCity: "",
+    schoolState: "",
+    title: "",
+    userConfirmed: false,
     userId: "",
   });
   const onChange = (
@@ -38,31 +45,35 @@ export default function EditAwardPage({
     e.preventDefault();
     setLoading(true);
     try {
-      await updateModelRecord("Award", id, formData);
+      await updateModelRecord("Education", id, formData);
     } catch (error) {
-      console.error("Error updating award:", error);
+      console.error("Error updating past job:", error);
     }
     setLoading(false);
-    router.push(`/profile/awards/${id}`);
+    router.push(`/profile/educations/${id}`);
   };
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      const awardData = await fetchModelRecord("Award", id);
-      setFormData(awardData);
+      const educationData = await fetchModelRecord("Education", id);
+      setFormData({ ...formData, ...educationData });
       setLoading(false);
     }
     fetchData();
   }, []);
 
   if (loading) {
-    return <TextBlinkLoader text="loading award data" />;
+    return <TextBlinkLoader text="loading education data" />;
   }
   if (!loading && formData) {
     return (
       <div>
-        <h1>Edit Award</h1>
-        <AwardForm item={formData} onChange={onChange} onSubmit={onSubmit} />
+        <h1>Edit Job</h1>
+        <EducationForm
+          item={formData}
+          onChange={onChange}
+          onSubmit={onSubmit}
+        />
       </div>
     );
   }

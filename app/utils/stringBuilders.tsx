@@ -5,7 +5,6 @@ import {
   SpecializedExperienceType,
   PastJobQualificationType,
   PastJobType,
-  VolunteerType,
 } from "./responseSchemas";
 
 export function generateHeadingText(
@@ -16,7 +15,6 @@ export function generateHeadingText(
     | SpecializedExperienceType
     | PastJobType
     | PastJobQualificationType
-    | VolunteerType
 ) {
   let headingText = "";
   if ("degree" in item && "school" in item) {
@@ -43,4 +41,10 @@ export function toPascalCase(str: string) {
     .join("");
 
   return pascalCase;
+}
+
+export function pascalToDashed(str: string) {
+  // Convert PascalCase to dashed-case
+  const dashed = str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+  return dashed;
 }

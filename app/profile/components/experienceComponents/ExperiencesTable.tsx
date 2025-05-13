@@ -6,7 +6,6 @@ import {
   SpecializedExperienceType,
   PastJobQualificationType,
   PastJobType,
-  VolunteerType,
 } from "@/app/utils/responseSchemas";
 import ExperienceItem from "./ExperienceItem";
 
@@ -22,7 +21,6 @@ export default function ExperiencesTable({
     | SpecializedExperienceType
     | PastJobType
     | PastJobQualificationType
-    | VolunteerType
   >;
   setItems: React.Dispatch<
     React.SetStateAction<
@@ -32,7 +30,6 @@ export default function ExperiencesTable({
         | SpecializedExperienceType
         | PastJobType
         | PastJobQualificationType
-        | VolunteerType
       >
     >
   >;
@@ -57,7 +54,6 @@ export default function ExperiencesTable({
                   | SpecializedExperienceType
                   | PastJobType
                   | PastJobQualificationType
-                  | VolunteerType
               ) => (
                 <ExperienceItem
                   key={item.id}

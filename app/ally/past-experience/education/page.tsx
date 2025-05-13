@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import InitialReview from "@/app/components/ally/sharedComponents/InitialReview";
 import { TextBlinkLoader } from "@/app/components/loader/Loader";
 import { useAuthenticator } from "@aws-amplify/ui-react";
-import { fetchUserEducations } from "@/app/crud/education";
+import { listUserModelRecords } from "@/app/crud/genericListForUser";
 
 export default function EducationPage({}) {
   const [localEducations, setLocalEducations] = useState<EducationType[]>([]);
@@ -15,9 +15,9 @@ export default function EducationPage({}) {
     async function getEducation() {
       if (!user) return;
       setLoading(true);
-      let res = await fetchUserEducations();
-      if (res.length > 0) {
-        setLocalEducations(res);
+      let res = await listUserModelRecords("Education", user.userId);
+      if (res.items.length > 0) {
+        setLocalEducations(res.items);
       }
       setLoading(false);
     }

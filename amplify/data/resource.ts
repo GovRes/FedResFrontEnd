@@ -12,7 +12,7 @@ const schema = a.schema({
       specializedExperiences: a.hasMany("SpecializedExperienceApplication", "applicationId"),
       status: a.string().default("draft"),
       userId: a.id().required(),
-      pastJobs: a.hasMany("pastJobApplication", "applicationId"),
+      pastJobs: a.hasMany("PastJobApplication", "applicationId"),
       volunteers: a.hasMany("VolunteerApplication", "applicationId"),
     })
     .authorization((allow) => [allow.owner()]),
@@ -33,6 +33,8 @@ const schema = a.schema({
      degree: a.string().required(),
      major: a.string().required(),
      school: a.string().required(),
+     schoolCity: a.string(),
+     schoolState: a.string(),
      date: a.string().required(),
      title: a.string().required(),
      gpa: a.string(),
@@ -91,29 +93,33 @@ const schema = a.schema({
     jobId: a.id().required(),
     job: a.belongsTo("Job", "jobId"),
     question: a.string(),
-    pastJobQualifications: a.hasMany("pastJobQualification", "topicId"),
+    pastJobQualifications: a.hasMany("PastJobQualification", "topicId"),
   })
   .authorization((allow) => [allow.authenticated()]),
 
   // Define pastJob model
-  pastJob: a
+  PastJob: a
     .model({
-      id: a.id().required(),
-      title: a.string().required(),
-      organization: a.string().required(),
-      startDate: a.string(),
+      applications: a.hasMany("PastJobApplication", "pastJobId"),
       endDate: a.string(),
-      hours: a.string(),
       gsLevel: a.string(),
+      hours: a.string(),
+      id: a.id().required(),
+      organization: a.string().required(),
+      organizationAddress: a.string(),
+      pastJobQualifications: a.hasMany("PastJobPastJobQualification", "pastJobId"),
       responsibilities: a.string(),
+      startDate: a.string(),
+      supervisorMayContact: a.boolean(),
+      supervisorName: a.string(),
+      supervisorPhone: a.string(),
+      title: a.string().required(),
       userId: a.id().required(),
-      pastJobQualifications: a.hasMany("pastJobpastJobQualification", "pastJobId"),
-      applications: a.hasMany("pastJobApplication", "pastJobId")
     })
     .authorization((allow) => [allow.owner()]),
 
     // Define pastJobQualification model
-    pastJobQualification: a
+    PastJobQualification: a
   .model({
     id: a.id().required(),
     title: a.string().required(),
@@ -123,25 +129,29 @@ const schema = a.schema({
     topicId: a.id().required(),
     topic: a.belongsTo("Topic", "topicId"),
     userId: a.id().required(),
-    pastJobs: a.hasMany("pastJobpastJobQualification", "pastJobQualificationId"),
-    volunteers: a.hasMany("pastJobQualificationVolunteer", "pastJobQualificationId"),
+    pastJobs: a.hasMany("PastJobPastJobQualification", "pastJobQualificationId"),
+    volunteers: a.hasMany("PastJobQualificationVolunteer", "pastJobQualificationId"),
   })
   .authorization((allow) => [allow.owner()]),
 
   // Define Volunteer model (similar structure to pastJob)
   Volunteer: a
     .model({
-      id: a.id().required(),
-      title: a.string().required(),
-      organization: a.string().required(),
-      startDate: a.string(),
+      applications: a.hasMany("VolunteerApplication", "volunteerId"),
       endDate: a.string(),
-      hours: a.string(),
       gsLevel: a.string(),
+      hours: a.string(),
+      id: a.id().required(),
+      organization: a.string().required(),
+      organizationAddress: a.string(),
+      pastJobQualifications:a.hasMany("PastJobQualificationVolunteer", "volunteerId"),
       responsibilities: a.string(),
+      startDate: a.string(),
+      supervisorMayContact: a.boolean(),
+      supervisorName: a.string(),
+      supervisorPhone: a.string(),
+      title: a.string().required(),
       userId: a.id().required(),
-      pastJobQualifications:a.hasMany("pastJobQualificationVolunteer", "volunteerId"),
-      applications: a.hasMany("VolunteerApplication", "volunteerId")
     })
     .authorization((allow) => [allow.owner()]),
 //join tables
@@ -185,12 +195,12 @@ AwardApplication: a
     })
     .authorization((allow) => [allow.authenticated()]),
 
-    pastJobApplication: a
+    PastJobApplication: a
     .model({
       id: a.id().required(),
       pastJobId: a.id().required(),
       applicationId: a.id().required(),
-      pastJob: a.belongsTo("pastJob", "pastJobId"),
+      pastJob: a.belongsTo("PastJob", "pastJobId"),
       application: a.belongsTo("Application", "applicationId"),
     })
     .authorization((allow) => [allow.authenticated()]),
@@ -205,21 +215,21 @@ AwardApplication: a
     })
     .authorization((allow) => [allow.authenticated()]),
 
-    pastJobpastJobQualification: a
+    PastJobPastJobQualification: a
     .model({
       id: a.id().required(),
       pastJobId: a.id().required(),
       pastJobQualificationId: a.id().required(),
-      pastJob: a.belongsTo("pastJob", "pastJobId"),
-      pastJobQualification: a.belongsTo("pastJobQualification", "pastJobQualificationId"),
+      pastJob: a.belongsTo("PastJob", "pastJobId"),
+      pastJobQualification: a.belongsTo("PastJobQualification", "pastJobQualificationId"),
     })
     .authorization((allow) => [allow.authenticated()]),
-    pastJobQualificationVolunteer: a
+    PastJobQualificationVolunteer: a
     .model({
       id: a.id().required(),
       pastJobQualificationId: a.id().required(),
       volunteerId: a.id().required(),
-      pastJobQualification: a.belongsTo("pastJobQualification", "pastJobQualificationId"),
+      pastJobQualification: a.belongsTo("PastJobQualification", "pastJobQualificationId"),
       volunteer: a.belongsTo("Volunteer", "volunteerId"),
     })
     .authorization((allow) => [allow.authenticated()]),

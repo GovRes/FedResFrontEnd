@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useContext } from "react";
 import InitialReview from "./sharedComponents/InitialReview";
 import Details from "./sharedComponents/Details";
-import VolunteersForm from "./volunteersComponents/VolunteersForm";
+import VolunteersForm from "../../profile/volunteers/[id]/edit/components/VolunteersForm";
 import { PastJobType } from "@/app/utils/responseSchemas";
 import { useAlly } from "@/app/providers";
 import { volunteersExtractor } from "../aiProcessing/volunteersExtractor";
