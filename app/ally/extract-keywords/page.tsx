@@ -35,9 +35,7 @@ export default function ExtractKeywords() {
   }, [job]);
 
   function sortTopics() {
-    console.log(40, job);
     if (job && job.topics && job.topics.length > 0) {
-      console.log(job);
       setTopics(job.topics);
     } else {
       async function categorizeTopics() {
@@ -47,7 +45,6 @@ export default function ExtractKeywords() {
             job,
             keywords,
           });
-          console.log(topicRes);
           await createOrFindSimilarTopics({ jobId: job.id, topics: topicRes });
           setJob({
             ...job,
@@ -61,7 +58,6 @@ export default function ExtractKeywords() {
   }
 
   useEffect(() => {
-    console.log(66, job);
     if (job && job.topics && job.topics.length > 0) {
       setTopics(job.topics);
       setNext();
@@ -69,14 +65,13 @@ export default function ExtractKeywords() {
   }, []);
 
   async function setNext() {
-    console.log("set next called");
     const updatedSteps = await completeSteps({
       steps,
       stepId: "extract-keywords",
       applicationId,
     });
     setSteps(updatedSteps);
-    navigateToNextIncompleteStep("extract-keywords");
+    await navigateToNextIncompleteStep("extract-keywords");
   }
   if (loading) {
     return (

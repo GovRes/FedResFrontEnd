@@ -1,6 +1,6 @@
 "use client";
 import { useContext } from "react";
-import DetailedListEditor from "../sharedComponents/DetailedListEditor/Container";
+import DetailedListEditor from "../sharedComponents/DetailedListEditor/DetailedListEditor";
 import {
   specializedExperienceAssistantInstructions,
   specializedExperienceAssistantName,

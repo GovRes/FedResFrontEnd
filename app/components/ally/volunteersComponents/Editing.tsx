@@ -32,7 +32,6 @@ export default function Editing({
     let updatedItems = localVolunteers.map((i) =>
       i.id !== item.id ? i : item
     );
-    console.log({ updatedItems });
     setLocalVolunteers(updatedItems);
   }
   const hasFetched = useRef(false);
@@ -40,12 +39,10 @@ export default function Editing({
     if (hasFetched.current) return;
     async function connectJobsToTopics() {
       if (topics && localVolunteers) {
-        console.log(88);
         const result = await topicPastJobMatcher({
-          PastJobs: localVolunteers,
+          pastJobs: localVolunteers,
           topics,
         });
-        console.log(101, result);
         // Mark the matching as complete
         setLocalVolunteers(result as PastJobType[]);
       }

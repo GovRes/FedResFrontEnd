@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Result } from "../ally/job-search/components/UsaJobsResults";
+import { Result } from "@/app/ally/job-search/results/components/UsaJobsResults";
 import { JobSearchObject } from "./responseSchemas";
 var host = "data.usajobs.gov";
 var userAgent = process.env.USA_JOBS_EMAIL;
@@ -40,7 +40,6 @@ export async function usaJobsSearch({
   travelPercentage,
   user,
 }: JobSearchObject) {
-  console.log(user);
   const hiringPath = constructHiringPath({ user });
   try {
     const response = await instance.get("search", {
@@ -66,7 +65,6 @@ export async function usaJobsSearch({
 }
 
 export function formatJobDescription({ job }: { job: Result }) {
-  console.log(73, job);
   return {
     agencyDescription:
       job.MatchedObjectDescriptor.UserArea.Details.AgencyMarketingStatement,

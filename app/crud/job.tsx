@@ -61,8 +61,6 @@ export async function createOrGetJob(jobData: {
       "data" in existingJobResult &&
       existingJobResult.data?.listJobs?.items?.length > 0
     ) {
-      console.log("Found existing job with usaJobsId:", jobData.usaJobsId);
-
       // Flatten the topics.items into a topics array
       const existingJob = existingJobResult.data.listJobs.items[0];
       const flattenedJob = {
@@ -74,7 +72,6 @@ export async function createOrGetJob(jobData: {
     }
 
     // If no existing job was found, create a new one
-    console.log("No existing job found. Creating new job.");
 
     // Extract fields we don't want to include in the create operation
     const { createdAt, id, updatedAt, ...filteredJobData } = jobData as any;
@@ -138,11 +135,34 @@ export async function getJobByApplicationId(applicationId: string) {
   const client = generateClient();
 
   try {
-    // First, check if a job with this usaJobsId already exists}
-    const query = `
-        query GetJobByApplicationId($applicationId: String!) {
-          listJobs(filter: {applicationId: {eq: $applicationId}}) {
-            items {
+    // First, get the application to find its jobId
+    const getApplicationQuery = `
+        query GetApplication($applicationId: ID!) {
+          getApplication(id: $applicationId) {
+            id
+            jobId
+          }
+        }
+      `;
+
+    const applicationResult = await client.graphql({
+      query: getApplicationQuery,
+      variables: {
+        applicationId: applicationId, // Fixed: now using applicationId as defined in the query
+      },
+      authMode: "userPool",
+    });
+
+    if (
+      "data" in applicationResult &&
+      applicationResult.data?.getApplication?.jobId
+    ) {
+      const jobId = applicationResult.data.getApplication.jobId;
+
+      // Now get the job using the jobId
+      const getJobQuery = `
+          query GetJob($jobId: ID!) {
+            getJob(id: $jobId) {
               id
               createdAt
               updatedAt
@@ -154,43 +174,40 @@ export async function getJobByApplicationId(applicationId: string) {
               requiredDocuments
               title
               topics {
-                  items {
+                items {
                   id
                   keywords
                   title
-                  }
+                }
               }
               usaJobsId
             }
           }
-        }
-      `;
+        `;
 
-    const jobResult = await client.graphql({
-      query,
-      variables: {
-        applicationId: applicationId,
-      },
-      authMode: "userPool",
-    });
+      const jobResult = await client.graphql({
+        query: getJobQuery,
+        variables: {
+          jobId: jobId, // Fixed: variable name now matches the query definition
+        },
+        authMode: "userPool",
+      });
 
-    // Check if we found a job with that usaJobsId
-    if ("data" in jobResult && jobResult.data?.listJobs?.items?.length > 0) {
-      console.log("Found existing job with application:", applicationId);
+      if ("data" in jobResult && jobResult.data?.getJob) {
+        // Flatten the topics.items into a topics array
+        const job = jobResult.data.getJob;
+        const flattenedJob = {
+          ...job,
+          topics: job.topics?.items || [],
+        };
 
-      // Flatten the topics.items into a topics array
-      const job = jobResult.data.listJobs.items[0];
-      const flattenedJob = {
-        ...job,
-        topics: job.topics?.items || [],
-      };
-
-      return flattenedJob;
+        return flattenedJob;
+      }
     }
 
-    // If no existing job was found, create a new one
-    console.log("No existing job found.");
+    return null;
   } catch (error) {
-    console.log("error in getJobByApplicationId", error);
+    console.error("Error in getJobByApplicationId:", error);
+    throw error;
   }
 }

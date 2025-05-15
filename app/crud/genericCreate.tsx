@@ -28,7 +28,6 @@ export async function createModelRecord(
   if (userId) {
     filteredUpdateData.userId = userId;
   }
-  console.log("Filtered input data:", filteredUpdateData);
   // Validate the model name
   validateModelName(modelName);
 

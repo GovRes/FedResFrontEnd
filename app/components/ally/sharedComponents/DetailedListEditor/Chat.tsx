@@ -44,10 +44,40 @@ export default function Chat<
   );
   const [editType, setEditType] = useState<string | null>(null);
 
+  const userPrompts = [
+    "Can you give me an example?",
+    "I'm not sure what you mean by that. Can you ask me in a different way?",
+    "Can you clarify that?",
+    "I'm having trouble thinking of an example. Can you help me?",
+  ];
+
+  // Store randomly selected prompts in state
+  const [randomPrompts, setRandomPrompts] = useState<string[]>([]);
+
+  // Initialize random prompts on component mount
+  useEffect(() => {
+    const shuffled = [...userPrompts].sort(() => 0.5 - Math.random());
+    setRandomPrompts(shuffled.slice(0, 2));
+  }, [JSON.stringify(messages)]);
+
+  const randomButtons = (
+    <div className={styles.promptButtons}>
+      {randomPrompts.map((prompt, index) => (
+        <button
+          key={index}
+          type="submit"
+          onClick={() => setInput(prompt)}
+          className={styles.promptButton}
+        >
+          {prompt}
+        </button>
+      ))}
+    </div>
+  );
+
   // Initialize with the welcome message
   useEffect(() => {
     setMessages([{ role: "assistant", content: initialMessage }]);
-    console.log("Initial message set:", initialMessage);
   }, [initialMessage]);
 
   // Check for existing paragraph
@@ -92,6 +122,7 @@ export default function Chat<
       setNext();
     }
   };
+
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -107,8 +138,6 @@ export default function Chat<
     setError(null);
 
     try {
-      console.log("Sending message:", input);
-
       const response = await fetch("/api/detailed-chat", {
         method: "POST",
         headers: {
@@ -130,7 +159,6 @@ export default function Chat<
       }
 
       const data = await response.json();
-      console.log("Response received:", data);
 
       // Save thread ID for future requests
       if (data.threadId) {
@@ -218,6 +246,7 @@ export default function Chat<
                 disabled={isLoading}
                 className={styles.inputTextarea}
               />
+
               <button
                 type="submit"
                 disabled={isLoading || !input.trim()}
@@ -225,6 +254,7 @@ export default function Chat<
               >
                 {isLoading ? "Sending..." : "Send"}
               </button>
+              {randomButtons}
             </form>
           </div>
         )}

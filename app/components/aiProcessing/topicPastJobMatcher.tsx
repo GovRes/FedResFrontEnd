@@ -1,5 +1,6 @@
+import { z } from "zod";
 import { topicPastJobMatcherPrompt } from "@/app/prompts/topicPastJobMatcherPrompt";
-import { TopicType, PastJobType } from "@/app/utils/responseSchemas";
+import { TopicType, PastJobType, PastJob } from "@/app/utils/responseSchemas";
 import { sendMessages } from "@/app/utils/api";
 import {
   ChatCompletionSystemMessageParam,
@@ -25,11 +26,17 @@ export const topicPastJobMatcher = async ({
     | ChatCompletionUserMessageParam
     | ChatCompletionSystemMessageParam
   )[] = [userMessage, topicPastJobMatcherPrompt];
-  let res = await sendMessages({
-    messages: messagesForTopicPastJobMatcher,
-    //has to match line 26 in api/ai/route.tsx
-    name: "pastJobs",
-  });
-  const result = res.PastJobs as PastJobType[];
-  return result;
+
+  try {
+    let res = await sendMessages({
+      messages: messagesForTopicPastJobMatcher,
+      name: "pastJobs",
+    });
+    // Parse and validate the response
+    return res.pastJobs;
+  } catch (error) {
+    console.error("Response did not match expected schema:", error);
+    // Handle validation failure - could return empty array, throw error, etc.
+    return [];
+  }
 };

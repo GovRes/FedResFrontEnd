@@ -6,6 +6,7 @@ import React, {
   ReactNode,
   useContext,
   useEffect,
+  useRef,
 } from "react";
 import { JobType, StepsType } from "../utils/responseSchemas";
 import { getApplicationWithJob } from "../crud/application";
@@ -120,115 +121,174 @@ export const ApplicationProvider = ({
   const [job, setJob] = useState<JobType | undefined>(initialJob);
   const [steps, setSteps] = useState<StepsType[]>(initialSteps || defaultSteps);
   const [applicationId, setApplicationId] = useState(initialAppId || "");
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const router = useRouter();
 
-  // Effect to save applicationId to sessionStorage when it changes
+  // Refs to prevent infinite loops
+  const dataLoadedRef = useRef(false);
+  const applicationLoadingRef = useRef(false);
+
   useEffect(() => {
-    // Only save if we have a value and we're in browser environment
-    async function getJob() {
-      if (applicationId) {
-        const jobRes = await getJobByApplicationId(applicationId);
-        console.log("Provider: Job loaded:", jobRes);
-        setJob(jobRes);
-      }
-    }
-    if (applicationId && typeof window !== "undefined") {
-      console.log(
-        "Provider: Saving applicationId to sessionStorage:",
-        applicationId
-      );
+    if (typeof window === "undefined") return;
+
+    // Don't overwrite existing applicationId with null
+    const storedAppId = sessionStorage.getItem("applicationId");
+    if (storedAppId && !applicationId) {
+      setApplicationId(storedAppId);
+    } else if (applicationId) {
       sessionStorage.setItem("applicationId", applicationId);
     }
-    getJob();
-  }, [applicationId]); // Run whenever applicationId changes
+  }, [applicationId]);
 
-  // Effect to update steps when applicationId changes (but not on initial load)
   useEffect(() => {
-    // Skip this effect if we already have initialSteps and this is the initial applicationId
-    if (initialJob && initialSteps && applicationId === initialAppId) {
-      console.log("Provider: Using initial job and steps from props");
+    if (!applicationId) return;
+
+    async function loadJobData() {
+      try {
+        const jobRes = await getJobByApplicationId(applicationId);
+        if (jobRes) {
+          setJob(jobRes);
+        }
+      } catch (error) {
+        console.error("Error loading job data:", error);
+      }
+    }
+
+    loadJobData();
+  }, [applicationId]);
+
+  // Effect to load application data and update steps
+  useEffect(() => {
+    // Skip if no applicationId or if we're not in browser
+    if (!applicationId || typeof window === "undefined") return;
+
+    // Skip if already loaded data for this applicationId
+    if (dataLoadedRef.current) {
       return;
     }
 
-    // Only run if applicationId is set
-    if (applicationId && typeof window !== "undefined") {
-      console.log("Provider: Application ID changed, updating job and steps");
+    // Skip if already loading
+    if (applicationLoadingRef.current) {
+      return;
+    }
 
-      async function updateJobAndSteps() {
-        try {
-          const applicationRes = await getApplicationWithJob({
-            id: applicationId,
+    // Skip this effect if we already have initialSteps and this is the initial applicationId
+    if (
+      initialJob &&
+      initialSteps &&
+      applicationId === initialAppId &&
+      isInitialLoad
+    ) {
+      setIsInitialLoad(false);
+      dataLoadedRef.current = true;
+      return;
+    }
+
+    // Set loading flag
+    applicationLoadingRef.current = true;
+
+    async function loadApplicationData() {
+      try {
+        const applicationRes = await getApplicationWithJob({
+          id: applicationId,
+        });
+
+        if (!applicationRes) {
+          applicationLoadingRef.current = false;
+          return;
+        }
+
+        // Update job if needed
+        if ((!job || job.id !== applicationRes.job?.id) && applicationRes.job) {
+          setJob(applicationRes.job);
+        }
+
+        // Update steps based on the application response
+        if (
+          applicationRes.completedSteps &&
+          applicationRes.completedSteps.length > 0
+        ) {
+          // Use functional update that doesn't depend on current steps
+          setSteps((currentSteps) => {
+            const updatedSteps = currentSteps.map((step) => ({
+              ...step,
+              completed: applicationRes.completedSteps.includes(step.id),
+            }));
+
+            return updatedSteps;
           });
-          console.log(153, applicationRes);
 
-          if (applicationRes) {
-            console.log("Provider: Application data loaded:", applicationRes);
+          // Only navigate to next step if this is the initial load
+          if (isInitialLoad && (job || applicationRes.job)) {
+            setIsInitialLoad(false);
 
-            // Update job if it doesn't exist or if it's changed
-            if (
-              (!job || job.id !== applicationRes.job?.id) &&
-              applicationRes.job
-            ) {
-              console.log("Provider: Setting job from application response");
-              setJob(applicationRes.job);
-            }
+            // Use a copy of steps to avoid dependency on steps state
+            const currentSteps = [...steps];
+            const stepsForComplete = currentSteps.map((step) => ({
+              ...step,
+              completed: applicationRes.completedSteps.includes(step.id),
+            }));
 
-            // Update steps based on the application response
-            if (applicationRes.completedSteps) {
-              console.log(
-                "Provider: Loading completed steps:",
-                applicationRes.completedSteps
-              );
-
-              const updatedSteps = steps.map((step: StepsType) => ({
-                ...step,
-                completed: applicationRes.completedSteps.includes(step.id),
-              }));
-
-              setSteps(updatedSteps);
-              console.log(steps);
-            }
-
-            // Mark as ready if we have a job (either existing or new)
-            if (job || applicationRes.job) {
-              const updatedSteps = await completeSteps({
-                steps,
+            // Ensure usa-jobs step is marked complete
+            try {
+              const stepsAfterComplete = await completeSteps({
+                steps: stepsForComplete,
                 stepId: "usa-jobs",
                 applicationId: applicationRes.id,
               });
-              setSteps(updatedSteps);
-              const next = findNextIncompleteStep(steps, "usa-jobs");
+
+              // Use functional update to set steps
+              setSteps(() => stepsAfterComplete);
+
+              // Find next incomplete step
+              const next = findNextIncompleteStep(
+                stepsAfterComplete,
+                "usa-jobs"
+              );
               if (next) {
                 router.push(`/ally${next.path}`);
               }
-              console.log("Provider: Application is ready");
+            } catch (error) {
+              console.error("Provider: Error completing steps:", error);
             }
           }
-        } catch (error) {
-          console.error("Provider: Error updating job and steps:", error);
+        } else {
+          console.log("Provider: No completed steps found in application");
         }
+
+        // Mark data as loaded
+        dataLoadedRef.current = true;
+      } catch (error) {
+        console.error("Provider: Error loading application data:", error);
+      } finally {
+        // Clear loading flag
+        applicationLoadingRef.current = false;
       }
-
-      updateJobAndSteps();
     }
-  }, [applicationId, initialAppId, initialSteps, initialJob, job]);
 
-  // effect to load application ID from sessionStorage if not set
+    loadApplicationData();
+  }, [
+    applicationId,
+    initialJob,
+    initialSteps,
+    initialAppId,
+    isInitialLoad,
+    job,
+    router,
+    steps,
+  ]);
+
+  // Effect to load application ID from sessionStorage on initial mount
   useEffect(() => {
-    async function fetchApplication(storedAppId: string) {
-      let application = await getApplicationWithJob({ id: storedAppId });
-      console.log(application);
+    if (applicationId || typeof window === "undefined") return;
+
+    const storedAppId = sessionStorage.getItem("applicationId");
+    if (storedAppId) {
+      setApplicationId(storedAppId);
+    } else {
+      console.log("Provider: No applicationId found in sessionStorage");
     }
-    if (!applicationId) {
-      const storedAppId = sessionStorage.getItem("applicationId");
-      if (storedAppId) {
-        fetchApplication(storedAppId);
-        setApplicationId(storedAppId);
-      } else {
-        console.log("Provider: No applicationId found in sessionStorage");
-      }
-    }
-  }, []);
+  }, []); // Empty dependency array - only run once on mount
 
   const value = {
     applicationId,

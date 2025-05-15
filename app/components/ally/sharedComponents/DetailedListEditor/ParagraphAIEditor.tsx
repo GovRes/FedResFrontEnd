@@ -57,8 +57,6 @@ export default function ParagraphAIEditor({
     setError(null);
 
     try {
-      console.log("Sending message:", input);
-
       const response = await fetch("/api/ai-editor", {
         method: "POST",
         headers: {
@@ -78,7 +76,6 @@ export default function ParagraphAIEditor({
       }
 
       const data = await response.json();
-      console.log("Response received:", data);
 
       // Save thread ID for future requests
       if (data.threadId) {

@@ -78,7 +78,6 @@ export default function ResumeUploader({
       return;
     }
     if (newResume) {
-      console.log("Resume created", newResume);
       setRefresh(true);
       // setShowUploader(false);
       setLocalResume({
@@ -92,7 +91,6 @@ export default function ResumeUploader({
 
   async function processResume() {
     setLoading(true);
-    console.log("Processing resume", localResume);
     try {
       const resumePromise = await processResumeToString(localResume!);
 
@@ -110,17 +108,16 @@ export default function ResumeUploader({
         PastJobsResult &&
         volunteersResult
       ) {
-        setLoading(false);
         console.log("Resume processing complete");
       }
     } catch (error) {
       console.log(error);
     } finally {
+      setLoading(false);
     }
   }
 
   async function processResumeToString(resume: ResumeType) {
-    console.log("Processing resume", resume);
     return await getFileUrl({ path: resume.path }).then(async (fileUrl) => {
       if (fileUrl) {
         const urlString = fileUrl.toString();

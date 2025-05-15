@@ -20,7 +20,6 @@ export default function AllyLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function loadInitialData() {
       setIsLoading(true);
-      console.log("Layout: Loading initial application data");
 
       if (typeof window !== "undefined") {
         // Try to get applicationId from sessionStorage
@@ -30,17 +29,11 @@ export default function AllyLayout({ children }: { children: ReactNode }) {
           setInitialAppId(storedApplicationId);
 
           try {
-            console.log("Layout: Found applicationId:", storedApplicationId);
             const applicationRes = await getApplicationWithJob({
               id: storedApplicationId,
             });
 
             if (applicationRes && applicationRes.completedSteps) {
-              console.log(
-                "Layout: Application loaded with completed steps:",
-                applicationRes.completedSteps
-              );
-
               // Update initial steps based on the application response
               const updatedSteps = defaultSteps.map((step: StepsType) => ({
                 ...step,
@@ -55,10 +48,6 @@ export default function AllyLayout({ children }: { children: ReactNode }) {
                   (step) => !step.completed
                 );
                 if (nextIncompleteStep) {
-                  console.log(
-                    "Layout: Redirecting to first incomplete step:",
-                    nextIncompleteStep.id
-                  );
                   router.push(`/ally${nextIncompleteStep.path}`);
                   // Keep loading true until redirect completes
                   return;

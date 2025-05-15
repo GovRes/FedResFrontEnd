@@ -1,6 +1,6 @@
 import { AllyContext, useAlly } from "@/app/providers";
 import { useContext } from "react";
-import DetailedListEditor from "../sharedComponents/DetailedListEditor/Container";
+import DetailedListEditor from "../sharedComponents/DetailedListEditor/DetailedListEditor";
 import {
   volunteersAssistantName,
   volunteersAssistantInstructions,
@@ -32,12 +32,6 @@ export default function EditSingleVolunteer({
   const { setStep, setVolunteers } = useAlly();
   const { job } = useApplication();
 
-  console.log({
-    currentVolunteerIndex,
-    localVolunteers,
-    volunteer,
-    volunteersLength,
-  });
   function saveVolunteerQualification(
     updatedPastJobQualifications:
       | PastJobQualificationType[]

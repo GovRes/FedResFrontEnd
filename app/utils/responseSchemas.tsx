@@ -155,7 +155,6 @@ export const PastJob = z.object({
 });
 
 export type PastJobType = z.infer<typeof PastJob>;
-export type PastJobQualification = z.infer<typeof PastJobQualification>;
 export const PastJobsArraySchema = z.object({ pastJobs: z.array(PastJob) });
 
 export const VolunteerArraySchema = z.object({ volunteer: z.array(PastJob) });

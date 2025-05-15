@@ -15,7 +15,6 @@ export default function ResumeItem({
 }) {
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const fileName = resume.path.split("/").pop();
-  console.log(resume);
   useEffect(() => {
     getFileUrl({ path: resume.path }).then((url) => {
       if (url) setFileUrl(url.toString());
@@ -24,7 +23,6 @@ export default function ResumeItem({
 
   const deleteItem = async (): Promise<void> => {
     const response = await deleteFile({ path: resume.path });
-    console.log(response);
     setRefresh(true);
   };
 

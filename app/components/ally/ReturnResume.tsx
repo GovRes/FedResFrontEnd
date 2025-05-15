@@ -58,7 +58,6 @@ export default function ReturnResume() {
       if (authStatus === "authenticated") {
         const attrRes = await fetchUserAttributes();
         setAttr(attrRes);
-        console.log(attr);
       }
       setLoading(false);
     }

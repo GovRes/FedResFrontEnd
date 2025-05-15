@@ -46,29 +46,27 @@ export default function InitialReview<
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const values = getCheckboxValues(event);
-    console.log("submit called");
     // Filter out items whose IDs are in the values array
     const updatedItems = localItems.filter((item) => !values.includes(item.id));
-    console.log("updatedItems", updatedItems);
 
     // Update parent state
     setLocalItems(updatedItems);
     if (applicationId && items.length > 0) {
-      console.log("associating items with user resume", applicationId);
       setLoading(true);
-      await associateItemsWithApplication({
-        applicationId,
-        items: updatedItems,
-        associationType: itemType,
-      });
-
+      if (updatedItems.length > 0) {
+        await associateItemsWithApplication({
+          applicationId,
+          items: updatedItems,
+          associationType: itemType,
+        });
+      }
       const updatedSteps = await completeSteps({
         steps,
         stepId: currentStepId,
         applicationId,
       });
       setSteps(updatedSteps);
-      navigateToNextIncompleteStep(currentStepId);
+      await navigateToNextIncompleteStep(currentStepId);
     }
   };
 

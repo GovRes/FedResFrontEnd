@@ -1,6 +1,6 @@
 import { AllyContext, useAlly } from "@/app/providers";
 import { useContext } from "react";
-import DetailedListEditor from "../sharedComponents/DetailedListEditor/Container";
+import DetailedListEditor from "../sharedComponents/DetailedListEditor/DetailedListEditor";
 import {
   pastJobsAssistantName,
   pastJobsAssistantInstructions,
@@ -15,51 +15,33 @@ import { useApplication } from "@/app/providers/applicationContext";
 export default function EditSingleJob({
   currentJobIndex,
   localPastJobs,
-  // nextStep,
-  PastJob,
-  PastJobsLength,
+  navigateToNextUnconfirmedJob,
+  pastJob,
+  pastJobsLength,
   setCurrentJobIndex,
   savePastJob,
 }: {
   currentJobIndex: number;
   localPastJobs: PastJobType[];
-  // nextStep: StepType;
-  PastJob: PastJobType;
-  PastJobsLength: number;
+  navigateToNextUnconfirmedJob: (job: PastJobType) => void;
+  pastJob: PastJobType;
+  pastJobsLength: number;
   setCurrentJobIndex: (index: number) => void;
   savePastJob: (PastJob: PastJobType) => void;
 }) {
-  const { setStep, setPastJobs } = useAlly();
   const { job } = useApplication();
 
-  console.log({ currentJobIndex, localPastJobs, PastJob, PastJobsLength });
   function savePastJobQualification(
-    updatedPastJobQualifications:
-      | PastJobQualificationType[]
-      | {
-          id: string;
-          title: string;
-          description: string;
-          initialMessage: string;
-          typeOfExperience:
-            | "degree"
-            | "certification"
-            | "license"
-            | "experience"
-            | "other";
-          paragraph?: string;
-          userConfirmed?: boolean;
-        }[]
+    updatedPastJobQualifications: PastJobQualificationType[]
   ) {
     try {
-      // Check if it's PastJobQualificationType[] before assigning
       if (
         updatedPastJobQualifications.length > 0 &&
         "topic" in updatedPastJobQualifications[0]
       ) {
         let tempPastJob = {
-          ...PastJob,
-          PastJobQualifications:
+          ...pastJob,
+          pastJobQualifications:
             updatedPastJobQualifications as PastJobQualificationType[],
         };
         savePastJob(tempPastJob);
@@ -70,25 +52,16 @@ export default function EditSingleJob({
       console.error("Error in savePastJobQualification:", error);
     }
   }
-  function setNextJob() {
-    if (currentJobIndex + 1 < PastJobsLength) {
-      setCurrentJobIndex(currentJobIndex + 1);
-    } else {
-      setPastJobs(localPastJobs);
-      // setStep(nextStep);
-    }
-  }
-
   // Otherwise display the qualifications
   return (
     <DetailedListEditor
       assistantInstructions={pastJobsAssistantInstructions}
       assistantName={pastJobsAssistantName}
-      heading={`${PastJob?.title} - Applicable Work Experience`}
-      items={PastJob.pastJobQualifications}
+      heading={`${pastJob?.title} - Applicable Work Experience`}
+      items={pastJob.pastJobQualifications}
       jobString={`${job?.title} at the ${job?.department}`}
       setFunction={savePastJobQualification}
-      setNext={setNextJob}
+      setNext={navigateToNextUnconfirmedJob}
       sidebarTitleText="Job Experience"
     />
   );

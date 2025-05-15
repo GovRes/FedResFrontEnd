@@ -27,7 +27,6 @@ export default function ProfileAttributeEmailField({
   async function submit(e: { preventDefault: () => void; target: any }) {
     e.preventDefault();
     const response = await handleUpdateUserAttribute(attributeKey, formValue);
-    console.log(response);
     if (response === "200") {
       setAttributes((prev: any) => ({ ...prev, [attributeKey]: formValue }));
       setShowEdit(false);

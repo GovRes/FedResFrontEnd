@@ -17,7 +17,6 @@ export default function ApplicationDashboard() {
         const applicationsRes = await listUserApplications({
           userId: user.userId,
         });
-        console.log(applicationsRes);
         setApplications(applicationsRes);
       } catch (error) {
         console.error("Error fetching applications:", error);

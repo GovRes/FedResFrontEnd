@@ -1,6 +1,34 @@
-import { generateClient } from "aws-amplify/api";
 import { fetchAuthSession } from "aws-amplify/auth";
+import {
+  AwardType,
+  EducationType,
+  SpecializedExperienceType,
+  PastJobType,
+  PastJobQualificationType,
+  TopicType,
+  ResumeType,
+} from "../utils/responseSchemas";
+import { generateClient } from "aws-amplify/api";
 
+/**
+ * Types for different associations - updated to match responseSchemas
+ */
+type AssociationType =
+  | "Award"
+  | "Education"
+  | "SpecializedExperience"
+  | "PastJob"
+  | "Volunteer"
+  | "Resume";
+
+type AssociationTypeMap = {
+  Award: AwardType;
+  Education: EducationType;
+  SpecializedExperience: SpecializedExperienceType;
+  PastJob: PastJobType;
+  Volunteer: PastJobType; // Note: Volunteer uses PastJobType structure
+  Resume: ResumeType;
+};
 export const associateItemsWithApplication = async ({
   applicationId,
   items,
@@ -8,13 +36,7 @@ export const associateItemsWithApplication = async ({
 }: {
   applicationId: string;
   items: { id: string }[] | string[];
-  associationType:
-    | "Award"
-    | "Education"
-    | "SpecializedExperience"
-    | "PastJob"
-    | "Volunteer"
-    | "Resume";
+  associationType: AssociationType;
 }) => {
   try {
     const session = await fetchAuthSession();
@@ -80,7 +102,6 @@ export const associateItemsWithApplication = async ({
         );
       }
     }
-    console.log(createdConnections);
     return createdConnections;
   } catch (error) {
     console.error(
@@ -151,7 +172,266 @@ export const createAndSaveApplication = async ({
     throw error;
   }
 };
+function deduplicateById<T extends { id: string }>(items: T[]): T[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    if (seen.has(item.id)) {
+      return false;
+    }
+    seen.add(item.id);
+    return true;
+  });
+}
 
+/**
+ * Get all associations of a specific type for an application
+ *
+ * @param {Object} params - The function parameters
+ * @param {string} params.applicationId - The ID of the application
+ * @param {AssociationType} params.associationType - The type of association to fetch
+ * @returns {Promise<T[]>} - Array of associated items with duplicates removed
+ * @throws {Error} - If fetching fails or required parameters are missing
+ */
+export const getApplicationAssociations = async <T extends AssociationType>({
+  applicationId,
+  associationType,
+}: {
+  applicationId: string;
+  associationType: T;
+}): Promise<AssociationTypeMap[T][] | undefined> => {
+  try {
+    const session = await fetchAuthSession();
+    if (!session.tokens) {
+      throw new Error("No valid authentication session found");
+    }
+  } catch (error) {
+    console.error("No user is signed in");
+    return;
+  }
+
+  const client = generateClient();
+
+  try {
+    // Validate required parameters
+    if (!applicationId) {
+      throw new Error("applicationId is required");
+    }
+
+    // Build the query name based on the associationType
+    const queryName = `list${associationType}Applications`;
+
+    // Build the filter to match the applicationId
+    const filter = {
+      applicationId: { eq: applicationId },
+    };
+
+    // Define the fields to fetch based on the associationType
+    const getSpecificFields = () => {
+      switch (associationType) {
+        case "Award":
+          return `
+            title
+            date
+            userId
+          `;
+        case "Education":
+          return `
+            degree
+            major
+            school
+            schoolCity
+            schoolState
+            date
+            title
+            gpa
+            userConfirmed
+            userId
+          `;
+        case "SpecializedExperience":
+          return `
+            title
+            description
+            userConfirmed
+            paragraph
+            initialMessage
+            typeOfExperience
+            userId
+          `;
+        case "PastJob":
+          return `
+            endDate
+            hours
+            organization
+            organizationAddress
+            supervisorMayContact
+            supervisorName
+            supervisorPhone
+            pastJobQualifications {
+              items {
+                id
+                pastJobQualificationId
+                pastJobQualification {
+                  id
+                  title
+                  description
+                  paragraph
+                  userConfirmed
+                  userId
+                  topic {
+                    id
+                    title
+                    jobId
+                    keywords
+                    description
+                    evidence
+                    question
+                  }
+                }
+              }
+            }
+            gsLevel
+            responsibilities
+            startDate
+            title
+            userId
+          `;
+        case "Volunteer":
+          return `
+            title
+            organization
+            organizationAddress
+            startDate
+            endDate
+            hours
+            gsLevel
+            responsibilities
+            userId
+          `;
+        case "Resume":
+          return `
+            fileName
+            userId
+          `;
+        default:
+          return "";
+      }
+    };
+
+    // Execute the query to get the junction table entries
+    const junctionResponse = await client.graphql({
+      query: `
+        query List${associationType}Applications($filter: Model${associationType}ApplicationFilterInput) {
+          ${queryName}(filter: $filter) {
+            items {
+              id
+              applicationId
+              ${
+                associationType.charAt(0).toLowerCase() +
+                associationType.slice(1)
+              }Id
+              ${
+                associationType.charAt(0).toLowerCase() +
+                associationType.slice(1)
+              } {
+                id
+                ${getSpecificFields()}
+                createdAt
+                updatedAt
+              }
+              createdAt
+              updatedAt
+            }
+          }
+        }
+      `,
+      variables: { filter } as any,
+      authMode: "userPool",
+    });
+
+    if ("data" in junctionResponse) {
+      // Extract associated items
+      const junctionItems = junctionResponse.data[queryName].items;
+      const associatedItemsWithDuplicates = junctionItems
+        .map(
+          (item: any) =>
+            item[
+              associationType.charAt(0).toLowerCase() + associationType.slice(1)
+            ]
+        )
+        .filter(Boolean); // Filter out any null items
+
+      // Deduplicate by ID
+      const uniqueItems = deduplicateById(associatedItemsWithDuplicates);
+
+      // Special handling for PastJob and Volunteer to transform the data structure
+      if (associationType === "PastJob" || associationType === "Volunteer") {
+        return uniqueItems.map((item: any) => {
+          // Convert hours to string if it's a number to match schema
+          const hours =
+            item.hours !== undefined ? String(item.hours) : undefined;
+
+          // For PastJob, format pastJobQualifications properly
+          if (associationType === "PastJob") {
+            return {
+              ...item,
+              hours,
+              // Format pastJobQualifications as an array matching the schema
+              pastJobQualifications: (
+                item.pastJobQualifications?.items || []
+              ).map((qualJunction: any) => {
+                // Get the actual qualification from the junction object
+                const qual = qualJunction.pastJobQualification || {};
+
+                return {
+                  id: qual.id || qualJunction.id || "",
+                  title: qual.title || "",
+                  description: qual.description || "",
+                  paragraph: qual.paragraph,
+                  userConfirmed: qual.userConfirmed || false,
+                  userId: qual.userId || item.userId,
+                  topic: qual.topic
+                    ? {
+                        id: qual.topic.id || "",
+                        title: qual.topic.title || "",
+                        jobId: qual.topic.jobId || "",
+                        keywords: qual.topic.keywords || [],
+                        description: qual.topic.description,
+                        evidence: qual.topic.evidence,
+                        question: qual.topic.question,
+                      }
+                    : {
+                        id: "",
+                        title: "",
+                        jobId: "",
+                        keywords: [],
+                      },
+                };
+              }),
+            };
+          } else {
+            // For Volunteer, just ensure hours is a string
+            return {
+              ...item,
+              hours,
+            };
+          }
+        }) as AssociationTypeMap[T][];
+      }
+
+      return uniqueItems as AssociationTypeMap[T][];
+    }
+
+    throw new Error(
+      `Unexpected response format from GraphQL operation for ${associationType}`
+    );
+  } catch (error) {
+    console.error(
+      `Error fetching ${associationType} associations for Application:`,
+      error
+    );
+    throw error;
+  }
+};
 export const getApplicationWithJob = async ({ id }: { id: string }) => {
   try {
     const session = await fetchAuthSession();
@@ -215,224 +495,6 @@ export const getApplicationWithJob = async ({ id }: { id: string }) => {
     throw error;
   }
 };
-
-export const updateApplication = async ({
-  id,
-  input,
-}: {
-  id: string;
-  input: {
-    completedSteps?: string[];
-  };
-}) => {
-  try {
-    const session = await fetchAuthSession();
-    if (!session.tokens) {
-      throw new Error("No valid authentication session found");
-    }
-  } catch (error) {
-    console.error("No user is signed in");
-    return;
-  }
-
-  const client = generateClient();
-
-  try {
-    // Validate required parameters
-    if (!id) {
-      throw new Error("Application id is required");
-    }
-
-    if (Object.keys(input).length === 0) {
-      throw new Error("At least one field to update is required");
-    }
-
-    const response = await client.graphql({
-      query: `
-        mutation UpdateApplication($input: UpdateApplicationInput!) {
-          updateApplication(input: $input) {
-            id
-          }
-        }
-      `,
-      variables: {
-        input: {
-          id,
-          ...input,
-        },
-      },
-      authMode: "userPool",
-    });
-
-    if ("data" in response) {
-      return response.data.updateApplication;
-    }
-
-    throw new Error("Unexpected response format from GraphQL operation");
-  } catch (error) {
-    console.error("Error updating Application:", error);
-    throw error;
-  }
-};
-
-export const getApplicationAssociations = async ({
-  applicationId,
-  associationType,
-}: {
-  applicationId: string;
-  associationType:
-    | "Award"
-    | "Education"
-    | "SpecializedExperience"
-    | "PastJob"
-    | "Volunteer"
-    | "Resume";
-}) => {
-  try {
-    const session = await fetchAuthSession();
-    if (!session.tokens) {
-      throw new Error("No valid authentication session found");
-    }
-  } catch (error) {
-    console.error("No user is signed in");
-    return;
-  }
-
-  const client = generateClient();
-
-  try {
-    // Validate required parameters
-    if (!applicationId) {
-      throw new Error("applicationId is required");
-    }
-
-    // Build the query name based on the associationType
-    const queryName = `list${associationType}Applications`;
-
-    // Build the filter to match the applicationId
-    const filter = {
-      applicationId: { eq: applicationId },
-    };
-
-    // Define the fields to fetch based on the associationType
-    const getSpecificFields = () => {
-      switch (associationType) {
-        case "Award":
-          return `
-            title
-            date
-            userId
-          `;
-        case "Education":
-          return `
-            degree
-            major
-            school
-            date
-            title
-            gpa
-            userConfirmed
-            userId
-          `;
-        case "SpecializedExperience":
-          return `
-            title
-            description
-            userConfirmed
-            paragraph
-            initialMessage
-            userId
-          `;
-        case "PastJob":
-          return `
-            title
-            organization
-            startDate
-            endDate
-            hours
-            gsLevel
-            responsibilities
-            userId
-          `;
-        case "Volunteer":
-          return `
-            title
-            organization
-            startDate
-            endDate
-            hours
-            gsLevel
-            responsibilities
-            userId
-          `;
-        case "Resume":
-          return `
-            fileName
-            userId
-          `;
-        default:
-          return "";
-      }
-    };
-
-    // Execute the query to get the junction table entries
-    const junctionResponse = await client.graphql({
-      query: `
-        query List${associationType}Applications($filter: Model${associationType}ApplicationFilterInput) {
-          ${queryName}(filter: $filter) {
-            items {
-              id
-              applicationId
-              ${
-                associationType.charAt(0).toLowerCase() +
-                associationType.slice(1)
-              }Id
-              ${
-                associationType.charAt(0).toLowerCase() +
-                associationType.slice(1)
-              } {
-                id
-                ${getSpecificFields()}
-                createdAt
-                updatedAt
-              }
-              createdAt
-              updatedAt
-            }
-          }
-        }
-      `,
-      variables: { filter },
-      authMode: "userPool",
-    });
-
-    if ("data" in junctionResponse) {
-      // Extract and return just the associated items, not the junction records
-      const junctionItems = junctionResponse.data[queryName].items;
-      const associatedItems = junctionItems
-        .map(
-          (item: any) =>
-            item[
-              associationType.charAt(0).toLowerCase() + associationType.slice(1)
-            ]
-        )
-        .filter(Boolean); // Filter out any null items
-
-      return associatedItems;
-    }
-
-    throw new Error(
-      `Unexpected response format from GraphQL operation for ${associationType}`
-    );
-  } catch (error) {
-    console.error(
-      `Error fetching ${associationType} associations for Application:`,
-      error
-    );
-    throw error;
-  }
-};
-
 export const listApplications = async () => {
   try {
     const session = await fetchAuthSession();
@@ -528,3 +590,67 @@ export const listUserApplications = async ({ userId }: { userId: string }) => {
     throw error;
   }
 };
+export const updateApplication = async ({
+  id,
+  input,
+}: {
+  id: string;
+  input: {
+    completedSteps?: string[];
+  };
+}) => {
+  try {
+    const session = await fetchAuthSession();
+    if (!session.tokens) {
+      throw new Error("No valid authentication session found");
+    }
+  } catch (error) {
+    console.error("No user is signed in");
+    return;
+  }
+
+  const client = generateClient();
+
+  try {
+    // Validate required parameters
+    if (!id) {
+      throw new Error("Application id is required");
+    }
+
+    if (Object.keys(input).length === 0) {
+      throw new Error("At least one field to update is required");
+    }
+
+    const response = await client.graphql({
+      query: `
+        mutation UpdateApplication($input: UpdateApplicationInput!) {
+          updateApplication(input: $input) {
+            id
+          }
+        }
+      `,
+      variables: {
+        input: {
+          id,
+          ...input,
+        },
+      },
+      authMode: "userPool",
+    });
+
+    if ("data" in response) {
+      return response.data.updateApplication;
+    }
+
+    throw new Error("Unexpected response format from GraphQL operation");
+  } catch (error) {
+    console.error("Error updating Application:", error);
+    throw error;
+  }
+};
+/**
+ * Helper function to deduplicate an array of objects by ID
+ *
+ * @param {Array<{id: string}>} items - Array of objects with id property
+ * @returns {Array<{id: string}>} - Array with duplicates removed
+ */

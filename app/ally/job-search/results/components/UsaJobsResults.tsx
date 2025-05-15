@@ -74,7 +74,6 @@ export default function UsaJobsResults({
       let jobRes = await createOrGetJob({
         ...formattedJobDescription,
       });
-      console.log("jobRes", jobRes);
       let applicationRes = await createAndSaveApplication({
         jobId: jobRes.id,
         userId: user.userId,
@@ -88,7 +87,8 @@ export default function UsaJobsResults({
       setSteps(updatedSteps);
       setJob(jobRes);
 
-      navigateToNextIncompleteStep("usa-jobs");
+      // Only navigate after all steps are completed
+      await navigateToNextIncompleteStep("usa-jobs");
     }
   }
 

@@ -50,7 +50,6 @@ export default function NewVolunteerPage() {
     setLoading(true);
     try {
       let res = await createModelRecord("Volunteer", formData);
-      console.log(res);
       setLoading(false);
       router.push(`/profile/volunteers/${res.id}`);
     } catch (error) {

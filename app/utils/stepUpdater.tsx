@@ -9,17 +9,16 @@ export async function completeSteps({
   stepId: string;
   applicationId: string;
 }) {
-  console.log("completeSteps", steps, stepId);
-
+  const updatedSteps = steps.map((step: StepsType) =>
+    step.id === stepId ? { ...step, completed: true } : step
+  );
   await updateApplication({
     id: applicationId,
     input: {
-      completedSteps: steps
+      completedSteps: updatedSteps
         .filter((step: StepsType) => step.completed)
         .map((step: StepsType) => step.id),
     },
   });
-  return steps.map((step: StepsType) =>
-    step.id === stepId ? { ...step, completed: true } : step
-  );
+  return updatedSteps;
 }

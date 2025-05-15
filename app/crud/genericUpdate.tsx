@@ -27,6 +27,30 @@ export async function updateModelRecord(
       ...input,
     };
 
+    // Extract fields we don't want to include in the update operation
+    const { createdAt, updatedAt, ...withoutTimestamps } = updateInput as any;
+
+    // Remove relationship fields that can't be sent directly in an update mutation
+    // This handles arrays of related objects (hasMany relationships)
+    const fieldsToRemove = [
+      "pastJobQualifications",
+      "applications",
+      "volunteers",
+      "educations",
+      "resumes",
+      "specializedExperiences",
+      "awards",
+      "topics",
+      "pastJobs",
+    ];
+
+    const filteredUpdateData = { ...withoutTimestamps };
+    for (const field of fieldsToRemove) {
+      if (field in filteredUpdateData) {
+        delete filteredUpdateData[field];
+      }
+    }
+
     // Create the GraphQL mutation query
     const mutation = `
       mutation Update${modelName}($input: Update${modelName}Input!) {
@@ -43,7 +67,7 @@ export async function updateModelRecord(
     const updateResult = await client.graphql({
       query: mutation,
       variables: {
-        input: updateInput,
+        input: filteredUpdateData,
       },
       authMode: "userPool",
     });
@@ -92,31 +116,3 @@ export async function batchUpdateModelRecords(
 
   return results;
 }
-
-/**
- * Example usage:
- *
- * // Update a single education record
- * const updatedEducation = await updateModelRecord("Education", "edu123", {
- *   school: "Updated University Name",
- *   gpa: "3.9"
- * });
- *
- * // Update multiple PastJob records
- * const updatedJobs = await batchUpdateModelRecords("PastJob", [
- *   {
- *     id: "job123",
- *     input: {
- *       title: "Updated Job Title",
- *       hours: "40"
- *     }
- *   },
- *   {
- *     id: "job456",
- *     input: {
- *       organization: "Updated Company Name",
- *       endDate: "2023-12-31"
- *     }
- *   }
- * ]);
- */

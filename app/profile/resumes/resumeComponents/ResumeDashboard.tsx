@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import ResumesTable from "./resumeComponents/ResumesTable";
-import ResumeUploader from "./resumeComponents/ResumeUploader";
+import ResumesTable from "./ResumesTable";
+import ResumeUploader from "./ResumeUploader";
 import { list } from "aws-amplify/storage";
 import { ResumeType } from "@/app/utils/responseSchemas";
 

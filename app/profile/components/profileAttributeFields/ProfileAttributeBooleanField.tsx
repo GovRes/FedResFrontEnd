@@ -28,7 +28,6 @@ export default function ProfileAttributeBooleanField({
       attributeKey,
       checked.toString()
     );
-    console.log(response);
     if (response === "200") {
       setAttributes((prev: any) => ({
         ...prev,

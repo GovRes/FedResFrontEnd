@@ -34,7 +34,6 @@ export default function AwardsPage({}) {
       itemType="Award"
       localItems={localAwards}
       setLocalItems={setLocalAwards}
-      nextPath={"/ally/past-experience/education"}
     />
   );
 }

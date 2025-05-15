@@ -57,7 +57,6 @@ export function useNextStepNavigation() {
     const nextStep = findNextIncompleteStep(steps, currentStepId);
 
     if (nextStep) {
-      console.log(`Navigating to next incomplete step: ${nextStep.id}`);
       router.push(`/ally${nextStep.path}`);
       return true;
     } else {

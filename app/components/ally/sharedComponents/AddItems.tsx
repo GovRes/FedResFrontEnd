@@ -53,10 +53,7 @@ export default function AddItems<
   }
 
   function completeAndMoveOn() {
-    console.log("completeAndMoveOn called");
-    console.log("localItems:", localItems);
     setGlobalItems(localItems);
-    console.log("Global items set, calling setNext()");
     setNext();
   }
 

@@ -38,7 +38,6 @@ export default function Editing({
 
   function savePastJob(item: PastJobType) {
     let updatedItems = localPastJobs.map((i) => (i.id !== item.id ? i : item));
-    console.log({ updatedItems });
     setLocalPastJobs(updatedItems);
   }
   const hasFetched = useRef(false);
@@ -46,12 +45,10 @@ export default function Editing({
     if (hasFetched.current) return;
     async function connectJobsToTopics() {
       if (topics && localPastJobs) {
-        console.log(88);
         const result = await topicPastJobMatcher({
-          PastJobs: localPastJobs,
+          pastJobs: localPastJobs,
           topics,
         });
-        console.log(101, result);
         // Mark the matching as complete
         setLocalPastJobs(result as PastJobType[]);
       }
@@ -100,8 +97,8 @@ export default function Editing({
               currentJobIndex={currentJobIndex}
               localPastJobs={localPastJobs}
               // nextStep={nextStep}
-              PastJob={localPastJobs[currentJobIndex]}
-              PastJobsLength={localPastJobs.length}
+              pastJob={localPastJobs[currentJobIndex]}
+              pastJobsLength={localPastJobs.length}
               setCurrentJobIndex={setCurrentJobIndex}
               savePastJob={savePastJob}
             />
