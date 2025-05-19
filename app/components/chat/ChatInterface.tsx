@@ -1,4 +1,3 @@
-// EnhancedChatInterface.tsx
 import React, { useState, useEffect, FormEvent } from "react";
 import { useChatContext } from "../../providers/chatContext";
 import { useEditableParagraph } from "../../providers/editableParagraphContext";
@@ -9,7 +8,7 @@ type Message = {
   content: string;
 };
 
-export default function EnhancedChatInterface() {
+export default function ChatInterface() {
   // Get context data
   const {
     currentItem,

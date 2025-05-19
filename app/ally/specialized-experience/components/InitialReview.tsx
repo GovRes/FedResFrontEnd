@@ -1,10 +1,9 @@
-import { AllyContext, useAlly } from "@/app/providers";
 import { useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { specializedExperienceExtractor } from "../../aiProcessing/specializedExperienceExtractor";
-import styles from "../ally.module.css";
+import { specializedExperienceExtractor } from "@/app/components/aiProcessing/specializedExperienceExtractor";
+import styles from "../../ally.module.css";
 import { SpecializedExperienceType } from "@/app/utils/responseSchemas";
-import { TextBlinkLoader } from "../../loader/Loader";
+import { TextBlinkLoader } from "@/app/components/loader/Loader";
 
 import { SpecializedExperienceContext } from "@/app/providers/specializedExperienceContext";
 import { useApplication } from "@/app/providers/applicationContext";
@@ -18,14 +17,13 @@ export default function InitialReview({}: // setReviewing,
   // setReviewing: (reviewing: boolean) => void;
 }) {
   const { job } = useApplication();
-  const { loading, setLoading, setLoadingText } = useAlly();
   const { user } = useAuthenticator();
   const { specializedExperiences, setSpecializedExperiences } = useContext(
     SpecializedExperienceContext
   );
   const router = useRouter();
   // const applicationId = "1dfd50fb-e594-412d-a62b-be45e8117dc3"; //for testing
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const { navigateToNextIncompleteStep } = useNextStepNavigation();
   const { steps, applicationId, setSteps } = useApplication();
   async function completeStep() {
@@ -69,18 +67,13 @@ export default function InitialReview({}: // setReviewing,
     async function fetchSpecializedExperience({ job }: { job: any }) {
       const specializedExperienceRes = await specializedExperienceExtractor({
         job,
-        setLoading,
-        setLoadingText,
       });
       setSpecializedExperiences(specializedExperienceRes);
     }
     fetchSpecializedExperience({ job });
   }, []);
-  useEffect(() => {
-    setIsLoading(loading);
-  }, [loading]);
 
-  if (isLoading) {
+  if (loading) {
     return <TextBlinkLoader text="Loading specialized experiences..." />;
   }
   return (

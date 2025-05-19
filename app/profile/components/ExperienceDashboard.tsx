@@ -18,6 +18,7 @@ import { TextBlinkLoader } from "../../components/loader/Loader";
 import { pascalToDashed } from "@/app/utils/stringBuilders";
 
 // Define a type that represents all possible item types
+
 type ExperienceItemType =
   | AwardType
   | EducationType
@@ -50,14 +51,15 @@ export default function ExperienceDashboard({
           // If the experienceType is "Volunteer", we need to filter the items
           // to only include those that are of type "Volunteer"
           const filteredItems = itemsRes.filter(
-            (item) => item.type === "Volunteer"
+            (item): item is PastJobType =>
+              "type" in item && item.type === "Volunteer"
           );
           setItems(filteredItems);
           return;
         } else if (experienceType === "PastJob") {
-          console.log(58, itemsRes);
           const filteredItems = itemsRes.filter(
-            (item) => item.type === "PastJob"
+            (item): item is PastJobType =>
+              "type" in item && item.type === "PastJob"
           );
           setItems(filteredItems);
           return;

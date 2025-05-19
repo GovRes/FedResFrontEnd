@@ -2,6 +2,10 @@
 
 import { use, useEffect, useState } from "react";
 import ExperienceDetailPage from "../../components/ExperienceDetailPage";
+import {
+  pastJobsAssistantName,
+  pastJobsAssistantInstructions,
+} from "@/app/prompts/pastJobsWriterPrompt";
 
 export default function JobDetailPage({
   params,
@@ -10,5 +14,12 @@ export default function JobDetailPage({
 }) {
   const { id } = use(params);
 
-  return <ExperienceDetailPage currentStepId="past-job-details" id={id} />;
+  return (
+    <ExperienceDetailPage
+      assistantName={pastJobsAssistantName}
+      assistantInstructions={pastJobsAssistantInstructions}
+      currentStepId="past-job-details"
+      id={id}
+    />
+  );
 }

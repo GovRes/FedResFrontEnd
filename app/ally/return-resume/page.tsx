@@ -7,7 +7,6 @@ import {
 } from "@/app/utils/responseSchemas";
 import SpecializedExperienceItem from "./components/SpecializedExperienceItem";
 import { useContext, useEffect, useState } from "react";
-import { AllyContext, useAlly } from "@/app/providers";
 import PastJobItem from "./components/PastJobItem";
 import EducationExperienceItem from "./components/EducationItem";
 import { fetchUserAttributes } from "aws-amplify/auth";

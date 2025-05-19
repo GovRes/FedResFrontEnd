@@ -1,13 +1,12 @@
-// EnhancedChatLayout.tsx
 import React from "react";
 import { ChatProvider, BaseItem } from "@/app/providers/chatContext";
 import { EditableParagraphProvider } from "@/app/providers/editableParagraphContext";
-import EnhancedSidebar from "./Sidebar";
-import EnhancedChatInterface from "./ChatInterface";
+import Sidebar from "./Sidebar";
+import ChatInterface from "./ChatInterface";
 import ProgressTracker from "./ProgressTracker";
 import styles from "./chatInterface.module.css";
 
-type EnhancedChatLayoutProps<T extends BaseItem> = {
+type ChatLayoutProps<T extends BaseItem> = {
   items: T[];
   saveFunction: (item: T) => Promise<void>;
   onComplete: () => void;
@@ -23,7 +22,7 @@ type EnhancedChatLayoutProps<T extends BaseItem> = {
   isEditMode?: boolean; // New prop to indicate we're in edit mode
 };
 
-export default function EnhancedChatLayout<T extends BaseItem>({
+export default function ChatLayout<T extends BaseItem>({
   items,
   saveFunction,
   onComplete,
@@ -37,7 +36,7 @@ export default function EnhancedChatLayout<T extends BaseItem>({
   currentStepId,
   isNestedView = false,
   isEditMode = false,
-}: EnhancedChatLayoutProps<T>) {
+}: ChatLayoutProps<T>) {
   console.log(41, items);
   return (
     <div
@@ -70,11 +69,8 @@ export default function EnhancedChatLayout<T extends BaseItem>({
           <ProgressTracker />
 
           <div className={styles.chatLayoutContent}>
-            <EnhancedSidebar
-              title={sidebarTitle}
-              displayNestedItems={isNestedView}
-            />
-            <EnhancedChatInterface />
+            <Sidebar title={sidebarTitle} displayNestedItems={isNestedView} />
+            <ChatInterface />
           </div>
         </ChatProvider>
       </EditableParagraphProvider>

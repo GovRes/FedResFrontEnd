@@ -16,7 +16,7 @@ import { useRouter } from "next/navigation";
 import { getJobByApplicationId } from "../crud/job";
 
 // Combined interface for state + methods
-export interface ApplicationContextType {
+interface ApplicationContextType {
   // State properties
   job: JobType | undefined;
   steps: StepsType[];
@@ -110,9 +110,9 @@ export const defaultSteps: StepsType[] = [
   },
 ];
 
-export const ApplicationContext = createContext<
-  ApplicationContextType | undefined
->(undefined);
+const ApplicationContext = createContext<ApplicationContextType | undefined>(
+  undefined
+);
 
 interface ApplicationProviderProps {
   children: ReactNode;

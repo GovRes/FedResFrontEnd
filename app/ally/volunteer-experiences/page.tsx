@@ -5,8 +5,8 @@ import { PastJobType } from "@/app/utils/responseSchemas";
 import { TextBlinkLoader } from "@/app/components/loader/Loader";
 import { listUserModelRecords } from "@/app/crud/genericListForUser";
 import { useAuthenticator } from "@aws-amplify/ui-react";
-export default function pastJobsPage() {
-  const [localpastJobs, setLocalpastJobs] = useState<PastJobType[]>([]);
+export default function volunteersPage() {
+  const [localPastJobs, setLocalPastJobs] = useState<PastJobType[]>([]);
 
   const { user } = useAuthenticator();
 
@@ -21,7 +21,7 @@ export default function pastJobsPage() {
         res.items = res.items.filter(
           (job: PastJobType) => job.type === "Volunteer"
         );
-        setLocalpastJobs(res.items);
+        setLocalPastJobs(res.items);
       }
       setLoading(false);
     }
@@ -36,8 +36,8 @@ export default function pastJobsPage() {
     <InitialReview
       currentStepId="volunteer-experiences"
       itemType="PastJob"
-      localItems={localpastJobs}
-      setLocalItems={setLocalpastJobs}
+      localItems={localPastJobs}
+      setLocalItems={setLocalPastJobs}
     />
   );
 }

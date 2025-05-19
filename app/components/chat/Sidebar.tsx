@@ -1,18 +1,17 @@
-// EnhancedSidebar.tsx
 import React from "react";
 import { useChatContext, BaseItem } from "@/app/providers/chatContext";
 import { useEditableParagraph } from "@/app/providers/editableParagraphContext";
 import styles from "./chatInterface.module.css";
 
-type EnhancedSidebarProps = {
+type SidebarProps = {
   title: string;
   displayNestedItems?: boolean;
 };
 
-export default function EnhancedSidebar({
+export default function Sidebar({
   title,
   displayNestedItems = false,
-}: EnhancedSidebarProps) {
+}: SidebarProps) {
   const {
     items,
     currentIndex,

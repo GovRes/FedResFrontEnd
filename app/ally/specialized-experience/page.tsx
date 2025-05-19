@@ -1,5 +1,5 @@
 "use client";
-import InitialReview from "@/app/components/ally/specializedExperienceComponents/InitialReview";
+import InitialReview from "./components/InitialReview";
 
 export default function SpecializedExperiencePage() {
   return <InitialReview />;

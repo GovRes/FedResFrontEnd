@@ -18,12 +18,6 @@ export type ApplicationType = {
 export const Keywords = z.object({
   keywords: z.array(z.string()),
 });
-
-export const Recommendation = z.object({
-  numberOfQualifiedKeyPhrases: z.number(),
-  recommendation: z.enum(["Recommend", "Do not recommend"]),
-  justification: z.string(),
-});
 export const Education = z.object({
   date: z.string(),
   degree: z.string(),
@@ -143,22 +137,6 @@ export const PastJob = z.object({
 
 export type PastJobType = z.infer<typeof PastJob>;
 export const PastJobsArraySchema = z.object({ pastJobs: z.array(PastJob) });
-
-export const VolunteerArraySchema = z.object({ volunteer: z.array(PastJob) });
-export type StepType =
-  | "temp_registration"
-  | "usa-jobs"
-  | "specialized-experience"
-  | "extract-keywords"
-  | "resume"
-  | "past-jobs"
-  | "user-job-details"
-  | "awards"
-  | "education"
-  | "volunteer"
-  | "volunteer-details"
-  | "return-resume"
-  | "pause";
 
 export type StepsType = {
   id: string;

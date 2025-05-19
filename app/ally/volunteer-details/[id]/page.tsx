@@ -1,6 +1,11 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use } from "react";
+import {
+  volunteersAssistantName,
+  volunteersAssistantInstructions,
+} from "@/app/prompts/volunteersWriterPrompt";
+
 import ExperienceDetailPage from "../../components/ExperienceDetailPage";
 
 export default function JobDetailPage({
@@ -9,17 +14,13 @@ export default function JobDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const [path, setPath] = useState<string>("");
 
-  useEffect(() => {
-    // Get current URL path
-    const path = window.location.pathname;
-    // Find the last segment before the ID
-    const match = path.match(/\/([^\/]+)\/[^\/]+$/);
-    if (match && match[1]) {
-      setPath(match[1]);
-    }
-  }, []);
-
-  return <ExperienceDetailPage id={id} currentStepId="volunteer-details" />;
+  return (
+    <ExperienceDetailPage
+      assistantName={volunteersAssistantName}
+      assistantInstructions={volunteersAssistantInstructions}
+      id={id}
+      currentStepId="volunteer-details"
+    />
+  );
 }

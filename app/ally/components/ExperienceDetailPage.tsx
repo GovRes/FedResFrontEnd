@@ -12,9 +12,13 @@ import { BaseItem } from "../../providers/chatContext";
 import { usePastJobDetailsStep } from "@/app/providers/useApplicationStep";
 
 export default function ExperienceDetailPage({
+  assistantName,
+  assistantInstructions,
   currentStepId,
   id,
 }: {
+  assistantName: string;
+  assistantInstructions: string;
   currentStepId: string;
   id: string;
 }) {
@@ -160,7 +164,7 @@ export default function ExperienceDetailPage({
     // If we're in edit mode, we need to remove the edit=true param when navigating
     if (isEditingMode) {
       // Just go back to the past-jobs page without the edit param
-      router.push("/ally/past-job-details");
+      router.push(`/ally/${currentStepId}`);
       return;
     }
 
@@ -169,10 +173,10 @@ export default function ExperienceDetailPage({
 
     if (nextJob) {
       // Navigate to the next job that needs work
-      router.push(`/ally/past-job-details/${nextJob.id}`);
+      router.push(`/ally/${currentStepId}/${nextJob.id}`);
     } else {
       // All jobs are complete, move to the next step
-      router.push("/ally/past-job-details");
+      router.push(`/ally/${currentStepId}`);
     }
   };
 
@@ -199,8 +203,8 @@ export default function ExperienceDetailPage({
         currentStepId={currentStepId}
         saveFunction={saveQualification}
         onComplete={handleComplete}
-        assistantName="Ally"
-        assistantInstructions={`Help the user write detailed paragraphs about their ${pastJob.title} experience at ${pastJob.organization} that demonstrate they have the qualifications needed for ${job?.title} at the ${job?.department}.`}
+        assistantName={assistantName}
+        assistantInstructions={assistantInstructions}
         jobString={`${job?.title} at the ${job?.department}`}
         sidebarTitle={`Qualifications for ${pastJob.title}`}
         heading={`${pastJob.title} at ${pastJob.organization} - Applicable Work Experience`}

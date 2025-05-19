@@ -9,15 +9,9 @@ import {
 
 export const specializedExperienceExtractor = async ({
   job,
-  setLoading,
-  setLoadingText,
 }: {
   job?: JobType;
-  setLoading: Function;
-  setLoadingText: Function;
 }) => {
-  setLoadingText("Reviewing job description for specialized experience.");
-  setLoading(true);
   const userMessage: ChatCompletionUserMessageParam = {
     role: "user",
     content: `Qualifications summary: ${job?.qualificationsSummary}`,
@@ -36,7 +30,5 @@ export const specializedExperienceExtractor = async ({
   } catch (error) {
     console.error("Error extracting specialized experiences:", error);
     throw error;
-  } finally {
-    setLoading(false);
   }
 };

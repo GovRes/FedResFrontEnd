@@ -4,7 +4,6 @@ import UsaJobsResultsItem from "./UsaJobsResultsItem";
 import styles from "../../../ally.module.css";
 import { createModelRecord } from "@/app/crud/genericCreate";
 import Modal from "@/app/components/modal/Modal";
-import { AllyContext } from "@/app/providers";
 import { formatJobDescription } from "@/app/utils/usaJobsSearch";
 import indefiniteArticle from "@/app/utils/indefiniteArticles";
 import { createAndSaveApplication } from "@/app/crud/application";
@@ -48,12 +47,6 @@ export default function UsaJobsResults({
   searchResults: Result[];
   setShowSearchForm: Function;
 }) {
-  const allyContext = useContext(AllyContext);
-  if (!allyContext) {
-    throw new Error(
-      "AllyContainer must be used within an AllyContext.Provider"
-    );
-  }
   const { steps, setJob, setSteps, setApplicationId } = useApplication();
   const { navigateToNextIncompleteStep } = useNextStepNavigation();
   const { user } = useAuthenticator();
