@@ -5,7 +5,7 @@ import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { PastJobType } from "@/app/utils/responseSchemas";
 import { TextBlinkLoader } from "@/app/components/loader/Loader";
-import PastJobItem from "@/app/components/ally/returnResumeComponents/PastJobItem";
+import PastJobItem from "@/app/ally/return-resume/components/PastJobItem";
 export default function AwardPage({
   params,
 }: {
@@ -18,7 +18,7 @@ export default function AwardPage({
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      const volunteerData = await fetchModelRecord("Volunteer", id);
+      const volunteerData = await fetchModelRecord("PastJob", id);
       setVolunteer(volunteerData);
       setLoading(false);
     }

@@ -4,8 +4,6 @@ import {
   EducationType,
   SpecializedExperienceType,
   PastJobType,
-  PastJobQualificationType,
-  TopicType,
   ResumeType,
 } from "../utils/responseSchemas";
 import { generateClient } from "aws-amplify/api";
@@ -18,7 +16,6 @@ type AssociationType =
   | "Education"
   | "SpecializedExperience"
   | "PastJob"
-  | "Volunteer"
   | "Resume";
 
 type AssociationTypeMap = {
@@ -26,7 +23,6 @@ type AssociationTypeMap = {
   Education: EducationType;
   SpecializedExperience: SpecializedExperienceType;
   PastJob: PastJobType;
-  Volunteer: PastJobType; // Note: Volunteer uses PastJobType structure
   Resume: ResumeType;
 };
 export const associateItemsWithApplication = async ({
@@ -266,11 +262,12 @@ export const getApplicationAssociations = async <T extends AssociationType>({
             supervisorMayContact
             supervisorName
             supervisorPhone
-            pastJobQualifications {
+            type
+            qualifications {
               items {
                 id
-                pastJobQualificationId
-                pastJobQualification {
+                qualificationId
+                qualification {
                   id
                   title
                   description
@@ -293,18 +290,6 @@ export const getApplicationAssociations = async <T extends AssociationType>({
             responsibilities
             startDate
             title
-            userId
-          `;
-        case "Volunteer":
-          return `
-            title
-            organization
-            organizationAddress
-            startDate
-            endDate
-            hours
-            gsLevel
-            responsibilities
             userId
           `;
         case "Resume":
@@ -364,23 +349,20 @@ export const getApplicationAssociations = async <T extends AssociationType>({
       const uniqueItems = deduplicateById(associatedItemsWithDuplicates);
 
       // Special handling for PastJob and Volunteer to transform the data structure
-      if (associationType === "PastJob" || associationType === "Volunteer") {
+      if (associationType === "PastJob") {
         return uniqueItems.map((item: any) => {
           // Convert hours to string if it's a number to match schema
           const hours =
             item.hours !== undefined ? String(item.hours) : undefined;
 
-          // For PastJob, format pastJobQualifications properly
-          if (associationType === "PastJob") {
-            return {
-              ...item,
-              hours,
-              // Format pastJobQualifications as an array matching the schema
-              pastJobQualifications: (
-                item.pastJobQualifications?.items || []
-              ).map((qualJunction: any) => {
+          return {
+            ...item,
+            hours,
+            // Format qualifications as an array matching the schema
+            qualifications: (item.qualifications?.items || []).map(
+              (qualJunction: any) => {
                 // Get the actual qualification from the junction object
-                const qual = qualJunction.pastJobQualification || {};
+                const qual = qualJunction.qualification || {};
 
                 return {
                   id: qual.id || qualJunction.id || "",
@@ -406,15 +388,9 @@ export const getApplicationAssociations = async <T extends AssociationType>({
                         keywords: [],
                       },
                 };
-              }),
-            };
-          } else {
-            // For Volunteer, just ensure hours is a string
-            return {
-              ...item,
-              hours,
-            };
-          }
+              }
+            ),
+          };
         }) as AssociationTypeMap[T][];
       }
 
@@ -654,3 +630,189 @@ export const updateApplication = async ({
  * @param {Array<{id: string}>} items - Array of objects with id property
  * @returns {Array<{id: string}>} - Array with duplicates removed
  */
+
+/**
+ * Deletes an Application and all its associated join table entries
+ * without deleting the actual associated items (Education, Award, etc.)
+ *
+ * @param {Object} params - The function parameters
+ * @param {string} params.applicationId - The ID of the application to delete
+ * @returns {Promise<any>} - The deleted application data
+ * @throws {Error} - If deletion fails or required parameters are missing
+ */
+export const deleteApplication = async ({
+  applicationId,
+}: {
+  applicationId: string;
+}) => {
+  try {
+    const session = await fetchAuthSession();
+    if (!session.tokens) {
+      throw new Error("No valid authentication session found");
+    }
+  } catch (error) {
+    console.error("No user is signed in");
+    return;
+  }
+
+  const client = generateClient();
+
+  try {
+    // Validate required parameter
+    if (!applicationId) {
+      throw new Error("applicationId is required");
+    }
+
+    // Define the join tables that need to be cleaned up
+    const joinTables = [
+      "AwardApplication",
+      "EducationApplication",
+      "ResumeApplication",
+      "SpecializedExperienceApplication",
+      "PastJobApplication",
+    ];
+
+    // Step 1: Delete all join table entries for each association type
+    for (const joinTable of joinTables) {
+      // 1.1: List all join table entries for this application
+      const listQuery = `
+        query List${joinTable}s($filter: Model${joinTable}FilterInput) {
+          list${joinTable}s(filter: $filter) {
+            items {
+              id
+            }
+          }
+        }
+      `;
+
+      const listResponse = await client.graphql({
+        query: listQuery,
+        variables: {
+          filter: {
+            applicationId: { eq: applicationId },
+          },
+        },
+        authMode: "userPool",
+      });
+
+      if (
+        "data" in listResponse &&
+        listResponse.data[`list${joinTable}s`]?.items
+      ) {
+        const joinItems = listResponse.data[`list${joinTable}s`].items;
+
+        // 1.2: Delete each join table entry
+        for (const item of joinItems) {
+          const deleteQuery = `
+            mutation Delete${joinTable}($input: Delete${joinTable}Input!) {
+              delete${joinTable}(input: $input) {
+                id
+              }
+            }
+          `;
+
+          await client.graphql({
+            query: deleteQuery,
+            variables: {
+              input: { id: item.id },
+            },
+            authMode: "userPool",
+          });
+        }
+
+        console.log(
+          `Deleted ${joinItems.length} ${joinTable} entries for application ${applicationId}`
+        );
+      }
+    }
+
+    // Step 2: Now that all join table entries are deleted, delete the application itself
+    const deleteApplicationQuery = `
+      mutation DeleteApplication($input: DeleteApplicationInput!) {
+        deleteApplication(input: $input) {
+          id
+          jobId
+          userId
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const deleteResponse = await client.graphql({
+      query: deleteApplicationQuery,
+      variables: {
+        input: { id: applicationId },
+      },
+      authMode: "userPool",
+    });
+
+    if ("data" in deleteResponse) {
+      console.log(`Successfully deleted application ${applicationId}`);
+      return deleteResponse.data.deleteApplication;
+    }
+
+    throw new Error("Unexpected response format from GraphQL operation");
+  } catch (error) {
+    console.error("Error deleting Application:", error);
+    throw error;
+  }
+};
+
+/**
+ * Helper function to delete a single item from a join table
+ *
+ * @param {Object} params - The function parameters
+ * @param {string} params.id - The ID of the join table entry to delete
+ * @param {string} params.tableName - The name of the join table (e.g., "AwardApplication")
+ * @returns {Promise<any>} - The deleted join table entry data
+ * @throws {Error} - If deletion fails
+ */
+export const deleteJoinTableItem = async ({
+  id,
+  tableName,
+}: {
+  id: string;
+  tableName: string;
+}) => {
+  try {
+    const session = await fetchAuthSession();
+    if (!session.tokens) {
+      throw new Error("No valid authentication session found");
+    }
+  } catch (error) {
+    console.error("No user is signed in");
+    return;
+  }
+
+  const client = generateClient();
+
+  try {
+    const deleteQuery = `
+      mutation Delete${tableName}($input: Delete${tableName}Input!) {
+        delete${tableName}(input: $input) {
+          id
+        }
+      }
+    `;
+
+    const response = await client.graphql({
+      query: deleteQuery,
+      variables: {
+        input: { id },
+      },
+      authMode: "userPool",
+    });
+
+    if ("data" in response) {
+      return response.data[`delete${tableName}`];
+    }
+
+    throw new Error(
+      `Unexpected response format from GraphQL operation when deleting ${tableName}`
+    );
+  } catch (error) {
+    console.error(`Error deleting ${tableName}:`, error);
+    throw error;
+  }
+};

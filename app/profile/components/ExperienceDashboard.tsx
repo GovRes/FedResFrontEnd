@@ -6,8 +6,9 @@ import {
   EducationType,
   // ResumeType,
   SpecializedExperienceType,
-  PastJobQualificationType,
+  QualificationType,
   PastJobType,
+  PastJob,
 } from "@/app/utils/responseSchemas";
 import {
   fetchUserAssociations,
@@ -22,7 +23,7 @@ type ExperienceItemType =
   | EducationType
   | SpecializedExperienceType
   | PastJobType
-  | PastJobQualificationType;
+  | QualificationType;
 
 export default function ExperienceDashboard({
   experienceType,
@@ -37,13 +38,30 @@ export default function ExperienceDashboard({
       setLoading(true);
       try {
         // Explicitly cast experienceType to AssociationType for type safety
-        const associationType = experienceType as AssociationType;
-
+        let associationType = experienceType as AssociationType;
+        if (experienceType === "Volunteer") {
+          associationType = "PastJob";
+        }
         // Use the explicit type parameter for fetchUserAssociations
         const itemsRes = await fetchUserAssociations<ExperienceItemType>(
           associationType
         );
-
+        if (experienceType === "Volunteer") {
+          // If the experienceType is "Volunteer", we need to filter the items
+          // to only include those that are of type "Volunteer"
+          const filteredItems = itemsRes.filter(
+            (item) => item.type === "Volunteer"
+          );
+          setItems(filteredItems);
+          return;
+        } else if (experienceType === "PastJob") {
+          console.log(58, itemsRes);
+          const filteredItems = itemsRes.filter(
+            (item) => item.type === "PastJob"
+          );
+          setItems(filteredItems);
+          return;
+        }
         // Now itemsRes should match the expected type for setItems
         setItems(itemsRes);
       } catch (error) {

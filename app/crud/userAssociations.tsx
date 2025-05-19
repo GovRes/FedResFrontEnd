@@ -6,11 +6,9 @@ import { generateClient } from "aws-amplify/api";
 export type AssociationType =
   | "Award"
   | "Education"
-  // | "Resume"
   | "SpecializedExperience"
   | "PastJob"
-  | "Volunteer"
-  | "PastJobQualification";
+  | "Qualification";
 
 /**
  * Generic type for entity records
@@ -290,17 +288,9 @@ function getFieldsForType(associationType: AssociationType): string {
       "hours",
       "gsLevel",
       "responsibilities",
+      "type",
     ],
-    Volunteer: [
-      "title",
-      "organization",
-      "startDate",
-      "endDate",
-      "hours",
-      "gsLevel",
-      "responsibilities",
-    ],
-    PastJobQualification: [
+    Qualification: [
       "title",
       "description",
       "paragraph",

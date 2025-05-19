@@ -5,21 +5,66 @@ import { specializedExperienceExtractor } from "../../aiProcessing/specializedEx
 import styles from "../ally.module.css";
 import { SpecializedExperienceType } from "@/app/utils/responseSchemas";
 import { TextBlinkLoader } from "../../loader/Loader";
+
 import { SpecializedExperienceContext } from "@/app/providers/specializedExperienceContext";
 import { useApplication } from "@/app/providers/applicationContext";
+import { useNextStepNavigation } from "@/app/utils/nextStepNavigation";
+import { completeSteps } from "@/app/utils/stepUpdater";
+import { updateModelRecord } from "@/app/crud/genericUpdate";
+import { createAndSaveSpecializedExperiences } from "@/app/crud/specializedExperience";
+import { useAuthenticator } from "@aws-amplify/ui-react";
 export default function InitialReview({}: // setReviewing,
 {
   // setReviewing: (reviewing: boolean) => void;
 }) {
   const { job } = useApplication();
   const { loading, setLoading, setLoadingText } = useAlly();
+  const { user } = useAuthenticator();
   const { specializedExperiences, setSpecializedExperiences } = useContext(
     SpecializedExperienceContext
   );
   const router = useRouter();
   // const applicationId = "1dfd50fb-e594-412d-a62b-be45e8117dc3"; //for testing
   const [isLoading, setIsLoading] = useState(true);
-
+  const { navigateToNextIncompleteStep } = useNextStepNavigation();
+  const { steps, applicationId, setSteps } = useApplication();
+  async function completeStep() {
+    const updatedSteps = await completeSteps({
+      steps,
+      stepId: "specialized-experience",
+      applicationId,
+    });
+    await setSteps(updatedSteps);
+  }
+  async function storeSpecializedExperiences() {
+    setLoading(true);
+    try {
+      await createAndSaveSpecializedExperiences({
+        specializedExperiences,
+        applicationId,
+        userId: user.userId,
+      });
+      await completeStep();
+      navigateToNextIncompleteStep("specialized-experience");
+    } catch (error) {
+      console.error("Error storing specialized experiences:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+  async function saveSpecializedExperience({
+    specializedExperience,
+  }: {
+    specializedExperience: SpecializedExperienceType;
+  }) {
+    await updateModelRecord("SpecializedExperience", specializedExperience.id, {
+      applicationId,
+    });
+  }
+  function backToSearch() {
+    setSpecializedExperiences([]);
+    router.push("/ally/job-search");
+  }
   useEffect(() => {
     async function fetchSpecializedExperience({ job }: { job: any }) {
       const specializedExperienceRes = await specializedExperienceExtractor({
@@ -31,19 +76,6 @@ export default function InitialReview({}: // setReviewing,
     }
     fetchSpecializedExperience({ job });
   }, []);
-
-  // tk need to figure out what to do if there is ever NOT specialized experience
-  //   useEffect(() => {
-  //     if (!isLoading && specializedExperiences?.length === 0) {
-  //       setStep("resume");
-  //     }
-  //   }, [isLoading, specializedExperiences, setStep]);
-
-  //tk redo this section like jobs section, with preserving local state and sending to provider only when ready
-  function backToSearch() {
-    setSpecializedExperiences([]);
-    router.push("/ally/job-search");
-  }
   useEffect(() => {
     setIsLoading(loading);
   }, [loading]);
@@ -66,21 +98,14 @@ export default function InitialReview({}: // setReviewing,
       </div>
       <div>Do you have experience in all of these areas?</div>
       <div>
-        <button
-          onClick={() =>
-            router.push("/ally/specialized-experience/experience_writer")
-          }
-        >
+        {/* tk this button should SAVE the specialized experiences to the application! Duh. */}
+        <button onClick={() => storeSpecializedExperiences()}>
           Yes, I do.
         </button>
         <button onClick={backToSearch}>
           No, I don't. Take me back to the search.
         </button>
-        <button
-          onClick={() =>
-            router.push("/ally/specialized-experience/experience_writer")
-          }
-        >
+        <button onClick={() => storeSpecializedExperiences()}>
           I have some of this experience, and I would like to continue.
         </button>
       </div>

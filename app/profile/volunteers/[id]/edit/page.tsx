@@ -2,7 +2,7 @@
 import { TextBlinkLoader } from "@/app/components/loader/Loader";
 import { updateModelRecord } from "@/app/crud/genericUpdate";
 import { fetchModelRecord } from "@/app/crud/genericFetch";
-import PastJobForm from "@/app/profile/past-jobs/components/PastJobForm";
+import PastJobForm from "@/app/profile/components/components/PastJobForm";
 import { PastJobType } from "@/app/utils/responseSchemas";
 import { useEffect, useState } from "react";
 import { use } from "react";
@@ -23,13 +23,14 @@ export default function EditPastJobPage({
     id: "",
     organization: "",
     organizationAddress: "",
-    pastJobQualifications: [],
+    qualifications: [],
     responsibilities: "",
     startDate: "",
     supervisorMayContact: false,
     supervisorName: "",
     supervisorPhone: "",
     title: "",
+    type: "Volunteer",
     userId: "",
   });
   const onChange = (
@@ -64,7 +65,7 @@ export default function EditPastJobPage({
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      const volunteerData = await fetchModelRecord("Volunteer", id);
+      const volunteerData = await fetchModelRecord("PastJob", id);
       setFormData({ ...formData, ...volunteerData });
       setLoading(false);
     }

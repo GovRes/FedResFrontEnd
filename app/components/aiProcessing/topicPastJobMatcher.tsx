@@ -1,6 +1,5 @@
-import { z } from "zod";
 import { topicPastJobMatcherPrompt } from "@/app/prompts/topicPastJobMatcherPrompt";
-import { TopicType, PastJobType, PastJob } from "@/app/utils/responseSchemas";
+import { TopicType, PastJobType } from "@/app/utils/responseSchemas";
 import { sendMessages } from "@/app/utils/api";
 import {
   ChatCompletionSystemMessageParam,

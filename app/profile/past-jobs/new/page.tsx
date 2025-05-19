@@ -1,13 +1,13 @@
 "use client";
 import { useState } from "react";
-import PastJobForm from "../components/PastJobForm";
+import PastJobForm from "../../components/components/PastJobForm";
 import { PastJobType } from "@/app/utils/responseSchemas";
 import { TextBlinkLoader } from "@/app/components/loader/Loader";
 import { useRouter } from "next/navigation";
 import { createModelRecord } from "@/app/crud/genericCreate";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 
-export default function NewAwardPage() {
+export default function NewPastJobPage() {
   const router = useRouter();
   const { user } = useAuthenticator();
   const [loading, setLoading] = useState(false);
@@ -18,13 +18,14 @@ export default function NewAwardPage() {
     id: "",
     organization: "",
     organizationAddress: "",
-    pastJobQualifications: [],
+    qualifications: [],
     responsibilities: "",
     startDate: "",
     supervisorMayContact: false,
     supervisorName: "",
     supervisorPhone: "",
     title: "",
+    type: "PastJob",
     userId: user.userId,
   });
   const onChange = (

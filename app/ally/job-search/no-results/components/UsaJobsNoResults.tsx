@@ -1,4 +1,4 @@
-import styles from "../ally.module.css";
+import styles from "../../../ally.module.css";
 import {
   agencies,
   positionScheduleType,

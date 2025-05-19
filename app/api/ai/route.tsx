@@ -8,7 +8,6 @@ import {
   Keywords,
   EducationArraySchema,
   Qualification,
-  Qualifications,
   SpecializedExperienceArraySchema,
   Topic,
   TopicsArraySchema,
@@ -16,6 +15,7 @@ import {
 } from "@/app/utils/responseSchemas";
 
 export async function POST(req: NextRequest) {
+  console.log(18, "POST request received");
   const apiKey = process.env.OPENAI_API_KEY;
   const assistantId = process.env.OPEN_AI_ASSISTANT_ID;
 
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     education: EducationArraySchema,
     keywords: Keywords,
     qualification: Topic,
-    qualifications: Qualifications,
+    qualifications: Qualification,
     specializedExperiences: SpecializedExperienceArraySchema,
     topics: TopicsArraySchema,
     pastJobs: PastJobsArraySchema,
@@ -40,12 +40,14 @@ export async function POST(req: NextRequest) {
 
   type SchemaKey = keyof typeof schemas;
   const schemaName = data.name as SchemaKey;
+  console.log(43, schemaName);
   const selectedSchema = schemas[schemaName];
-
+  console.log(37, selectedSchema, schemaName);
   if (!selectedSchema) {
     console.error(`Invalid schema name: ${data.name}`);
     return new Response(`Invalid schema name: ${data.name}`, { status: 400 });
   }
+  console.log(49, selectedSchema, schemaName);
   try {
     const completion = await client.beta.chat.completions.parse({
       messages: data.messages,
@@ -58,13 +60,24 @@ export async function POST(req: NextRequest) {
       return new Response("Invalid response from OpenAI", { status: 500 });
     }
     const message = completion.choices[0]?.message;
+    console.log(62, message);
     if (message?.parsed) {
       return new Response(JSON.stringify(message.parsed), { status: 200 });
     } else {
       return new Response(JSON.stringify(message), { status: 200 });
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error during OpenAI API call:", error);
-    return new Response("Error during API call", { status: 500 });
+    return new Response(
+      JSON.stringify({
+        error: "Error during API call",
+        message: error.message || "Unknown error",
+        details: error.toString(),
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 }

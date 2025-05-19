@@ -15,16 +15,13 @@ export const validModelNames = [
   "SpecializedExperience",
   "Topic",
   "PastJob",
-  "PastJobQualification",
-  "Volunteer",
+  "Qualification",
   "AwardApplication",
   "EducationApplication",
   "ResumeApplication",
   "SpecializedExperienceApplication",
   "PastJobApplication",
-  "VolunteerApplication",
-  "PastJobPastJobQualification",
-  "PastJobQualificationVolunteer",
+  "PastJobQualification",
 ];
 
 /**
@@ -78,24 +75,15 @@ export const modelFields: Record<string, string[]> = {
     "supervisorName",
     "supervisorPhone",
     "title",
+    "type",
     "userId",
   ],
-  PastJobQualification: [
+  Qualification: [
     "title",
     "description",
     "paragraph",
     "userConfirmed",
     "topicId",
-    "userId",
-  ],
-  Volunteer: [
-    "title",
-    "organization",
-    "startDate",
-    "endDate",
-    "hours",
-    "gsLevel",
-    "responsibilities",
     "userId",
   ],
   AwardApplication: ["awardId", "applicationId"],
@@ -106,9 +94,7 @@ export const modelFields: Record<string, string[]> = {
     "applicationId",
   ],
   PastJobApplication: ["pastJobId", "applicationId"],
-  VolunteerApplication: ["volunteerId", "applicationId"],
-  PastJobPastJobQualification: ["pastJobId", "pastJobQualificationId"],
-  PastJobQualificationVolunteer: ["pastJobQualificationId", "volunteerId"],
+  PastJobQualification: ["pastJobId", "qualificationId"],
 };
 
 /**

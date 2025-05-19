@@ -16,12 +16,11 @@ export default function SkipItems({
     | "Education"
     | "SpecializedExperience"
     | "PastJob"
-    | "Volunteer"
+    | "VolunteerExperience"
     | "Resume";
 }) {
   const { steps, applicationId, setSteps } = useApplication();
   const { navigateToNextIncompleteStep } = useNextStepNavigation();
-  const router = useRouter();
   async function skipItems() {
     const updatedSteps = await completeSteps({
       steps,

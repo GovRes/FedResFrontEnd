@@ -1,26 +1,19 @@
 import { generateClient } from "aws-amplify/api";
 import { v4 as uuidv4 } from "uuid";
 import { updateModelRecord } from "./genericUpdate";
-import {
-  PastJobQualificationType,
-  PastJobType,
-} from "../utils/responseSchemas";
+import { QualificationType, PastJobType } from "../utils/responseSchemas";
 
 /**
- * Batch version to update multiple PastJob records including their pastJobQualifications
+ * Batch version to update multiple PastJob records including their qualifications
  *
  * @param {Array<Object>} pastJobUpdates - Array of objects containing pastJob update information
  * @param {string} pastJobUpdates[].pastJobId - The ID of the PastJob to update
  * @param {Object} pastJobUpdates[].pastJobData - The PastJob data to update
- * @param {Array} pastJobUpdates[].pastJobQualifications - Array of pastJobQualification objects to associate with the PastJob
+ * @param {Array} pastJobUpdates[].qualifications - Array of qualification objects to associate with the PastJob
  * @returns {Promise<Array<Object>>} - Array of updated PastJob data with relationships
  */
 export async function batchUpdatePastJobsWithQualifications(
-  pastJobUpdates: Array<{
-    pastJobId: string;
-    pastJobData: any;
-    pastJobQualifications?: Array<any>;
-  }>
+  pastJobUpdates: Array<PastJobType>
 ) {
   const client = generateClient();
   const results = [];
@@ -29,31 +22,29 @@ export async function batchUpdatePastJobsWithQualifications(
   // Process each update in sequence to avoid overwhelming the API
   for (const update of pastJobUpdates) {
     try {
-      const { pastJobId, pastJobData, pastJobQualifications } = update;
-
       // Use the existing single-job update function for each job
       const updatedPastJob = await updatePastJobWithQualifications(
-        pastJobId,
-        pastJobData,
-        pastJobQualifications
+        update.id,
+        update,
+        update.qualifications
       );
 
       results.push({
-        pastJobId,
+        pastJobId: update.id,
         success: true,
         data: updatedPastJob,
       });
     } catch (error) {
-      console.error(`Error updating PastJob ${update.pastJobId}:`, error);
+      console.error(`Error updating PastJob ${update.id}:`, error);
       errors.push({
-        pastJobId: update.pastJobId,
+        pastJobId: update.id,
         success: false,
         error: error instanceof Error ? error.message : String(error),
       });
 
       // Add to results array with error information
       results.push({
-        pastJobId: update.pastJobId,
+        pastJobId: update.id,
         success: false,
         error: error instanceof Error ? error.message : String(error),
       });
@@ -79,14 +70,14 @@ export async function batchUpdatePastJobsWithQualifications(
  * @param {Array<Object>} pastJobUpdates - Array of objects containing pastJob update information
  * @param {string} pastJobUpdates[].pastJobId - The ID of the PastJob to update
  * @param {Object} pastJobUpdates[].pastJobData - The PastJob data to update
- * @param {Array} pastJobUpdates[].pastJobQualifications - Array of pastJobQualification objects to associate with the PastJob
+ * @param {Array} pastJobUpdates[].qualifications - Array of qualification objects to associate with the PastJob
  * @param {number} batchSize - Optional maximum number of parallel operations (default: 3)
  * @returns {Promise<Array<Object>>} - Array of updated PastJob data with relationships
  */
 export type PastJobBatchUpdateType = {
   pastJobId: string;
   pastJobData: PastJobType;
-  pastJobQualifications?: PastJobQualificationType[];
+  qualifications?: QualificationType[];
 };
 export async function parallelBatchUpdatePastJobsWithQualifications(
   pastJobUpdates: PastJobBatchUpdateType[],
@@ -102,12 +93,12 @@ export async function parallelBatchUpdatePastJobsWithQualifications(
     // Run updates in this batch in parallel
     const batchPromises = batch.map(async (update) => {
       try {
-        const { pastJobId, pastJobData, pastJobQualifications } = update;
+        const { pastJobId, pastJobData, qualifications } = update;
 
         const updatedPastJob = await updatePastJobWithQualifications(
           pastJobId,
           pastJobData,
-          pastJobQualifications
+          qualifications
         );
 
         return {
@@ -148,29 +139,28 @@ export async function parallelBatchUpdatePastJobsWithQualifications(
   };
 }
 /**
- * Specialized function to update a PastJob record including its pastJobQualifications
+ * Specialized function to update a PastJob record including its qualifications
  *
  * @param {string} pastJobId - The ID of the PastJob to update
  * @param {Object} pastJobData - The PastJob data to update
- * @param {Array} pastJobQualifications - Array of pastJobQualification objects to associate with the PastJob
+ * @param {Array} qualifications - Array of qualification objects to associate with the PastJob
  * @returns {Promise<Object>} - The updated PastJob data with relationships
  */
 export async function updatePastJobWithQualifications(
   pastJobId: string,
   pastJobData: any,
-  pastJobQualifications?: Array<any>
+  qualifications?: Array<any>
 ) {
   const client = generateClient();
+  console.log(`Starting update for pastJobId: ${pastJobId}`);
 
   try {
-    // First, extract pastJobQualifications from the data if they exist
-    const {
-      pastJobQualifications: qualificationsFromData,
-      ...cleanPastJobData
-    } = pastJobData;
+    // First, extract qualifications from the data if they exist
+    const { qualifications: qualificationsFromData, ...cleanPastJobData } =
+      pastJobData;
     // Use qualifications from the separate parameter or from the data object
-    const qualifications =
-      pastJobQualifications || qualificationsFromData || [];
+    const qualificationsToUse = qualifications || qualificationsFromData || [];
+    console.log(`Processing ${qualificationsToUse.length} qualifications`);
 
     // 1. Update the basic PastJob record first
     const updatedPastJob = await updateModelRecord(
@@ -178,17 +168,28 @@ export async function updatePastJobWithQualifications(
       pastJobId,
       cleanPastJobData
     );
+    console.log("PastJob basic info updated successfully");
 
-    if (qualifications && qualifications.length > 0) {
-      // 2. Fetch existing pastJobQualification relationships
+    if (qualificationsToUse && qualificationsToUse.length > 0) {
+      // Ensure all qualifications have IDs
+      for (const qualification of qualificationsToUse) {
+        if (!qualification.id) {
+          qualification.id = uuidv4();
+          console.log(
+            `Generated new ID for qualification: ${qualification.id}`
+          );
+        }
+      }
+
+      // 2. Fetch existing qualification relationships
       const listExistingRelationshipsQuery = `
-        query ListPastJobPastJobQualifications($pastJobId: ID!) {
-          listPastJobPastJobQualifications(filter: {pastJobId: {eq: $pastJobId}}) {
+        query ListPastJobQualifications($pastJobId: ID!) {
+          listPastJobQualifications(filter: {pastJobId: {eq: $pastJobId}}) {
             items {
               id
               pastJobId
-              pastJobQualificationId
-              pastJobQualification {
+              qualificationId
+              qualification {
                 id
                 title
                 description
@@ -211,37 +212,45 @@ export async function updatePastJobWithQualifications(
       });
 
       const existingRelationships =
-        (existingRelationshipsResult as any).data
-          ?.listPastJobPastJobQualifications?.items || [];
+        (existingRelationshipsResult as any).data?.listPastJobQualifications
+          ?.items || [];
+      console.log(
+        `Found ${existingRelationships.length} existing relationships`
+      );
 
       // Create a map of existing qualification IDs for faster lookups
       const existingQualificationIds = new Set(
-        existingRelationships.map((rel: any) => rel.pastJobQualificationId)
+        existingRelationships.map((rel: any) => rel.qualificationId)
       );
 
       // Create a map of existing relationships by qualification ID for faster lookups
       const existingRelationshipsMap = existingRelationships.reduce(
         (map: any, rel: any) => {
-          map[rel.pastJobQualificationId] = rel;
+          map[rel.qualificationId] = rel;
           return map;
         },
         {}
       );
 
       // 3. Process each qualification
-      for (const qualification of qualifications) {
+      for (const qualification of qualificationsToUse) {
         try {
-          // Check if the qualification exists
-          if (!existingQualificationIds.has(qualification.id)) {
-            // Make sure qualification has a proper ID
-            if (!qualification.id) {
-              qualification.id = uuidv4();
-            }
+          console.log(
+            `Processing qualification: ${qualification.id}`,
+            `Title: ${qualification.title}`,
+            `Exists: ${existingQualificationIds.has(qualification.id)}`
+          );
 
-            // First, check if the PastJobQualification already exists
+          // First ensure the Qualification record exists
+          let qualificationExists = existingQualificationIds.has(
+            qualification.id
+          );
+
+          // Also check if the qualification exists directly in the database
+          if (!qualificationExists) {
             const getQualificationQuery = `
-              query GetPastJobQualification($id: ID!) {
-                getPastJobQualification(id: $id) {
+              query GetQualification($id: ID!) {
+                getQualification(id: $id) {
                   id
                 }
               }
@@ -256,165 +265,136 @@ export async function updatePastJobWithQualifications(
             });
 
             const existingQualification = (existingQualResult as any).data
-              ?.getPastJobQualification;
+              ?.getQualification;
+            qualificationExists = !!existingQualification;
+            console.log(
+              `Qualification lookup result: ${
+                qualificationExists ? "Found" : "Not found"
+              }`
+            );
+          }
 
-            // If it exists, update it instead of creating
-            if (existingQualification) {
-              const updateQualificationMutation = `
-                mutation UpdatePastJobQualification($input: UpdatePastJobQualificationInput!) {
-                  updatePastJobQualification(input: $input) {
-                    id
-                  }
-                }
-              `;
+          // Prepare the qualification input with safe defaults
+          const qualificationInput = {
+            id: qualification.id,
+            title: qualification.title || "",
+            description: qualification.description || "",
+            paragraph: qualification.paragraph || "",
+            userConfirmed: qualification.userConfirmed || false,
+            topicId: qualification.topic?.id || "",
+            userId: pastJobData.userId,
+          };
 
-              // Prepare the qualification input
-              const qualificationInput = {
-                id: qualification.id,
-                title: qualification.title || "",
-                description: qualification.description || "",
-                paragraph: qualification.paragraph || "",
-                userConfirmed: qualification.userConfirmed === true,
-                topicId: qualification.topic?.id || "",
-                userId: pastJobData.userId,
-              };
-
-              // Update the PastJobQualification
-              await client.graphql({
-                query: updateQualificationMutation,
-                variables: {
-                  input: qualificationInput,
-                },
-                authMode: "userPool",
-              });
-            } else {
-              // Create a new PastJobQualification if it doesn't exist
-              const createQualificationMutation = `
-                mutation CreatePastJobQualification($input: CreatePastJobQualificationInput!) {
-                  createPastJobQualification(input: $input) {
-                    id
-                  }
-                }
-              `;
-
-              // Prepare the qualification input
-              const qualificationInput = {
-                id: qualification.id,
-                title: qualification.title || "",
-                description: qualification.description || "",
-                paragraph: qualification.paragraph || "",
-                userConfirmed: qualification.userConfirmed === true,
-                topicId: qualification.topic?.id || "",
-                userId: pastJobData.userId,
-              };
-
-              // Create the PastJobQualification
-              await client.graphql({
-                query: createQualificationMutation,
-                variables: {
-                  input: qualificationInput,
-                },
-                authMode: "userPool",
-              });
-            }
-
-            // Then create the join table entry
-            const createJoinMutation = `
-              mutation CreatePastJobPastJobQualification($input: CreatePastJobPastJobQualificationInput!) {
-                createPastJobPastJobQualification(input: $input) {
+          // Create or update the qualification
+          if (qualificationExists) {
+            // Update existing qualification
+            const updateQualificationMutation = `
+              mutation UpdateQualification($input: UpdateQualificationInput!) {
+                updateQualification(input: $input) {
                   id
                 }
               }
             `;
 
-            // Check if the join already exists
-            const checkJoinQuery = `
-              query ListPastJobPastJobQualifications($filter: ModelPastJobPastJobQualificationFilterInput) {
-                listPastJobPastJobQualifications(filter: $filter) {
-                  items {
-                    id
-                  }
-                }
-              }
-            `;
-
-            const joinCheckResult = await client.graphql({
-              query: checkJoinQuery,
+            console.log(`Updating qualification: ${qualification.id}`);
+            await client.graphql({
+              query: updateQualificationMutation,
               variables: {
-                filter: {
-                  and: [
-                    { pastJobId: { eq: pastJobId } },
-                    { pastJobQualificationId: { eq: qualification.id } },
-                  ],
-                },
+                input: qualificationInput,
               },
               authMode: "userPool",
             });
-
-            const existingJoins =
-              (joinCheckResult as any).data?.listPastJobPastJobQualifications
-                ?.items || [];
-
-            // Only create the join if it doesn't exist
-            if (existingJoins.length === 0) {
-              await client.graphql({
-                query: createJoinMutation,
-                variables: {
-                  input: {
-                    id: uuidv4(),
-                    pastJobId: pastJobId,
-                    pastJobQualificationId: qualification.id,
-                  },
-                },
-                authMode: "userPool",
-              });
-            }
           } else {
-            // If the qualification exists, update it with new data
-            const updateQualificationMutation = `
-              mutation UpdatePastJobQualification($input: UpdatePastJobQualificationInput!) {
-                updatePastJobQualification(input: $input) {
+            // Create new qualification
+            const createQualificationMutation = `
+              mutation CreateQualification($input: CreateQualificationInput!) {
+                createQualification(input: $input) {
                   id
                 }
               }
             `;
 
-            // Only update fields that actually have values
-            const updateFields: any = { id: qualification.id };
+            console.log(`Creating new qualification: ${qualification.id}`);
+            await client.graphql({
+              query: createQualificationMutation,
+              variables: {
+                input: qualificationInput,
+              },
+              authMode: "userPool",
+            });
+          }
 
-            if (qualification.title !== undefined)
-              updateFields.title = qualification.title;
-            if (qualification.description !== undefined)
-              updateFields.description = qualification.description;
-            if (qualification.paragraph !== undefined)
-              updateFields.paragraph = qualification.paragraph;
-            if (qualification.userConfirmed !== undefined)
-              updateFields.userConfirmed = qualification.userConfirmed;
-            if (
-              qualification.topic &&
-              qualification.topic.id &&
-              qualification.topic.id.trim() !== ""
-            )
-              updateFields.topicId = qualification.topic.id;
-
-            // Only update if we have fields to update beyond the ID
-            if (Object.keys(updateFields).length > 1) {
-              // Update the PastJobQualification
-              await client.graphql({
-                query: updateQualificationMutation,
-                variables: {
-                  input: updateFields,
-                },
-                authMode: "userPool",
-              });
+          // Then ensure the join table entry exists
+          // Check if the join already exists
+          const checkJoinQuery = `
+            query ListPastJobQualifications($filter: ModelPastJobQualificationFilterInput) {
+              listPastJobQualifications(filter: $filter) {
+                items {
+                  id
+                }
+              }
             }
+          `;
+
+          const joinCheckResult = await client.graphql({
+            query: checkJoinQuery,
+            variables: {
+              filter: {
+                and: [
+                  { pastJobId: { eq: pastJobId } },
+                  { qualificationId: { eq: qualification.id } },
+                ],
+              },
+            },
+            authMode: "userPool",
+          });
+
+          const existingJoins =
+            (joinCheckResult as any).data?.listPastJobQualifications?.items ||
+            [];
+          console.log(
+            `Found ${existingJoins.length} existing joins for qualification ${qualification.id}`
+          );
+
+          // Create the join if it doesn't exist
+          if (existingJoins.length === 0) {
+            const createJoinMutation = `
+              mutation CreatePastJobQualification($input: CreatePastJobQualificationInput!) {
+                createPastJobQualification(input: $input) {
+                  id
+                }
+              }
+            `;
+
+            const joinInput = {
+              id: uuidv4(),
+              pastJobId: pastJobId,
+              qualificationId: qualification.id,
+            };
+
+            console.log(
+              `Creating new join entry for qualification ${qualification.id}`
+            );
+            await client.graphql({
+              query: createJoinMutation,
+              variables: {
+                input: joinInput,
+              },
+              authMode: "userPool",
+            });
+          } else {
+            console.log(
+              `Join entry already exists for qualification ${qualification.id}`
+            );
           }
         } catch (error) {
           console.error(
             `Error processing qualification ${qualification.id}:`,
             error,
             "Qualification data:",
-            JSON.stringify(qualification, null, 2)
+            JSON.stringify(qualification, null, 2),
+            "Error details:",
+            error instanceof Error ? error.stack : "No stack trace"
           );
           // Continue with the next qualification rather than failing the entire operation
         }
@@ -422,22 +402,29 @@ export async function updatePastJobWithQualifications(
 
       // 4. Determine which relationships to delete
       const currentQualificationIds = new Set(
-        qualifications.map((qual: PastJobQualificationType) => qual.id)
+        qualificationsToUse.map((qual: any) => qual.id)
       );
       const relationshipsToDelete = existingRelationships.filter(
-        (rel: any) => !currentQualificationIds.has(rel.pastJobQualificationId)
+        (rel: any) => !currentQualificationIds.has(rel.qualificationId)
+      );
+
+      console.log(
+        `Found ${relationshipsToDelete.length} relationships to delete`
       );
 
       // 5. Delete relationships that are no longer needed
       const deleteMutation = `
-        mutation DeletePastJobPastJobQualification($input: DeletePastJobPastJobQualificationInput!) {
-          deletePastJobPastJobQualification(input: $input) {
+        mutation DeletePastJobQualification($input: DeletePastJobQualificationInput!) {
+          deletePastJobQualification(input: $input) {
             id
           }
         }
       `;
 
       for (const relationship of relationshipsToDelete) {
+        console.log(
+          `Deleting relationship: ${relationship.id} for qualification ${relationship.qualificationId}`
+        );
         await client.graphql({
           query: deleteMutation,
           variables: {
@@ -466,14 +453,15 @@ export async function updatePastJobWithQualifications(
           supervisorName
           supervisorPhone
           supervisorMayContact
+          type
           userId
           createdAt
           updatedAt
-          pastJobQualifications {
+          qualifications {
             items {
               id
-              pastJobQualificationId
-              pastJobQualification {
+              qualificationId
+              qualification {
                 id
                 title
                 description
@@ -504,9 +492,14 @@ export async function updatePastJobWithQualifications(
       authMode: "userPool",
     });
 
+    console.log("Successfully fetched updated PastJob with qualifications");
+
     // Check if the result is a GraphQLResult type with data
     if ("data" in result) {
-      return result.data?.getPastJob;
+      const pastJob = result.data?.getPastJob;
+      const qualificationCount = pastJob?.qualifications?.items?.length || 0;
+      console.log(`Final PastJob has ${qualificationCount} qualifications`);
+      return pastJob;
     }
 
     return null;

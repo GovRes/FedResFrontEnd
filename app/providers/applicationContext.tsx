@@ -21,6 +21,7 @@ export interface ApplicationContextType {
   job: JobType | undefined;
   steps: StepsType[];
   applicationId: string;
+  resetApplication: () => void;
   setJob: (value: JobType) => void;
   setSteps: (value: StepsType[]) => void;
   setApplicationId: (value: string) => void;
@@ -36,6 +37,13 @@ export const defaultSteps: StepsType[] = [
     path: "/job-search",
   },
   {
+    id: "specialized-experience",
+    title: "Specialized Experience",
+    description: "Add specialized experience",
+    completed: false,
+    path: "/specialized-experience",
+  },
+  {
     id: "extract-keywords",
     title: "Extract Keywords",
     description: "Extract keywords from the job description",
@@ -47,52 +55,52 @@ export const defaultSteps: StepsType[] = [
     title: "Past Jobs",
     description: "Add and edit past jobs",
     completed: false,
-    path: "/past-experience/past-jobs",
+    path: "/past-jobs",
   },
   {
     id: "awards",
     title: "Awards",
     description: "Add and edit awards",
     completed: false,
-    path: "/past-experience/awards",
+    path: "/awards",
   },
   {
     id: "education",
     title: "Education",
     description: "Add and edit educational experiences",
     completed: false,
-    path: "/past-experience/education",
+    path: "/education",
   },
   {
-    id: "volunteer",
+    id: "volunteer-experiences",
     title: "Volunteer Experience",
     description: "Add and edit volunteer experiences",
     completed: false,
-    path: "/past-experience/volunteer-experience",
+    path: "/volunteer-experiences",
   },
   {
-    id: "user_job_details",
-    title: "User Job Details",
+    id: "past-job-details",
+    title: "Past Job Details",
     description: "Write a description of past jobs",
     completed: false,
-    path: "/past-experience/past-job-details",
+    path: "/past-job-details",
   },
   {
     id: "volunteer-details",
     title: "Volunteer Details",
     description: "Write a description of volunteer experiences",
     completed: false,
-    path: "/past-experience/volunteer-details",
+    path: "/volunteer-details",
   },
   {
-    id: "specialized-experience",
+    id: "specialized-experience-details",
     title: "Specialized Experience",
-    description: "Add specialized experience",
+    description: "get details on specialized experience",
     completed: false,
-    path: "/specialized-experience",
+    path: "/specialized-experience-details",
   },
   {
-    id: "return_resume",
+    id: "return-resume",
     title: "Final Resume",
     description: "A resume you can use in your job application",
     completed: false,
@@ -127,7 +135,17 @@ export const ApplicationProvider = ({
   // Refs to prevent infinite loops
   const dataLoadedRef = useRef(false);
   const applicationLoadingRef = useRef(false);
-
+  function resetApplication() {
+    setApplicationId("");
+    setJob(undefined);
+    setSteps(defaultSteps);
+    // Clear the applicationId from sessionStorage
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("applicationId");
+    }
+    dataLoadedRef.current = false;
+    applicationLoadingRef.current = false;
+  }
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -294,6 +312,7 @@ export const ApplicationProvider = ({
     applicationId,
     job,
     steps,
+    resetApplication,
     setApplicationId,
     setJob,
     setSteps,

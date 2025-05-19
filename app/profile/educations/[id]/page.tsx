@@ -5,7 +5,7 @@ import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { EducationType } from "@/app/utils/responseSchemas";
 import { TextBlinkLoader } from "@/app/components/loader/Loader";
-import EducationItem from "@/app/components/ally/returnResumeComponents/EducationItem";
+import EducationItem from "@/app/ally/return-resume/components/EducationItem";
 export default function AwardPage({
   params,
 }: {

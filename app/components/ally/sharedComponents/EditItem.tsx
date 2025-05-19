@@ -1,14 +1,14 @@
 import {
   AwardType,
   EducationType,
-  PastJobQualificationType,
+  QualificationType,
   PastJobType,
 } from "@/app/utils/responseSchemas";
 import styles from "../ally.module.css";
 import { useEffect, useState } from "react";
 
 export default function EditItem<
-  T extends AwardType | EducationType | PastJobType | PastJobQualificationType
+  T extends AwardType | EducationType | PastJobType | QualificationType
 >({
   currentIndex,
   Form,

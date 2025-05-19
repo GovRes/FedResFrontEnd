@@ -85,8 +85,8 @@ export default function Editing({
           titleText="Volunteer experience"
         />
         {currentItem &&
-          currentItem.pastJobQualifications &&
-          currentItem.pastJobQualifications.length > 0 && (
+          currentItem.qualifications &&
+          currentItem.qualifications.length > 0 && (
             <EditSingleVolunteer
               currentVolunteerIndex={currentVolunteerIndex}
               localVolunteers={localVolunteers}

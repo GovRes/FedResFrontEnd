@@ -2,19 +2,20 @@ import { JSX, useEffect, useState } from "react";
 import styles from "../../ally.module.css";
 import {
   SpecializedExperienceType,
-  PastJobQualificationType,
+  QualificationType,
 } from "@/app/utils/responseSchemas";
 import SidebarItem from "./SidebarItem";
 import Sidebar from "./Sidebar";
 import Chat from "./Chat";
 export default function DetailedListEditor<
-  T extends SpecializedExperienceType | PastJobQualificationType
+  T extends SpecializedExperienceType | QualificationType
 >({
   assistantInstructions,
   assistantName,
   heading,
   items,
   jobString,
+  navigateToNextUnconfirmedJob,
   setNext,
   setFunction,
   sidebarTitleText,
@@ -24,6 +25,7 @@ export default function DetailedListEditor<
   heading?: string;
   items: T[];
   jobString: string;
+  navigateToNextUnconfirmedJob: Function;
   setFunction: (list: T[]) => void;
   setNext: Function;
   sidebarTitleText: string;
@@ -39,7 +41,7 @@ export default function DetailedListEditor<
     }
   }
   function determineNextItemIndex() {
-    let nextIndex = currentIndex + 1;
+    let nextIndex = currentIndex;
 
     // If we've reached the end, start over
     if (nextIndex >= items.length) {
@@ -51,27 +53,48 @@ export default function DetailedListEditor<
     const startIndex = nextIndex; // Remember where we started to avoid infinite loop
 
     do {
+      console.log(56, items[tempIndex]);
       if (!items[tempIndex].userConfirmed) {
-        setCurrentIndex(tempIndex);
-        return;
+        console.log(57, items[tempIndex]);
+        if (tempIndex !== currentIndex) {
+          // Only update if it's different
+          setCurrentIndex(tempIndex);
+        }
+        return tempIndex; // Return the index of the first unconfirmed item
       }
       tempIndex = (tempIndex + 1) % items.length; // Wrap around to beginning if needed
     } while (tempIndex !== startIndex); // Stop when we've checked all items
 
-    // If all items are confirmed, just stay at current index
-    setCurrentIndex(currentIndex);
+    // If we get here, all items are confirmed
+    navigateToNextUnconfirmedJob();
+    return currentIndex; // Return current index if all items are confirmed
   }
+
   useEffect(() => {
-    determineNextItemIndex();
-    setInitialMessage(
-      `I'm going to help you write a paragraph about ${items[currentIndex]?.title} to include in your application for ${jobString}. Can you tell me a bit about your experience?`
-    );
-  }, [currentIndex, items]);
+    // Only run determineNextItemIndex() on initial render or when items change
+    // but NOT when currentIndex changes (to avoid the loop)
+    if (items.length > 0) {
+      setInitialMessage(
+        `I'm going to help you write a paragraph about ${items[currentIndex]?.title} to include in your application for ${jobString}. Can you tell me a bit about your experience?`
+      );
+    }
+  }, [currentIndex, items, jobString]);
+
+  // Separate effect for finding the next unconfirmed item, only runs when items change
+  useEffect(() => {
+    if (items.length > 0) {
+      determineNextItemIndex();
+    }
+  }, [items]); // Removed currentIndex from dependencies
 
   let itemsList: JSX.Element[] = [];
 
   async function saveItem(item: T) {
+    console.log(87, item);
+    console.log(item.id);
+    console.log(items.map((i) => i.id));
     let updatedItems = items.map((i) => (i.id !== item.id ? i : item));
+    console.log(89, updatedItems);
     setFunction(updatedItems as typeof items);
   }
 

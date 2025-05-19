@@ -13,6 +13,7 @@ export const findNextIncompleteStep = (
   steps: StepsType[],
   currentStepId: string
 ): StepsType | undefined => {
+  console.log(16, steps);
   // Find the index of the current step
   const currentIndex = steps.findIndex((step) => step.id === currentStepId);
 
@@ -55,7 +56,7 @@ export function useNextStepNavigation() {
    */
   const navigateToNextIncompleteStep = (currentStepId: string): boolean => {
     const nextStep = findNextIncompleteStep(steps, currentStepId);
-
+    console.log(59, nextStep);
     if (nextStep) {
       router.push(`/ally${nextStep.path}`);
       return true;
@@ -74,6 +75,7 @@ export function useNextStepNavigation() {
    * @returns The path to the next incomplete step or undefined
    */
   const getNextIncompletePath = (currentStepId: string): string | undefined => {
+    console.log(77, currentStepId);
     const nextStep = findNextIncompleteStep(steps, currentStepId);
     return nextStep ? `/ally${nextStep.path}` : undefined;
   };

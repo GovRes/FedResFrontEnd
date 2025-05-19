@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import PastJobForm from "../../past-jobs/components/PastJobForm";
+import PastJobForm from "../../components/components/PastJobForm";
 import { PastJobType } from "@/app/utils/responseSchemas";
 import { TextBlinkLoader } from "@/app/components/loader/Loader";
 import { useRouter } from "next/navigation";
@@ -18,13 +18,14 @@ export default function NewVolunteerPage() {
     id: "",
     organization: "",
     organizationAddress: "",
-    pastJobQualifications: [],
+    qualifications: [],
     responsibilities: "",
     startDate: "",
     supervisorMayContact: false,
     supervisorName: "",
     supervisorPhone: "",
     title: "",
+    type: "Volunteer",
     userId: "",
   });
   const onChange = (
@@ -49,7 +50,7 @@ export default function NewVolunteerPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      let res = await createModelRecord("Volunteer", formData);
+      let res = await createModelRecord("PastJob", formData);
       setLoading(false);
       router.push(`/profile/volunteers/${res.id}`);
     } catch (error) {

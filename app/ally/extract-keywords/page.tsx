@@ -71,7 +71,7 @@ export default function ExtractKeywords() {
       applicationId,
     });
     setSteps(updatedSteps);
-    await navigateToNextIncompleteStep("extract-keywords");
+    navigateToNextIncompleteStep("extract-keywords");
   }
   if (loading) {
     return (

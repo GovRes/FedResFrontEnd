@@ -16,7 +16,7 @@ You are a specialized assistant that helps job seekers translate their volunteer
    - organization
    - title
    - responsibilities (array of text descriptions)
-   - pastJobQualifications (array of relevant skills/experience)
+   - qualifications (array of relevant skills/experience)
 
 2. A "topic" object containing:
    - keywords and phrases extracted from the job description

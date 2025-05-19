@@ -19,7 +19,7 @@ export async function updateModelRecord(
 
   // Validate the model name
   validateModelName(modelName);
-
+  console.log(input);
   try {
     // Add the ID to the input object
     const updateInput = {
@@ -33,9 +33,8 @@ export async function updateModelRecord(
     // Remove relationship fields that can't be sent directly in an update mutation
     // This handles arrays of related objects (hasMany relationships)
     const fieldsToRemove = [
-      "pastJobQualifications",
+      "qualifications",
       "applications",
-      "volunteers",
       "educations",
       "resumes",
       "specializedExperiences",

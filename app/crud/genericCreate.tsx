@@ -16,13 +16,8 @@ export async function createModelRecord(
 ) {
   const client = generateClient();
   // Extract fields we don't want to include in the create operation
-  const {
-    createdAt,
-    id,
-    pastJobQualifications,
-    updatedAt,
-    ...filteredUpdateData
-  } = input as any;
+  const { createdAt, id, qualifications, updatedAt, ...filteredUpdateData } =
+    input as any;
 
   // Add userId to the input object if provided
   if (userId) {

@@ -2,7 +2,7 @@ import styles from "../../resumes/resumeComponents/resumeStyles.module.css";
 import { ApplicationType } from "@/app/utils/responseSchemas";
 import ApplicationItem from "./ApplicationItem";
 
-export default function ExperiencesTable({
+export default function ApplicationsTable({
   applications,
   setApplications,
 }: {

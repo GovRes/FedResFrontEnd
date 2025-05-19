@@ -7,7 +7,7 @@ import {
 } from "@/app/prompts/volunteersWriterPrompt";
 import {
   StepType,
-  PastJobQualificationType,
+  QualificationType,
   PastJobType,
 } from "@/app/utils/responseSchemas";
 import { useApplication } from "@/app/providers/applicationContext";
@@ -32,9 +32,9 @@ export default function EditSingleVolunteer({
   const { setStep, setVolunteers } = useAlly();
   const { job } = useApplication();
 
-  function saveVolunteerQualification(
-    updatedPastJobQualifications:
-      | PastJobQualificationType[]
+  function saveQualification(
+    updatedQualifications:
+      | QualificationType[]
       | {
           id: string;
           title: string;
@@ -53,13 +53,12 @@ export default function EditSingleVolunteer({
     try {
       // Check if it's UserVolunteerQualificationType[] before assigning
       if (
-        updatedPastJobQualifications.length > 0 &&
-        "topic" in updatedPastJobQualifications[0]
+        updatedQualifications.length > 0 &&
+        "topic" in updatedQualifications[0]
       ) {
         let tempVolunteer = {
           ...volunteer,
-          PastJobQualifications:
-            updatedPastJobQualifications as PastJobQualificationType[],
+          Qualifications: updatedQualifications as QualificationType[],
         };
         saveVolunteer(tempVolunteer);
       } else {
@@ -84,9 +83,9 @@ export default function EditSingleVolunteer({
       assistantInstructions={volunteersAssistantInstructions}
       assistantName={volunteersAssistantName}
       heading={`${volunteer?.title} - Applicable Volunteer or Community Service Experience`}
-      items={volunteer.pastJobQualifications}
+      items={volunteer.qualifications}
       jobString={`${job?.title} at the ${job?.department}`}
-      setFunction={saveVolunteerQualification}
+      setFunction={saveQualification}
       setNext={setNextVolunteer}
       sidebarTitleText="Volunteer Experience"
     />

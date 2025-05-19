@@ -2,15 +2,20 @@
 /* the code in this file allows users to interact with an AI which will eventually generate a paragraph for them and allow them to revise it. */
 import {
   SpecializedExperienceType,
-  PastJobQualificationType,
+  QualificationType,
   PastJobType,
 } from "@/app/utils/responseSchemas";
 import { useState, useEffect, FormEvent } from "react";
 import styles from "../../ally.module.css";
 import DetailedListEditorReturnedParagraph from "./ReturnedParagraph";
+import { useAuthenticator } from "@aws-amplify/ui-react";
+import {
+  fetchUserAttributes,
+  FetchUserAttributesOutput,
+} from "aws-amplify/auth";
 
 export default function Chat<
-  T extends SpecializedExperienceType | PastJobQualificationType
+  T extends SpecializedExperienceType | QualificationType
 >({
   assistantInstructions,
   assistantName,
@@ -43,12 +48,19 @@ export default function Chat<
     item?.paragraph || null
   );
   const [editType, setEditType] = useState<string | null>(null);
+  const [attributes, setAttributes] = useState<FetchUserAttributesOutput>({});
+
+  useEffect(() => {
+    fetchUserAttributes().then(setAttributes);
+  }, []);
 
   const userPrompts = [
     "Can you give me an example?",
     "I'm not sure what you mean by that. Can you ask me in a different way?",
     "Can you clarify that?",
     "I'm having trouble thinking of an example. Can you help me?",
+    "Explain that a little more",
+    "I have a question for you",
   ];
 
   // Store randomly selected prompts in state
@@ -105,6 +117,7 @@ export default function Chat<
   };
   const saveParagraph = async () => {
     if (!paragraphData) return;
+    console.log(120, item, paragraphData);
     saveItem({ ...item, paragraph: paragraphData, userConfirmed: true });
     window.scroll(0, 0);
     if (currentIndex != itemsLength - 1) {
@@ -208,7 +221,13 @@ export default function Chat<
                 : styles.userChatContainer
             }
           >
-            <strong>{msg.role}:</strong> {msg.content}
+            <strong>
+              {msg.role === "assistant"
+                ? "Ally"
+                : attributes.given_name || "User"}{" "}
+              :
+            </strong>{" "}
+            {msg.content}
           </div>
         ))}
 

@@ -19,25 +19,11 @@ export const Keywords = z.object({
   keywords: z.array(z.string()),
 });
 
-export const Qualification = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string(),
-});
-
 export const Recommendation = z.object({
   numberOfQualifiedKeyPhrases: z.number(),
   recommendation: z.enum(["Recommend", "Do not recommend"]),
   justification: z.string(),
 });
-export const Qualifications = z.object({
-  recommendation: Recommendation.optional(),
-  metQualifications: z.array(Qualification),
-  unmetQualifications: z.array(Qualification),
-});
-
-export type QualificationType = z.infer<typeof Qualification>;
-export type QualificationsType = z.infer<typeof Qualifications>;
 export const Education = z.object({
   date: z.string(),
   degree: z.string(),
@@ -125,7 +111,7 @@ export type ResumeType = {
   userId?: string;
 };
 
-export const PastJobQualification = z.object({
+export const Qualification = z.object({
   id: z.string(),
   topic: Topic,
   description: z.string(),
@@ -135,7 +121,7 @@ export const PastJobQualification = z.object({
   userConfirmed: z.boolean(),
 });
 
-export type PastJobQualificationType = z.infer<typeof PastJobQualification>;
+export type QualificationType = z.infer<typeof Qualification>;
 
 export const PastJob = z.object({
   endDate: z.string().optional(),
@@ -144,13 +130,14 @@ export const PastJob = z.object({
   id: z.string(),
   organization: z.string(),
   organizationAddress: z.string().optional(),
-  pastJobQualifications: z.array(PastJobQualification),
+  qualifications: z.array(Qualification),
   responsibilities: z.string().optional(),
   startDate: z.string().optional(),
   supervisorMayContact: z.boolean().optional(),
   supervisorName: z.string().optional(),
   supervisorPhone: z.string().optional(),
   title: z.string(),
+  type: z.string(),
   userId: z.string(),
 });
 

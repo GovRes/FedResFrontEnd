@@ -1,8 +1,15 @@
+"use client";
+import ApplicationDashboard from "../profile/applications/applicationComponents/ApplicationsDashboard";
+import { useApplication } from "../providers/applicationContext";
 export default function AllyPage() {
+  const { resetApplication } = useApplication();
   return (
     <div>
       <h2>Ally Home Content</h2>
-      <p>This content appears only on the main ally page</p>
+      <ApplicationDashboard />
+      <button onClick={() => resetApplication()}>
+        Start a new application
+      </button>
     </div>
   );
 }

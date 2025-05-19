@@ -4,7 +4,7 @@ import {
   EducationType,
   ResumeType,
   SpecializedExperienceType,
-  PastJobQualificationType,
+  QualificationType,
   PastJobType,
 } from "@/app/utils/responseSchemas";
 import ExperienceItem from "./ExperienceItem";
@@ -20,7 +20,7 @@ export default function ExperiencesTable({
     | EducationType
     | SpecializedExperienceType
     | PastJobType
-    | PastJobQualificationType
+    | QualificationType
   >;
   setItems: React.Dispatch<
     React.SetStateAction<
@@ -29,7 +29,7 @@ export default function ExperiencesTable({
         | EducationType
         | SpecializedExperienceType
         | PastJobType
-        | PastJobQualificationType
+        | QualificationType
       >
     >
   >;
@@ -53,7 +53,7 @@ export default function ExperiencesTable({
                   | EducationType
                   | SpecializedExperienceType
                   | PastJobType
-                  | PastJobQualificationType
+                  | QualificationType
               ) => (
                 <ExperienceItem
                   key={item.id}

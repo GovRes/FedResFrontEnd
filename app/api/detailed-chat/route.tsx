@@ -6,9 +6,9 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "",
 });
 
-// Create a simple in-memory store for the paragraph
+// Create a simple in-memory store for paragraphs by thread ID
 // In a production app, you would use a database
-let paragraphStore = null as string | null;
+const paragraphStore: Record<string, string> = {};
 
 // Shared assistant instance to avoid recreating it
 let assistantInstance:
@@ -98,14 +98,16 @@ export async function POST(req: Request) {
       const thread = await openai.beta.threads.create({});
       threadId = thread.id;
       isNewThread = true;
-      paragraphStore = "";
+      paragraphStore[threadId] = ""; // Initialize empty paragraph for this thread
       console.log("New thread created:", threadId);
 
       // Add initial assistant message for new threads
-      await openai.beta.threads.messages.create(threadId, {
-        role: "assistant",
-        content: initialMessage,
-      });
+      if (initialMessage) {
+        await openai.beta.threads.messages.create(threadId, {
+          role: "assistant",
+          content: initialMessage,
+        });
+      }
     } else {
       // For existing threads, check and handle any active runs
       await checkAndHandleActiveRuns(threadId);
@@ -116,7 +118,7 @@ export async function POST(req: Request) {
       console.log("Adding user message:", message);
       await openai.beta.threads.messages.create(threadId, {
         role: "user",
-        content: message,
+        content: message, // This should be a string with the user's message
       });
     }
 
@@ -155,7 +157,7 @@ export async function POST(req: Request) {
               const paragraphText = args.paragraph;
 
               console.log("paragraph generated:", paragraphText);
-              paragraphStore = paragraphText; // Store the paragraph
+              paragraphStore[threadId] = paragraphText; // Store the paragraph for this specific thread
 
               toolOutputs.push({
                 tool_call_id: toolCall.id,
@@ -231,7 +233,7 @@ export async function POST(req: Request) {
     // Prepare the response
     const response = {
       threadId,
-      paragraph: paragraphStore, // Include the paragraph if it was generated
+      paragraph: paragraphStore[threadId] || null, // Get paragraph specific to this thread
       message: responseText || "No response generated",
       isNewThread,
       runStatus: runResult.status,
@@ -255,12 +257,22 @@ export async function POST(req: Request) {
 
 // GET endpoint to retrieve the paragraph
 export async function GET(req: Request) {
-  const paragraph = paragraphStore;
+  const url = new URL(req.url);
+  const threadId = url.searchParams.get("threadId");
+
+  if (!threadId) {
+    return Response.json({ error: "No threadId provided" }, { status: 400 });
+  }
+
+  const paragraph = paragraphStore[threadId];
 
   if (paragraph) {
-    paragraphStore = null; // Clear the paragraph after retrieval
+    // Clear the paragraph after retrieval but only for this thread
+    delete paragraphStore[threadId];
     return Response.json({ paragraph });
   } else {
-    return Response.json({ message: "No paragraph has been generated yet" });
+    return Response.json({
+      message: "No paragraph has been generated for this thread yet",
+    });
   }
 }

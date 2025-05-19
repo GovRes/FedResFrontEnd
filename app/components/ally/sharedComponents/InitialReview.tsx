@@ -29,7 +29,6 @@ export default function InitialReview<
     | "Education"
     | "SpecializedExperience"
     | "PastJob"
-    | "Volunteer"
     | "Resume";
   setLocalItems: Function;
 }) {

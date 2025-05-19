@@ -3,7 +3,7 @@ import {
   EducationType,
   ResumeType,
   SpecializedExperienceType,
-  PastJobQualificationType,
+  QualificationType,
   PastJobType,
 } from "./responseSchemas";
 
@@ -14,7 +14,7 @@ export function generateHeadingText(
     | ResumeType
     | SpecializedExperienceType
     | PastJobType
-    | PastJobQualificationType
+    | QualificationType
 ) {
   let headingText = "";
   if ("degree" in item && "school" in item) {

@@ -4,6 +4,9 @@ import { ApplicationType } from "@/app/utils/responseSchemas";
 import { GrTrash } from "react-icons/gr";
 import { deleteModelRecord } from "@/app/crud/genericDelete";
 import { useRouter } from "next/navigation";
+import { deleteApplication } from "@/app/crud/application";
+import { useState } from "react";
+import { TextBlinkLoader } from "@/app/components/loader/Loader";
 
 export default function ApplicationItem({
   application,
@@ -13,12 +16,15 @@ export default function ApplicationItem({
   setApplications: React.Dispatch<React.SetStateAction<Array<ApplicationType>>>;
 }) {
   const router = useRouter();
-  async function deleteApplication() {
+  const [loading, setLoading] = useState(false);
+  async function deleteApp() {
     setApplications((prevItems) =>
       prevItems.filter((prevItem) => prevItem.id !== application.id)
     );
     try {
-      await deleteModelRecord("Application", application.id);
+      setLoading(true);
+      await deleteApplication({ applicationId: application.id });
+      setLoading(false);
     } catch (error) {
       setApplications((prevItems) => [...prevItems, application]);
       console.error(
@@ -35,6 +41,9 @@ export default function ApplicationItem({
     router.push("/ally");
   };
 
+  if (loading) {
+    return <TextBlinkLoader text="Deleting..." />;
+  }
   return (
     <tr>
       <td className="tableData" role="cell">
@@ -45,7 +54,7 @@ export default function ApplicationItem({
         <button onClick={setApplication}>Continue Application</button>
       </td>
       <td className="tableData" role="cell">
-        <span onClick={deleteApplication}>
+        <span onClick={deleteApp}>
           <GrTrash />
         </span>
       </td>

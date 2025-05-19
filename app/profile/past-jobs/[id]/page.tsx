@@ -5,7 +5,7 @@ import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { PastJobType } from "@/app/utils/responseSchemas";
 import { TextBlinkLoader } from "@/app/components/loader/Loader";
-import PastJobItem from "@/app/components/ally/returnResumeComponents/PastJobItem";
+import PastJobItem from "@/app/ally/return-resume/components/PastJobItem";
 export default function AwardPage({
   params,
 }: {

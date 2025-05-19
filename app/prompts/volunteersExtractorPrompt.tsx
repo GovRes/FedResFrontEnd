@@ -4,7 +4,7 @@ const technicalRequirements =
 
 export const volunteersExtractorPrompt: ChatCompletionSystemMessageParam = {
   role: "system",
-  content: `Given an array of resumes for the same person, extract each of their volunteer or community service experiences into a separate object. Return an array of volunteer objects, filling in as much information as you can, for title, organization, weekly hours, start date, end date, and key responsibilities. Do not attempt to provide any values for pastJobQualifications.
+  content: `Given an array of resumes for the same person, extract each of their volunteer or community service experiences into a separate object. Return an array of volunteer objects, filling in as much information as you can, for title, organization, weekly hours, start date, end date, and key responsibilities. Set the attribute "type" to "Volunteer". Do not attempt to provide any values for qualifications.
 
     ${technicalRequirements} 
     An example would be: {id: "12fiwceiwe", title: "Tax Preparer", organization: "Your Taxes Done Right (non-profit)", hours: "15 hours per week", startDate: "2022-04-01", endDate: "2025-01-01", responsibilities: "Assist more than 250 individuals each year with filing their taxes

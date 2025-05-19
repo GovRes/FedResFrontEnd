@@ -125,3 +125,90 @@ export const createAndSaveSpecializedExperiences = async ({
     throw error;
   }
 };
+
+export const updateSpecializedExperience = async ({
+  specializedExperienceId,
+  title,
+  description,
+  initialMessage,
+  paragraph,
+  userConfirmed,
+  typeOfExperience,
+  userId,
+}: {
+  specializedExperienceId: string;
+  title?: string;
+  description?: string;
+  initialMessage?: string;
+  paragraph?: string | null;
+  userConfirmed?: boolean;
+  typeOfExperience?: string | null;
+  userId: string;
+}) => {
+  try {
+    // Verify user is authenticated
+    const session = await fetchAuthSession();
+    if (!session.tokens) {
+      throw new Error("No valid authentication session found");
+    }
+  } catch (error) {
+    console.error("No user is signed in");
+    throw new Error("Authentication required");
+  }
+
+  // Validate required parameters
+  if (!specializedExperienceId || !userId) {
+    throw new Error(
+      "specializedExperienceId and userId are required parameters"
+    );
+  }
+
+  const client = generateClient();
+  try {
+    // Prepare the input object with only the fields that are provided
+    const updateInput: Record<string, any> = {
+      id: specializedExperienceId,
+    };
+
+    // Add optional fields if they are provided
+    if (title !== undefined) updateInput.title = title;
+    if (description !== undefined) updateInput.description = description;
+    if (initialMessage !== undefined)
+      updateInput.initialMessage = initialMessage;
+    if (paragraph !== undefined) updateInput.paragraph = paragraph;
+    if (userConfirmed !== undefined) updateInput.userConfirmed = userConfirmed;
+    if (typeOfExperience !== undefined)
+      updateInput.typeOfExperience = typeOfExperience;
+
+    // Execute the update mutation
+    const response = await client.graphql({
+      query: `
+        mutation UpdateSpecializedExperience($input: UpdateSpecializedExperienceInput!) {
+          updateSpecializedExperience(input: $input) {
+            id
+            title
+            description
+            initialMessage
+            paragraph
+            userConfirmed
+            typeOfExperience
+            userId
+          }
+        }
+      `,
+      variables: {
+        input: updateInput,
+      },
+      authMode: "userPool",
+    });
+
+    if (!("data" in response)) {
+      throw new Error("Unexpected response format");
+    }
+
+    return response.data.updateSpecializedExperience;
+  } catch (error) {
+    console.error("Error updating SpecializedExperience:", error);
+    throw error;
+  }
+};

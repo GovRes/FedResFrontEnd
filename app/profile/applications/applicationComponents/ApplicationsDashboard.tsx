@@ -25,10 +25,10 @@ export default function ApplicationDashboard() {
       }
     }
 
-    if (!applications.length) {
+    if (!applications.length && user) {
       getUserApplications();
     }
-  }, [applications.length]);
+  }, [applications.length, user]);
 
   if (loading) {
     return <TextBlinkLoader text="Loading..." />;
