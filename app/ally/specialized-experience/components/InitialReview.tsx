@@ -64,11 +64,13 @@ export default function InitialReview({}: // setReviewing,
     router.push("/ally/job-search");
   }
   useEffect(() => {
+    setLoading(true);
     async function fetchSpecializedExperience({ job }: { job: any }) {
       const specializedExperienceRes = await specializedExperienceExtractor({
         job,
       });
       setSpecializedExperiences(specializedExperienceRes);
+      setLoading(false);
     }
     fetchSpecializedExperience({ job });
   }, []);
