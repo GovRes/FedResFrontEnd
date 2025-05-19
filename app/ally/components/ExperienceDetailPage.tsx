@@ -1,6 +1,7 @@
-// PastJobQualificationsPage.tsx
-import React, { useEffect, useState } from "react";
+// FixedPastJobQualificationsPage.tsx
+import React, { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { EditableParagraphProvider } from "@/app/providers/editableParagraphContext";
 import ChatLayout from "@/app/components/chat/ChatLayout";
 import { TextBlinkLoader } from "@/app/components/loader/Loader";
 import { useApplication } from "@/app/providers/applicationContext";
@@ -8,12 +9,29 @@ import { getApplicationAssociations } from "@/app/crud/application";
 import { updatePastJobWithQualifications } from "@/app/crud/pastJob";
 import { PastJobType, QualificationType } from "@/app/utils/responseSchemas";
 import { BaseItem } from "../../providers/chatContext";
+import { usePastJobDetailsStep } from "@/app/providers/useApplicationStep";
 
-export default function PastJobQualificationsPage() {
+export default function ExperienceDetailPage({
+  currentStepId,
+  id,
+}: {
+  currentStepId: string;
+  id: string;
+}) {
   const router = useRouter();
-  const { applicationId, job } = useApplication();
+  const { applicationId, job, steps } = useApplication();
   const [loading, setLoading] = useState(true);
   const [pastJob, setPastJob] = useState<PastJobType | null>(null);
+  const [isEditingMode, setIsEditingMode] = useState(false);
+
+  // Check if we're coming from an edit action by looking for the 'edit=true' query param
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const editMode = urlParams.get("edit") === "true";
+      setIsEditingMode(editMode);
+    }
+  }, []);
 
   // Get job ID from URL
   const getJobIdFromUrl = () => {
@@ -22,15 +40,24 @@ export default function PastJobQualificationsPage() {
     return match && match[1];
   };
 
+  // Calculate if all qualifications are confirmed
+  const allQualificationsConfirmed =
+    pastJob?.qualifications?.every((q) => q.userConfirmed) || false;
+
+  // Only use the completion hook when not specifically in edit mode
+  // This prevents the step from being marked as incomplete when editing
+  const { isStepComplete } = usePastJobDetailsStep(
+    isEditingMode ? undefined : allQualificationsConfirmed
+  );
+
   // Fetch past job data
   useEffect(() => {
     async function fetchPastJob() {
       if (!applicationId) return;
 
-      const jobId = getJobIdFromUrl();
-      if (!jobId) {
+      if (!id) {
         // No job ID in URL, redirect to the main page to find the next job
-        router.push("/ally/past-experience/past-jobs");
+        router.push(`/ally/${currentStepId}`);
         return;
       }
 
@@ -40,10 +67,10 @@ export default function PastJobQualificationsPage() {
           applicationId: applicationId,
           associationType: "PastJob",
         })) as PastJobType[];
-
+        console.log(pastJobs);
         // 2. Find the specific job by ID
-        const job = pastJobs.find((j) => j.id === jobId);
-
+        const job = pastJobs.find((j) => j.id === id);
+        console.log(job);
         if (job) {
           // 3. Ensure qualifications is properly formatted
           const formattedJob: PastJobType = {
@@ -57,12 +84,12 @@ export default function PastJobQualificationsPage() {
           };
 
           setPastJob(formattedJob);
+          setLoading(false);
         } else {
           // Job not found - redirect to find the next job
-          router.push("/ally/past-experience/past-jobs");
+          console.log("Job not found, redirecting");
+          router.push(`/ally/${currentStepId}`);
         }
-
-        setLoading(false);
       } catch (error) {
         console.error("Error fetching past job:", error);
         setLoading(false);
@@ -106,11 +133,47 @@ export default function PastJobQualificationsPage() {
     }
   };
 
-  // This is the key function that handles completion and finding the next job
-  const handleComplete = () => {
-    // We simply redirect to /past-jobs, which will automatically find
-    // the next job with unconfirmed qualifications
-    router.push("/ally/past-experience/past-jobs");
+  // Check if there's a next unconfirmed job before navigating away
+  const findNextJobWithUnconfirmedQualifications = async () => {
+    if (!applicationId) return null;
+
+    try {
+      const pastJobs = (await getApplicationAssociations({
+        applicationId: applicationId,
+        associationType: "PastJob",
+      })) as PastJobType[];
+
+      // Find a job with at least one unconfirmed qualification
+      return pastJobs.find(
+        (job) =>
+          job.id !== pastJob?.id && // Not the current job
+          job.qualifications?.some((qual) => !qual.userConfirmed)
+      );
+    } catch (error) {
+      console.error("Error finding next job:", error);
+      return null;
+    }
+  };
+
+  // This function handles completion and finding the next job
+  const handleComplete = async () => {
+    // If we're in edit mode, we need to remove the edit=true param when navigating
+    if (isEditingMode) {
+      // Just go back to the past-jobs page without the edit param
+      router.push("/ally/past-job-details");
+      return;
+    }
+
+    // Find the next job with unconfirmed qualifications
+    const nextJob = await findNextJobWithUnconfirmedQualifications();
+
+    if (nextJob) {
+      // Navigate to the next job that needs work
+      router.push(`/ally/past-job-details/${nextJob.id}`);
+    } else {
+      // All jobs are complete, move to the next step
+      router.push("/ally/past-job-details");
+    }
   };
 
   // Display loading state
@@ -128,26 +191,24 @@ export default function PastJobQualificationsPage() {
     );
   }
 
-  // Render the ChatLayout with the qualifications as nested items
+  // Render with the EditableParagraphProvider for editing support
   return (
-    <ChatLayout
-      // The nested items (qualifications) go in the items prop
-      items={pastJob.qualifications}
-      // Save function for qualifications
-      saveFunction={saveQualification}
-      // Function to call when all qualifications are confirmed
-      onComplete={handleComplete}
-      // Assistant configuration
-      assistantName="Ally"
-      assistantInstructions={`Help the user write detailed paragraphs about their ${pastJob.title} experience at ${pastJob.organization} that demonstrate they have the qualifications needed for ${job?.title} at the ${job?.department}.`}
-      jobString={`${job?.title} at the ${job?.department}`}
-      // UI text
-      sidebarTitle={`Qualifications for ${pastJob.title}`}
-      heading={`${pastJob.title} at ${pastJob.organization} - Applicable Work Experience`}
-      // Nested view configuration
-      isNestedView={true}
-      parentId={pastJob.id}
-      nestedItemsKey="qualifications"
-    />
+    <EditableParagraphProvider>
+      <ChatLayout
+        items={pastJob.qualifications}
+        currentStepId={currentStepId}
+        saveFunction={saveQualification}
+        onComplete={handleComplete}
+        assistantName="Ally"
+        assistantInstructions={`Help the user write detailed paragraphs about their ${pastJob.title} experience at ${pastJob.organization} that demonstrate they have the qualifications needed for ${job?.title} at the ${job?.department}.`}
+        jobString={`${job?.title} at the ${job?.department}`}
+        sidebarTitle={`Qualifications for ${pastJob.title}`}
+        heading={`${pastJob.title} at ${pastJob.organization} - Applicable Work Experience`}
+        isNestedView={true}
+        parentId={pastJob.id}
+        nestedItemsKey="qualifications"
+        isEditMode={isEditingMode}
+      />
+    </EditableParagraphProvider>
   );
 }

@@ -21,10 +21,12 @@ export interface ApplicationContextType {
   job: JobType | undefined;
   steps: StepsType[];
   applicationId: string;
+  initialRedirectComplete: boolean;
   resetApplication: () => void;
   setJob: (value: JobType) => void;
   setSteps: (value: StepsType[]) => void;
   setApplicationId: (value: string) => void;
+  setInitialRedirectComplete: (value: boolean) => void;
 }
 
 // Default steps array
@@ -129,6 +131,7 @@ export const ApplicationProvider = ({
   const [job, setJob] = useState<JobType | undefined>(initialJob);
   const [steps, setSteps] = useState<StepsType[]>(initialSteps || defaultSteps);
   const [applicationId, setApplicationId] = useState(initialAppId || "");
+  const [initialRedirectComplete, setInitialRedirectComplete] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const router = useRouter();
 
@@ -316,6 +319,8 @@ export const ApplicationProvider = ({
     setApplicationId,
     setJob,
     setSteps,
+    initialRedirectComplete,
+    setInitialRedirectComplete,
   };
 
   return (

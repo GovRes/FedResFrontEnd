@@ -21,5 +21,5 @@ export default function JobDetailPage({
     }
   }, []);
 
-  return <ExperienceDetailPage id={id} path={path} />;
+  return <ExperienceDetailPage id={id} currentStepId="volunteer-details" />;
 }

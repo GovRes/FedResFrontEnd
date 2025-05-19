@@ -11,6 +11,7 @@ import {
   specializedExperienceAssistantInstructions,
   specializedExperienceAssistantName,
 } from "@/app/prompts/specializedExperienceWriterPrompt";
+import { TextBlinkLoader } from "@/app/components/loader/Loader";
 
 export default function ExperienceWriterPage() {
   const [items, setItems] = useState<SpecializedExperienceType[]>([]);
@@ -20,7 +21,7 @@ export default function ExperienceWriterPage() {
   useEffect(() => {
     async function fetchItems() {
       if (!applicationId) return;
-
+      setLoading(true);
       try {
         const res = await getApplicationAssociations({
           applicationId: applicationId,
@@ -38,7 +39,6 @@ export default function ExperienceWriterPage() {
     }
     fetchItems();
   }, [applicationId]);
-
   const saveItem = async (item: SpecializedExperienceType) => {
     try {
       // Call your API to save the item
@@ -64,9 +64,13 @@ export default function ExperienceWriterPage() {
     setSteps(updatedSteps);
     await navigateToNextIncompleteStep("specialized-experience-details");
   }
+  if (loading) {
+    return <TextBlinkLoader text="Loading specialized experiences" />;
+  }
   return (
     <ChatLayout
       items={items}
+      currentStepId="specialized-experience-details"
       saveFunction={saveItem}
       onComplete={handleComplete}
       assistantName={specializedExperienceAssistantName}

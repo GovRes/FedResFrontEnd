@@ -8,17 +8,7 @@ export default function JobDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const [path, setPath] = useState<string>("");
+  const { id } = use(params);
 
-  useEffect(() => {
-    // Get current URL path
-    const path = window.location.pathname;
-    // Find the last segment before the ID
-    const match = path.match(/\/([^\/]+)\/[^\/]+$/);
-    if (match && match[1]) {
-      setPath(match[1]);
-    }
-  }, []);
-
-  return <ExperienceDetailPage />;
+  return <ExperienceDetailPage currentStepId="past-job-details" id={id} />;
 }

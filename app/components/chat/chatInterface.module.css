@@ -1,6 +1,6 @@
-/* chatInterface.module.css */
+/* enhancedChatInterface.module.css */
 
-/* Main layout */
+/* Base styles (incorporating previous styles) */
 .chatLayoutContainer {
   display: flex;
   flex-direction: column;
@@ -30,6 +30,8 @@
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebarTitle {
@@ -43,6 +45,8 @@
 
 .sidebarItems {
   padding: 0.5rem;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .sidebarItem {
@@ -50,19 +54,41 @@
   border-radius: 6px;
   margin-bottom: 0.5rem;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
 }
 
-.sidebarItem:hover {
+.sidebarItem:hover:not(.disabled) {
   background-color: #e9e9e9;
 }
 
 .sidebarItem.active {
   background-color: #e3f2fd;
-  border-left: 3px solid #007bff;
+  border-left-color: #007bff;
+}
+
+.sidebarItem.confirmed {
+  background-color: #f0fff0;
+  border-left-color: #28a745;
+}
+
+.sidebarItem.editing {
+  background-color: #fff3cd;
+  border-left-color: #ffc107;
+}
+
+.sidebarItem.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .sidebarItemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sidebarItemTitle {
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -84,6 +110,30 @@
   color: #6c757d;
 }
 
+.editingIndicator {
+  color: #ffc107;
+  font-weight: bold;
+}
+
+.paragraphPreview {
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: #666;
+  font-style: italic;
+}
+
+.editingHelp {
+  margin-top: auto;
+  padding: 0.75rem;
+  background-color: #fff3cd;
+  color: #856404;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
 /* Chat interface */
 .chatContainer {
   flex: 1;
@@ -93,6 +143,37 @@
   background-color: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+}
+
+.editingHeader {
+  padding: 0.75rem 1rem;
+  background-color: #fff3cd;
+  color: #856404;
+  font-weight: 500;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #ffeeba;
+}
+
+.editingControls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.editModeButton {
+  padding: 0.25rem 0.75rem;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.editModeButton.active {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
 }
 
 .chatBox {
@@ -192,7 +273,7 @@
   margin-bottom: 1rem;
 }
 
-/* Paragraph editor */
+/* Paragraph display */
 .paragraphContainer {
   padding: 1.5rem;
   background-color: #fff;
@@ -221,11 +302,11 @@
 .editButton {
   background-color: #6c757d;
   color: white;
-  padding: 0.5rem 1rem;
+  padding: 0.25rem 0.75rem;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-weight: 500;
+  font-size: 0.875rem;
 }
 
 .editButton:hover {
@@ -235,7 +316,7 @@
 .acceptButton {
   background-color: #28a745;
   color: white;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 1.5rem;
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -244,27 +325,6 @@
 
 .acceptButton:hover {
   background-color: #218838;
-}
-
-.editContainer {
-  margin-top: 1rem;
-}
-
-.editTextarea {
-  width: 100%;
-  min-height: 150px;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  resize: vertical;
-  font-family: inherit;
-  margin-bottom: 1rem;
-}
-
-.editButtonGroup {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
 }
 
 .cancelButton {
@@ -276,13 +336,55 @@
   cursor: pointer;
 }
 
+.cancelButton:hover {
+  background-color: #5a6268;
+}
+
+/* Manual edit mode */
+.manualEditContainer {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.editInstructions {
+  color: #6c757d;
+  margin-bottom: 1rem;
+}
+
+.manualEditTextarea {
+  width: 100%;
+  flex: 1;
+  min-height: 300px;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  resize: vertical;
+  font-family: inherit;
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.manualEditActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
 .saveButton {
-  background-color: #007bff;
+  background-color: #28a745;
   color: white;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 1.5rem;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  font-weight: 500;
+}
+
+.saveButton:hover {
+  background-color: #218838;
 }
 
 /* Progress tracker */
@@ -294,6 +396,16 @@
   font-size: 0.875rem;
   color: #6c757d;
   margin-bottom: 0.5rem;
+}
+
+.editingStatus {
+  font-size: 0.875rem;
+  color: #856404;
+  margin-bottom: 0.5rem;
+  background-color: #fff3cd;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  display: inline-block;
 }
 
 .progressBarContainer {
@@ -308,6 +420,10 @@
   background-color: #007bff;
   border-radius: 4px;
   transition: width 0.3s ease;
+}
+
+.progressBar.editingProgress {
+  background-color: #ffc107;
 }
 
 /* Empty states */

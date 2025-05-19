@@ -1,6 +1,7 @@
-// ChatContext.tsx
+// UpdatedChatContext.tsx
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useEditableParagraph } from "./editableParagraphContext";
 
 // Generic item type that can be extended by specific item types
 export type BaseItem = {
@@ -8,6 +9,7 @@ export type BaseItem = {
   title: string;
   description?: string;
   userConfirmed?: boolean;
+  paragraph?: string;
   [key: string]: any;
 };
 
@@ -17,14 +19,14 @@ type ChatContextType = {
   currentIndex: number;
   currentItem: BaseItem | null;
   paragraphData: string | null;
-
+  currentStepId: string;
   // Navigation
   setCurrentIndex: (index: number) => void;
   navigateToNextUnconfirmed: () => void;
 
   // Operations
-  saveItem: (item: BaseItem) => void;
-  saveParagraph: () => void;
+  saveItem: (item: BaseItem) => Promise<void>;
+  saveParagraph: () => Promise<void>;
   setParagraphData: (data: string | null) => void;
 
   // Meta info
@@ -37,12 +39,17 @@ type ChatContextType = {
   nestedCurrentIndex?: number;
   setNestedCurrentIndex?: (index: number) => void;
   parentNavigate?: () => void;
+
+  // Edit mode status
+  isEditingExistingParagraph: boolean;
+  isEditMode: boolean;
 };
+
 // Create context without a generic type parameter
 const ChatContext = createContext<ChatContextType | null>(null);
 
-// Provider component with a generic type parameter
-export function ChatProvider<T extends BaseItem>({
+// Provider component
+export function ChatProvider({
   children,
   initialItems,
   initialAssistantName,
@@ -50,32 +57,29 @@ export function ChatProvider<T extends BaseItem>({
   initialJobString,
   saveFunction,
   onComplete,
+  currentStepId,
   nestedItemsKey,
   parentId,
+  isEditMode = false, // New prop
 }: {
   children: React.ReactNode;
-  initialItems: T[];
+  initialItems: BaseItem[];
+  currentStepId: string;
   initialAssistantName: string;
   initialAssistantInstructions: string;
   initialJobString: string;
-  saveFunction: (item: T) => Promise<void>;
+  saveFunction: (item: BaseItem) => Promise<void>;
   onComplete: () => void;
   nestedItemsKey?: string;
   parentId?: string;
+  isEditMode?: boolean; // Indicate if we're in edit mode
 }) {
   const router = useRouter();
-  const [items, setItems] = useState<T[]>(initialItems);
+  const [items, setItems] = useState<BaseItem[]>(initialItems);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [currentItem, setCurrentItem] = useState<T | null>(() => {
-    const unconfirmedIndex = items.findIndex(
-      (item) => item.userConfirmed === false
-    );
-    return unconfirmedIndex >= 0
-      ? items[unconfirmedIndex]
-      : items.length > 0
-      ? items[0]
-      : null;
-  });
+  const [currentItem, setCurrentItem] = useState<BaseItem | null>(
+    items.length > 0 ? items[0] : null
+  );
   const [paragraphData, setParagraphData] = useState<string | null>(null);
 
   // For nested views
@@ -84,48 +88,114 @@ export function ChatProvider<T extends BaseItem>({
   );
   const [nestedCurrentIndex, setNestedCurrentIndex] = useState(0);
 
+  // Get the editable paragraph context
+  const {
+    isEditing,
+    itemBeingEdited,
+    originalParagraph,
+    startEditing,
+    cancelEditing,
+    finishEditing,
+  } = useEditableParagraph();
+
+  // Computed value to determine if we're editing an existing paragraph
+  const isEditingExistingParagraph = isEditing && itemBeingEdited !== null;
+
+  // Effect to initialize paragraph data from item
+  useEffect(() => {
+    if (currentItem) {
+      // If we're editing a specific item and it matches the current item
+      if (isEditingExistingParagraph && itemBeingEdited === currentItem.id) {
+        setParagraphData(originalParagraph);
+      }
+      // Or if item has a paragraph and we're not editing anything
+      else if (currentItem.paragraph && !isEditingExistingParagraph) {
+        setParagraphData(currentItem.paragraph);
+      }
+      // Otherwise, start with empty paragraph data
+      else if (!isEditingExistingParagraph) {
+        setParagraphData(null);
+      }
+    }
+  }, [
+    currentItem,
+    isEditingExistingParagraph,
+    itemBeingEdited,
+    originalParagraph,
+  ]);
+
   // Update current item when index changes
   useEffect(() => {
     if (items.length > 0 && currentIndex >= 0 && currentIndex < items.length) {
-      setCurrentItem(items[currentIndex]);
+      const newCurrentItem = items[currentIndex];
+      setCurrentItem(newCurrentItem);
+
+      // If we're editing a specific item and it matches the new current item
+      if (isEditingExistingParagraph && itemBeingEdited === newCurrentItem.id) {
+        setParagraphData(originalParagraph);
+      }
+      // Otherwise, use the item's paragraph if available
+      else if (newCurrentItem.paragraph && !isEditingExistingParagraph) {
+        setParagraphData(newCurrentItem.paragraph);
+      }
+      // Otherwise clear paragraph data
+      else if (!isEditingExistingParagraph) {
+        setParagraphData(null);
+      }
 
       // If we have nested items, update those too
       if (nestedItemsKey && items[currentIndex][nestedItemsKey]) {
         setNestedItems(items[currentIndex][nestedItemsKey]);
       }
     }
-  }, [currentIndex, items, nestedItemsKey]);
+  }, [
+    currentIndex,
+    items,
+    nestedItemsKey,
+    isEditingExistingParagraph,
+    itemBeingEdited,
+    originalParagraph,
+  ]);
 
-  useEffect(() => {
-    setItems(initialItems);
-  }, [initialItems]);
   // Save the current item
-  const saveItem = async (item: T) => {
-    const updatedItems = items.map((i) => (i.id === item.id ? item : i));
-    setItems(updatedItems);
+  const saveItem = async (item: BaseItem) => {
+    try {
+      const updatedItems = items.map((i) => (i.id === item.id ? item : i));
+      setItems(updatedItems);
 
-    // If we're in a nested view, we need to update the parent item
-    if (nestedItemsKey && parentId) {
-      // Find the parent item
-      const parentItem = items.find((i) => i.id === parentId);
-      if (parentItem) {
-        // Update the nested items
-        const nestedArray = (parentItem as any)[nestedItemsKey] as BaseItem[];
-        (parentItem as any)[nestedItemsKey] = nestedArray.map((ni: BaseItem) =>
-          ni.id === item.id ? item : ni
-        );
-        // Save the parent item
-        await saveFunction(parentItem);
+      // If we're in a nested view, we need to update the parent item
+      if (nestedItemsKey && parentId) {
+        // Find the parent item
+        const parentItem = items.find((i) => i.id === parentId);
+        if (parentItem) {
+          // Update the nested items
+          parentItem[nestedItemsKey] = parentItem[nestedItemsKey].map(
+            (ni: BaseItem) => (ni.id === item.id ? item : ni)
+          );
+          // Save the parent item
+          await saveFunction(parentItem);
+        }
+      } else {
+        // Save directly
+        await saveFunction(item);
       }
-    } else {
-      // Save directly
-      await saveFunction(item);
+
+      // If we were editing this item, finish editing
+      if (isEditingExistingParagraph && itemBeingEdited === item.id) {
+        finishEditing();
+      }
+
+      return Promise.resolve();
+    } catch (error) {
+      console.error("Error saving item:", error);
+      return Promise.reject(error);
     }
   };
 
   // Save paragraph to the current item
   const saveParagraph = async () => {
-    if (!paragraphData || !currentItem) return;
+    if (!paragraphData || !currentItem)
+      return Promise.reject("No paragraph data or current item");
 
     const updatedItem = {
       ...currentItem,
@@ -133,15 +203,31 @@ export function ChatProvider<T extends BaseItem>({
       userConfirmed: true,
     };
 
-    await saveItem(updatedItem as T);
-    setParagraphData(null);
+    await saveItem(updatedItem);
 
-    // Navigate to next unconfirmed item
-    navigateToNextUnconfirmed();
+    // Only clear paragraph data if we're not in edit mode
+    if (!isEditingExistingParagraph) {
+      setParagraphData(null);
+    }
+
+    // If we're editing an existing paragraph, finish editing
+    if (isEditingExistingParagraph) {
+      finishEditing();
+    } else {
+      // Otherwise navigate to next unconfirmed item
+      navigateToNextUnconfirmed();
+    }
+
+    return Promise.resolve();
   };
 
   // Find the next unconfirmed item
   const navigateToNextUnconfirmed = () => {
+    // Don't navigate if we're in edit mode
+    if (isEditingExistingParagraph) {
+      return;
+    }
+
     // If we're in a nested view
     if (nestedItemsKey && nestedItems) {
       // Check if there are any unconfirmed nested items
@@ -215,18 +301,21 @@ export function ChatProvider<T extends BaseItem>({
 
   // Create the context value - cast to make TypeScript happy
   const contextValue: ChatContextType = {
-    items: items as unknown as BaseItem[],
+    items: items,
     currentIndex,
-    currentItem: currentItem as unknown as BaseItem | null,
+    currentItem,
+    currentStepId,
     paragraphData,
     setCurrentIndex,
     navigateToNextUnconfirmed,
-    saveItem: (item: BaseItem) => saveItem(item as unknown as T),
+    saveItem,
     saveParagraph,
     setParagraphData,
     assistantName: initialAssistantName,
     assistantInstructions: initialAssistantInstructions,
     jobString: initialJobString,
+    isEditingExistingParagraph,
+    isEditMode,
   };
 
   // Add nested properties if we're in a nested view
@@ -237,7 +326,7 @@ export function ChatProvider<T extends BaseItem>({
     contextValue.parentNavigate = () => {
       // Navigate back to parent view
       if (parentId) {
-        router.push(`/ally/past-experience/past-job-details/${parentId}`);
+        router.push(`/ally/${currentStepId}/${parentId}`);
       }
     };
   }
@@ -248,17 +337,10 @@ export function ChatProvider<T extends BaseItem>({
 }
 
 // Custom hook to use the chat context
-export function useChatContext<T extends BaseItem = BaseItem>() {
+export function useChatContext() {
   const context = useContext(ChatContext);
   if (!context) {
     throw new Error("useChatContext must be used within a ChatProvider");
   }
-  // This cast tells TypeScript that we're using specific type T
-  // It's safe as long as we're always providing the correct type when using the hook
-  return context as unknown as ChatContextType & {
-    items: T[];
-    currentItem: T | null;
-    saveItem: (item: T) => void;
-    nestedItems?: T[];
-  };
+  return context;
 }

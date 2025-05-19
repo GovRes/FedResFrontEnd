@@ -17,6 +17,7 @@ export default function ApplicationItem({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+
   async function deleteApp() {
     setApplications((prevItems) =>
       prevItems.filter((prevItem) => prevItem.id !== application.id)
@@ -34,16 +35,22 @@ export default function ApplicationItem({
     }
   }
 
-  const setApplication = async () => {
+  const setApplication = () => {
+    // Set the applicationId in sessionStorage
     sessionStorage.setItem("applicationId", application.id.toString());
-    // Add a 2-second wait before navigation
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // Trigger the custom event to notify layout that sessionStorage has changed
+    const event = new CustomEvent("applicationIdChanged");
+    window.dispatchEvent(event);
+
+    // Navigate to the ally page
     router.push("/ally");
   };
 
   if (loading) {
     return <TextBlinkLoader text="Deleting..." />;
   }
+
   return (
     <tr>
       <td className="tableData" role="cell">

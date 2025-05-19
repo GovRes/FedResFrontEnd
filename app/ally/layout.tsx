@@ -17,7 +17,52 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
-  const { applicationId, setSteps } = useApplication();
+  const {
+    applicationId,
+    initialRedirectComplete,
+    setApplicationId,
+    setInitialRedirectComplete,
+    setSteps,
+  } = useApplication();
+
+  // Effect to check for sessionStorage changes
+  useEffect(() => {
+    const checkSessionStorage = () => {
+      const storedApplicationId = sessionStorage.getItem("applicationId");
+      // Only update if different from current applicationId
+      if (storedApplicationId && storedApplicationId !== applicationId) {
+        setApplicationId(storedApplicationId);
+      }
+    };
+
+    // Check immediately and set up listener
+    checkSessionStorage();
+
+    // Create a storage event listener to detect changes
+    const handleStorageChange = () => {
+      checkSessionStorage();
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+
+    // Custom event for direct communication
+    const handleCustomEvent = (e: CustomEvent) => {
+      checkSessionStorage();
+    };
+
+    window.addEventListener(
+      "applicationIdChanged",
+      handleCustomEvent as EventListener
+    );
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener(
+        "applicationIdChanged",
+        handleCustomEvent as EventListener
+      );
+    };
+  }, [applicationId, setApplicationId]);
 
   useEffect(() => {
     async function loadApplicationData() {
@@ -38,15 +83,14 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
 
             // Update the steps in context
             setSteps(updatedSteps);
-            console.log(41, updatedSteps);
 
-            // If on root path, redirect to first incomplete step
-            if (pathname === "/ally") {
+            // Only redirect if this is initial load AND we're on the root path
+            if (pathname === "/ally" && !initialRedirectComplete) {
               const nextIncompleteStep = updatedSteps.find(
                 (step) => !step.completed
               );
-              console.log(45, nextIncompleteStep);
               if (nextIncompleteStep) {
+                setInitialRedirectComplete(true); // Set the flag to prevent future auto-redirects
                 router.push(`/ally${nextIncompleteStep.path}`);
                 // Keep loading true until redirect completes
                 return;
@@ -66,7 +110,14 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
     }
 
     loadApplicationData();
-  }, [applicationId, pathname, router, setSteps]);
+  }, [
+    applicationId,
+    pathname,
+    router,
+    setSteps,
+    initialRedirectComplete,
+    setInitialRedirectComplete,
+  ]);
 
   // Loading state UI
   if (isLoading && pathname === "/ally") {

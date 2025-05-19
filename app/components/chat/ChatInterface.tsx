@@ -1,16 +1,15 @@
+// EnhancedChatInterface.tsx
 import React, { useState, useEffect, FormEvent } from "react";
-import { useChatContext, BaseItem } from "../../providers/chatContext";
+import { useChatContext } from "../../providers/chatContext";
+import { useEditableParagraph } from "../../providers/editableParagraphContext";
 import styles from "./chatInterface.module.css";
-import ParagraphEditor from "./ParagraphEditor";
-import { useAuthenticator } from "@aws-amplify/ui-react";
-import { fetchUserAttributes } from "aws-amplify/auth";
 
 type Message = {
   role: "user" | "assistant";
   content: string;
 };
 
-export default function ChatInterface() {
+export default function EnhancedChatInterface() {
   // Get context data
   const {
     currentItem,
@@ -20,7 +19,10 @@ export default function ChatInterface() {
     assistantName,
     assistantInstructions,
     jobString,
+    isEditingExistingParagraph,
   } = useChatContext();
+
+  const { editMode, setEditMode, cancelEditing } = useEditableParagraph();
 
   // Local state
   const [messages, setMessages] = useState<Message[]>([]);
@@ -28,8 +30,7 @@ export default function ChatInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [threadId, setThreadId] = useState<string | null>(null);
-  const [editType, setEditType] = useState<string | null>(null);
-  const [userName, setUserName] = useState<string | null>("You");
+
   // Common prompt suggestions
   const userPrompts = [
     "Can you give me an example?",
@@ -39,43 +40,48 @@ export default function ChatInterface() {
     "Explain that a little more",
     "I have a question for you",
   ];
-  const { user, authStatus } = useAuthenticator((context) => [
-    context.user,
-    context.authStatus,
-  ]);
 
-  useEffect(() => {
-    async function getUserAttributes() {
-      if (authStatus === "authenticated") {
-        const attrRes = await fetchUserAttributes();
-        setUserName(attrRes.given_name || "You");
-      }
-    }
-    getUserAttributes();
-  }, [user, authStatus]);
+  // Special prompts for editing mode
+  const editingPrompts = [
+    "Can you improve this paragraph?",
+    "This paragraph needs to be more detailed.",
+    "Make this paragraph more concise.",
+    "Can you emphasize my technical skills more?",
+    "Rewrite this to sound more professional.",
+  ];
 
   // Initialize random prompts on component mount and when messages change
   const [randomPrompts, setRandomPrompts] = useState<string[]>([]);
 
   useEffect(() => {
-    const shuffled = [...userPrompts].sort(() => 0.5 - Math.random());
+    // Use different prompts when editing versus creating new content
+    const promptsToUse = isEditingExistingParagraph
+      ? editingPrompts
+      : userPrompts;
+    const shuffled = [...promptsToUse].sort(() => 0.5 - Math.random());
     setRandomPrompts(shuffled.slice(0, 2));
-  }, [JSON.stringify(messages)]);
+  }, [JSON.stringify(messages), isEditingExistingParagraph]);
 
-  // Make sure the chat is reset when a new conversation starts
+  // Initialize with welcome message
   useEffect(() => {
-    // Clear chat state when a new item is selected
-    setMessages([]);
-    setThreadId(null);
-    setParagraphData(null);
-    setError(null);
-
-    // Initialize with welcome message
     if (currentItem) {
-      const initialMessage = `I'm going to help you write a paragraph about ${currentItem.title} to include in your application for ${jobString}. Can you tell me a bit about your experience?`;
+      let initialMessage = "";
+
+      if (isEditingExistingParagraph) {
+        // For editing mode, reference the existing paragraph
+        initialMessage = `I see you want to edit your paragraph about "${currentItem.title}". Here's the current paragraph:
+        
+        "${paragraphData}"
+        
+        How would you like to improve it? You can give me specific instructions, or I can suggest improvements.`;
+      } else {
+        // For creating new content
+        initialMessage = `I'm going to help you write a paragraph about ${currentItem.title} to include in your application for ${jobString}. Can you tell me a bit about your experience?`;
+      }
+
       setMessages([{ role: "assistant", content: initialMessage }]);
     }
-  }, [currentItem, jobString, setParagraphData]);
+  }, [currentItem, jobString, isEditingExistingParagraph, paragraphData]);
 
   // Handle chat submission
   const handleChatSubmit = async (e: React.FormEvent) => {
@@ -93,19 +99,27 @@ export default function ChatInterface() {
     setError(null);
 
     try {
+      // Customize instructions based on whether we're editing or creating
+      let customInstructions = assistantInstructions;
+
+      if (isEditingExistingParagraph) {
+        customInstructions = `${assistantInstructions}. The user is editing an existing paragraph about "${currentItem?.title}". 
+        Here is their current paragraph: "${paragraphData}". 
+        Help them improve it based on their feedback. If you generate a new paragraph, make sure it builds on the existing content.`;
+      }
+
       const response = await fetch("/api/detailed-chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          assistantInstructions: `${assistantInstructions}. Here are some more details about this item: ${currentItem?.title} - ${currentItem?.description}`,
+          assistantInstructions: `${customInstructions}. Here are some more details about this item: ${currentItem?.title} - ${currentItem?.description}`,
           assistantName,
           message: input,
           threadId: threadId,
-          initialMessage: threadId
-            ? undefined
-            : `I'm going to help you write a paragraph about ${currentItem?.title} to include in your application for ${jobString}. Can you tell me a bit about your experience?`,
+          // Pass the current paragraph if in editing mode
+          existingParagraph: isEditingExistingParagraph ? paragraphData : null,
         }),
       });
 
@@ -156,29 +170,28 @@ export default function ChatInterface() {
   const handleParagraphSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!paragraphData) return;
-    setEditType(null);
 
     try {
       await saveParagraph();
-
-      // Reset interface after submitting paragraph
-      setMessages([]);
-      setThreadId(null);
-      setParagraphData(null);
-
-      // Re-initialize with welcome message if needed
-      if (currentItem) {
-        const initialMessage = `I'm going to help you write a paragraph about ${currentItem.title} to include in your application for ${jobString}. Can you tell me a bit about your experience?`;
-        setMessages([{ role: "assistant", content: initialMessage }]);
-      }
     } catch (error) {
       console.error("Error saving paragraph:", error);
-      setError(
-        error instanceof Error
-          ? error.message
-          : "An error occurred while saving"
-      );
+      setError("Failed to save paragraph. Please try again.");
     }
+  };
+
+  // Handle manual edit of paragraph
+  const handleManualEdit = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setParagraphData(e.target.value);
+  };
+
+  // Switch between chat and manual editing modes
+  const toggleEditMode = () => {
+    setEditMode(editMode === "chat" ? "manual" : "chat");
+  };
+
+  // Cancel editing and go back
+  const handleCancelEdit = () => {
+    cancelEditing();
   };
 
   // Render prompt suggestion buttons
@@ -199,64 +212,137 @@ export default function ChatInterface() {
 
   return (
     <div className={styles.chatContainer}>
-      {/* Chat messages */}
-      <div className={styles.chatBox}>
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={
-              msg.role === "assistant"
-                ? styles.allyChatContainer
-                : styles.userChatContainer
-            }
-          >
-            <strong>
-              {msg.role === "assistant" ? assistantName : userName}:
-            </strong>{" "}
-            {msg.content}
+      {/* Heading that shows editing state */}
+      {isEditingExistingParagraph && (
+        <div className={styles.editingHeader}>
+          <span>Editing Existing Paragraph</span>
+          <div className={styles.editingControls}>
+            <button
+              onClick={toggleEditMode}
+              className={`${styles.editModeButton} ${
+                editMode === "chat" ? styles.active : ""
+              }`}
+            >
+              Chat Mode
+            </button>
+            <button
+              onClick={toggleEditMode}
+              className={`${styles.editModeButton} ${
+                editMode === "manual" ? styles.active : ""
+              }`}
+            >
+              Manual Edit
+            </button>
+            <button onClick={handleCancelEdit} className={styles.cancelButton}>
+              Cancel Editing
+            </button>
           </div>
-        ))}
+        </div>
+      )}
 
-        {isLoading && (
-          <div className={styles.allyChatContainer}>
-            <strong>{assistantName}:</strong> <em>Thinking...</em>
-          </div>
-        )}
+      {/* Chat Mode */}
+      {(!isEditingExistingParagraph ||
+        (isEditingExistingParagraph && editMode === "chat")) && (
+        <div className={styles.chatBox}>
+          {messages.map((msg, index) => (
+            <div
+              key={index}
+              className={
+                msg.role === "assistant"
+                  ? styles.allyChatContainer
+                  : styles.userChatContainer
+              }
+            >
+              <strong>
+                {msg.role === "assistant" ? assistantName : "You"}:
+              </strong>{" "}
+              {msg.content}
+            </div>
+          ))}
 
-        {error && (
-          <div className={styles.errorContainer}>
-            <strong>Error:</strong> {error}
-          </div>
-        )}
+          {isLoading && (
+            <div className={styles.allyChatContainer}>
+              <strong>{assistantName}:</strong> <em>Thinking...</em>
+            </div>
+          )}
 
-        {/* Paragraph display with ParagraphEditor */}
-        {paragraphData ? (
-          <ParagraphEditor onSubmit={handleParagraphSubmit} />
-        ) : (
-          <div>
-            {/* Chat input form */}
-            <form onSubmit={handleChatSubmit} className={styles.inputForm}>
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Type your message here..."
-                disabled={isLoading}
-                className={styles.inputTextarea}
-              />
+          {error && (
+            <div className={styles.errorContainer}>
+              <strong>Error:</strong> {error}
+            </div>
+          )}
 
-              <button
-                type="submit"
-                disabled={isLoading || !input.trim()}
-                className={styles.submitButton}
-              >
-                {isLoading ? "Sending..." : "Send"}
+          {/* Paragraph display */}
+          {paragraphData ? (
+            <div className={styles.paragraphContainer}>
+              <h3>Generated Paragraph</h3>
+              <div className={styles.paragraphText}>{paragraphData}</div>
+
+              <div className={styles.paragraphActions}>
+                <form onSubmit={handleParagraphSubmit}>
+                  <button type="submit" className={styles.acceptButton}>
+                    {isEditingExistingParagraph
+                      ? "Save Changes"
+                      : "Accept & Continue"}
+                  </button>
+                </form>
+              </div>
+            </div>
+          ) : (
+            <div>
+              {/* Chat input form */}
+              <form onSubmit={handleChatSubmit} className={styles.inputForm}>
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Type your message here..."
+                  disabled={isLoading}
+                  className={styles.inputTextarea}
+                />
+
+                <button
+                  type="submit"
+                  disabled={isLoading || !input.trim()}
+                  className={styles.submitButton}
+                >
+                  {isLoading ? "Sending..." : "Send"}
+                </button>
+
+                {renderPromptButtons()}
+              </form>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Manual Edit Mode */}
+      {isEditingExistingParagraph && editMode === "manual" && (
+        <div className={styles.manualEditContainer}>
+          <h3>Manual Edit Mode</h3>
+          <p className={styles.editInstructions}>
+            Edit the paragraph directly in the text box below. When you're
+            finished, click "Save Changes".
+          </p>
+
+          <textarea
+            value={paragraphData || ""}
+            onChange={handleManualEdit}
+            className={styles.manualEditTextarea}
+            rows={12}
+          />
+
+          <div className={styles.manualEditActions}>
+            <button onClick={handleCancelEdit} className={styles.cancelButton}>
+              Cancel
+            </button>
+            <form onSubmit={handleParagraphSubmit}>
+              <button type="submit" className={styles.acceptButton}>
+                Save Changes
               </button>
-
-              {renderPromptButtons()}
             </form>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
