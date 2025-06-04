@@ -5,9 +5,11 @@ import ApplicationItem from "./ApplicationItem";
 export default function ApplicationsTable({
   applications,
   setApplications,
+  setLoading,
 }: {
   applications: ApplicationType[];
   setApplications: React.Dispatch<React.SetStateAction<ApplicationType[]>>;
+  setLoading: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   return (
     <div>
@@ -27,6 +29,7 @@ export default function ApplicationsTable({
                 key={application.id}
                 application={application}
                 setApplications={setApplications}
+                setLoading={setLoading}
               />
             ))}
         </tbody>

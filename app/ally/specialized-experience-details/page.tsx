@@ -29,7 +29,12 @@ export default function ExperienceWriterPage() {
         });
         console.log(26, res);
         if (res && res.length > 0) {
-          setItems(res as SpecializedExperienceType[]);
+          const qualitativeExperiences = res.filter(
+            (res) =>
+              res.typeOfExperience === "experience" ||
+              res.typeOfExperience === "other"
+          );
+          setItems(qualitativeExperiences as SpecializedExperienceType[]);
         }
         setLoading(false);
       } catch (error) {

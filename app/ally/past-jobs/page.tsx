@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import InitialReview from "@/app/components/ally/sharedComponents/InitialReview";
+import InitialReview from "@/app/components/ally/InitialReview";
 import { PastJobType } from "@/app/utils/responseSchemas";
 import { TextBlinkLoader } from "@/app/components/loader/Loader";
 import { listUserModelRecords } from "@/app/crud/genericListForUser";

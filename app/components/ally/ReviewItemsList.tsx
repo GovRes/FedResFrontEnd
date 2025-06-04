@@ -1,12 +1,12 @@
 import { FormEvent, useEffect, useState } from "react";
-import styles from "../ally.module.css";
+import styles from "./ally.module.css";
 import {
   AwardType,
   EducationType,
   PastJobType,
 } from "@/app/utils/responseSchemas";
-import { Checkboxes, SubmitButton } from "../../forms/Inputs";
-import BaseForm from "../../forms/BaseForm";
+import { Checkboxes, SubmitButton } from "../forms/Inputs";
+import BaseForm from "../forms/BaseForm";
 import {
   generateHeadingText,
   pascalToSpaced,

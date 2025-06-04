@@ -2,32 +2,44 @@
 import styles from "./navbarStyles.module.css";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { useAuthenticator } from '@aws-amplify/ui-react';
+import { useAuthenticator } from "@aws-amplify/ui-react";
 
 import { IoClose, IoMenu } from "react-icons/io5";
 import NavLogin from "./NavLogin";
+import { useSearchParams } from "next/navigation";
 
-const Navbar = () => {
+export const Navbar = () => {
   const [showMenu, setShowMenu] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const toggleMenu = () => {
     setShowMenu(!showMenu);
   };
   const { user } = useAuthenticator((context) => [context.user]);
-  const toggleLogin = () => { setShowLogin(!showLogin) }
+  const searchParams = useSearchParams();
+  const login = searchParams.get("login");
+
+  const toggleLogin = () => {
+    setShowLogin(!showLogin);
+  };
+
+  useEffect(() => {
+    if (login === "true") {
+      setShowLogin(true);
+    }
+  }, [login]);
 
   useEffect(() => {
     if (user) {
-      setShowLogin(true)
+      setShowLogin(true);
     }
-  }, [user])
+  }, [user]);
 
   const closeMenuOnMobile = () => {
     if (window.innerWidth <= 1150) {
       setShowMenu(false);
     }
   };
-  
+
   return (
     <header>
       <nav>
@@ -82,20 +94,27 @@ const Navbar = () => {
                 Ally
               </Link>
             </li>
-            {user && (<li><Link
-                className={styles.navLink}
-                href="/profile"
-                onClick={closeMenuOnMobile}
-              >
-                Profile
-              </Link></li>)}
+            {user && (
+              <li>
+                <Link
+                  className={styles.navLink}
+                  href="/profile"
+                  onClick={closeMenuOnMobile}
+                >
+                  Profile
+                </Link>
+              </li>
+            )}
             <li>
-              {showLogin ? <NavLogin setShowLogin={setShowLogin} /> :
-                <span className={styles.navLink} onClick={toggleLogin}>Login/Sign Up</span>
-                }
+              {showLogin ? (
+                <NavLogin setShowLogin={setShowLogin} />
+              ) : (
+                <span className={styles.navLink} onClick={toggleLogin}>
+                  Login/Sign Up
+                </span>
+              )}
             </li>
-            
-           </ul>
+          </ul>
           <div
             className={`${styles.navToggle} ${styles.navClose}`}
             onClick={toggleMenu}

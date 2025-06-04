@@ -56,6 +56,7 @@ export const createAndSaveSpecializedExperiences = async ({
               description
               initialMessage
               paragraph
+              typeOfExperience
               userConfirmed
               userId
             }
@@ -67,6 +68,7 @@ export const createAndSaveSpecializedExperiences = async ({
             description: experience.description,
             initialMessage: experience.initialMessage,
             paragraph: experience.paragraph || null,
+            typeOfExperience: experience.typeOfExperience || null,
             userConfirmed: experience.userConfirmed || false,
             userId,
           },

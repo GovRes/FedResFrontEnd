@@ -8,18 +8,8 @@ export default function AllyPage() {
   const router = useRouter();
 
   const handleNewApplication = () => {
-    // Clear the applicationId in sessionStorage
-    sessionStorage.removeItem("applicationId");
-
-    // Trigger the custom event to notify layout that sessionStorage has changed
-    const event = new CustomEvent("applicationIdChanged");
-    window.dispatchEvent(event);
-
-    // Call the context's resetApplication function
     resetApplication();
-
-    // Force a reload of the current page to ensure state is refreshed
-    router.refresh();
+    router.push("/ally/job-search");
   };
 
   return (

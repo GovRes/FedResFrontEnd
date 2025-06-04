@@ -84,16 +84,15 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
             // Update the steps in context
             setSteps(updatedSteps);
 
-            // Only redirect if this is initial load AND we're on the root path
-            if (pathname === "/ally" && !initialRedirectComplete) {
+            // Handle redirection logic
+            if (pathname === "/ally" || !pathname.includes("/ally/")) {
               const nextIncompleteStep = updatedSteps.find(
                 (step) => !step.completed
               );
               if (nextIncompleteStep) {
-                setInitialRedirectComplete(true); // Set the flag to prevent future auto-redirects
+                setInitialRedirectComplete(true);
                 router.push(`/ally${nextIncompleteStep.path}`);
-                // Keep loading true until redirect completes
-                return;
+                return; // Keep loading until redirect
               }
             }
           }
@@ -103,6 +102,11 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
             error
           );
         }
+      } else if (pathname === "/ally") {
+        // No application ID but on root path, redirect to first step
+        setInitialRedirectComplete(true);
+        router.push("/ally/job-search");
+        return; // Keep loading until redirect
       }
 
       // Finished loading
@@ -110,14 +114,7 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
     }
 
     loadApplicationData();
-  }, [
-    applicationId,
-    pathname,
-    router,
-    setSteps,
-    initialRedirectComplete,
-    setInitialRedirectComplete,
-  ]);
+  }, [applicationId, pathname, router, setSteps, setInitialRedirectComplete]);
 
   // Loading state UI
   if (isLoading && pathname === "/ally") {

@@ -5,11 +5,17 @@ import { TextBlinkLoader } from "../../../components/loader/Loader";
 import { listUserApplications } from "@/app/crud/application";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function ApplicationDashboard() {
   const [applications, setApplications] = useState<ApplicationType[]>([]);
   const [loading, setLoading] = useState(false);
   const { user } = useAuthenticator();
+  const router = useRouter();
+  function startNewApplication() {
+    sessionStorage.removeItem("applicationId");
+    router.push(`/ally`);
+  }
   useEffect(() => {
     async function getUserApplications() {
       setLoading(true);
@@ -46,7 +52,9 @@ export default function ApplicationDashboard() {
       <ApplicationsTable
         applications={applications}
         setApplications={setApplications}
+        setLoading={setLoading}
       />
+      <button onClick={startNewApplication}>Start a new application</button>
     </div>
   );
 }

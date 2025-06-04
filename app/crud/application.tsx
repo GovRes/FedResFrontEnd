@@ -673,58 +673,63 @@ export const deleteApplication = async ({
     ];
 
     // Step 1: Delete all join table entries for each association type
-    for (const joinTable of joinTables) {
-      // 1.1: List all join table entries for this application
-      const listQuery = `
-        query List${joinTable}s($filter: Model${joinTable}FilterInput) {
-          list${joinTable}s(filter: $filter) {
-            items {
-              id
-            }
-          }
-        }
-      `;
-
-      const listResponse = await client.graphql({
-        query: listQuery,
-        variables: {
-          filter: {
-            applicationId: { eq: applicationId },
-          },
-        },
-        authMode: "userPool",
-      });
-
-      if (
-        "data" in listResponse &&
-        listResponse.data[`list${joinTable}s`]?.items
-      ) {
-        const joinItems = listResponse.data[`list${joinTable}s`].items;
-
-        // 1.2: Delete each join table entry
-        for (const item of joinItems) {
-          const deleteQuery = `
-            mutation Delete${joinTable}($input: Delete${joinTable}Input!) {
-              delete${joinTable}(input: $input) {
+    // Use Promise.all to wait for all join table deletions to complete
+    await Promise.all(
+      joinTables.map(async (joinTable) => {
+        // 1.1: List all join table entries for this application
+        const listQuery = `
+          query List${joinTable}s($filter: Model${joinTable}FilterInput) {
+            list${joinTable}s(filter: $filter) {
+              items {
                 id
               }
             }
-          `;
+          }
+        `;
 
-          await client.graphql({
-            query: deleteQuery,
-            variables: {
-              input: { id: item.id },
+        const listResponse = await client.graphql({
+          query: listQuery,
+          variables: {
+            filter: {
+              applicationId: { eq: applicationId },
             },
-            authMode: "userPool",
-          });
-        }
+          },
+          authMode: "userPool",
+        });
 
-        console.log(
-          `Deleted ${joinItems.length} ${joinTable} entries for application ${applicationId}`
-        );
-      }
-    }
+        if (
+          "data" in listResponse &&
+          listResponse.data[`list${joinTable}s`]?.items
+        ) {
+          const joinItems = listResponse.data[`list${joinTable}s`].items;
+
+          // 1.2: Delete each join table entry - use Promise.all here too
+          await Promise.all(
+            joinItems.map(async (item: any) => {
+              const deleteQuery = `
+                mutation Delete${joinTable}($input: Delete${joinTable}Input!) {
+                  delete${joinTable}(input: $input) {
+                    id
+                  }
+                }
+              `;
+
+              return client.graphql({
+                query: deleteQuery,
+                variables: {
+                  input: { id: item.id },
+                },
+                authMode: "userPool",
+              });
+            })
+          );
+
+          console.log(
+            `Deleted ${joinItems.length} ${joinTable} entries for application ${applicationId}`
+          );
+        }
+      })
+    );
 
     // Step 2: Now that all join table entries are deleted, delete the application itself
     const deleteApplicationQuery = `

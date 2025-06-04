@@ -2,36 +2,36 @@
 
 import { ApplicationType } from "@/app/utils/responseSchemas";
 import { GrTrash } from "react-icons/gr";
-import { deleteModelRecord } from "@/app/crud/genericDelete";
 import { useRouter } from "next/navigation";
 import { deleteApplication } from "@/app/crud/application";
-import { useState } from "react";
-import { TextBlinkLoader } from "@/app/components/loader/Loader";
+import { broadcastApplicationReset } from "@/app/providers/applicationContext";
 
 export default function ApplicationItem({
   application,
   setApplications,
+  setLoading,
 }: {
   application: ApplicationType;
   setApplications: React.Dispatch<React.SetStateAction<Array<ApplicationType>>>;
+  setLoading: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-
   async function deleteApp() {
-    setApplications((prevItems) =>
-      prevItems.filter((prevItem) => prevItem.id !== application.id)
-    );
     try {
       setLoading(true);
       await deleteApplication({ applicationId: application.id });
+      sessionStorage.removeItem("applicationId");
+      broadcastApplicationReset();
+      setApplications((prevItems) =>
+        prevItems.filter((prevItem) => prevItem.id !== application.id)
+      );
       setLoading(false);
     } catch (error) {
-      setApplications((prevItems) => [...prevItems, application]);
       console.error(
         `Error deleting Application with ID ${application.id}:`,
         error
       );
+      setLoading(false);
     }
   }
 
@@ -46,11 +46,6 @@ export default function ApplicationItem({
     // Navigate to the ally page
     router.push("/ally");
   };
-
-  if (loading) {
-    return <TextBlinkLoader text="Deleting..." />;
-  }
-
   return (
     <tr>
       <td className="tableData" role="cell">

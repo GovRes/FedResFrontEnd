@@ -5,11 +5,11 @@ import {
   PastJobType,
 } from "@/app/utils/responseSchemas";
 import { getCheckboxValues } from "@/app/utils/formUtils";
-import ReviewItemsList from "../sharedComponents/ReviewItemsList";
+import ReviewItemsList from "./ReviewItemsList";
 import { completeSteps } from "@/app/utils/stepUpdater";
 import { associateItemsWithApplication } from "@/app/crud/application";
 import { useApplication } from "@/app/providers/applicationContext";
-import { TextBlinkLoader } from "../../loader/Loader";
+import { TextBlinkLoader } from "../loader/Loader";
 import SkipItems from "./SkipItems";
 import { useNextStepNavigation } from "@/app/utils/nextStepNavigation";
 
@@ -28,6 +28,7 @@ export default function InitialReview<
     | "Education"
     | "SpecializedExperience"
     | "PastJob"
+    | "VolunteerExperience"
     | "Resume";
   setLocalItems: Function;
 }) {
@@ -55,7 +56,8 @@ export default function InitialReview<
         await associateItemsWithApplication({
           applicationId,
           items: updatedItems,
-          associationType: itemType,
+          associationType:
+            itemType === "VolunteerExperience" ? "PastJob" : itemType,
         });
       }
       const updatedSteps = await completeSteps({

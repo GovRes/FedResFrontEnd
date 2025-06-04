@@ -36,6 +36,7 @@ export default function InitialReview({}: // setReviewing,
   }
   async function storeSpecializedExperiences() {
     setLoading(true);
+    console.log(39, specializedExperiences);
     try {
       await createAndSaveSpecializedExperiences({
         specializedExperiences,
@@ -50,15 +51,7 @@ export default function InitialReview({}: // setReviewing,
       setLoading(false);
     }
   }
-  async function saveSpecializedExperience({
-    specializedExperience,
-  }: {
-    specializedExperience: SpecializedExperienceType;
-  }) {
-    await updateModelRecord("SpecializedExperience", specializedExperience.id, {
-      applicationId,
-    });
-  }
+
   function backToSearch() {
     setSpecializedExperiences([]);
     router.push("/ally/job-search");

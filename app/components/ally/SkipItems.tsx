@@ -33,13 +33,13 @@ export default function SkipItems({
 
   return (
     <div>
-      <div>You don't have any {pascalToSpaced(itemType)}.</div>
-      <Link href={`/profile/${pascalToDashed}s`}>
+      <div>You don't have any {pascalToSpaced(itemType)}s.</div>
+      <Link href={`/profile/${pascalToDashed(itemType)}s`}>
         <button>
-          Add {pascalToSpaced(itemType)} and then come back here to continue
+          Add {pascalToSpaced(itemType)}s and then come back here to continue
         </button>
       </Link>
-      <button onClick={skipItems}>Skip {pascalToSpaced(itemType)}</button>
+      <button onClick={skipItems}>Skip {pascalToSpaced(itemType)}s</button>
     </div>
   );
 }

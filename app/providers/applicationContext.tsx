@@ -121,6 +121,20 @@ interface ApplicationProviderProps {
   initialJob?: JobType;
 }
 
+// Custom event to handle storage changes
+const STORAGE_EVENT_KEY = "applicationStorage";
+
+// Function to broadcast storage changes
+export const broadcastApplicationReset = () => {
+  if (typeof window !== "undefined") {
+    // Create and dispatch a custom event
+    const event = new CustomEvent(STORAGE_EVENT_KEY, {
+      detail: { type: "reset" },
+    });
+    window.dispatchEvent(event);
+  }
+};
+
 export const ApplicationProvider = ({
   children,
   initialSteps,
@@ -138,17 +152,66 @@ export const ApplicationProvider = ({
   // Refs to prevent infinite loops
   const dataLoadedRef = useRef(false);
   const applicationLoadingRef = useRef(false);
+
   function resetApplication() {
     setApplicationId("");
     setJob(undefined);
     setSteps(defaultSteps);
-    // Clear the applicationId from sessionStorage
+    setInitialRedirectComplete(false);
+
     if (typeof window !== "undefined") {
       sessionStorage.removeItem("applicationId");
     }
+
     dataLoadedRef.current = false;
     applicationLoadingRef.current = false;
   }
+
+  // Listen for storage changes from other components
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // Check sessionStorage on mount and syncs with state
+    const syncWithSessionStorage = () => {
+      const storedAppId = sessionStorage.getItem("applicationId");
+
+      // If applicationId exists in state but not in storage, reset the application
+      if (applicationId && !storedAppId) {
+        resetApplication();
+        return;
+      }
+
+      // If there's a different applicationId in storage than in state, update state
+      if (storedAppId && storedAppId !== applicationId) {
+        setApplicationId(storedAppId);
+      }
+    };
+
+    // Handle custom events for application reset
+    const handleCustomEvent = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail?.type === "reset") {
+        resetApplication();
+      }
+    };
+
+    // Initial sync
+    syncWithSessionStorage();
+
+    // Add event listeners for changes
+    window.addEventListener(STORAGE_EVENT_KEY, handleCustomEvent);
+    window.addEventListener("storage", syncWithSessionStorage);
+
+    // Polling mechanism to check storage periodically (as a backup)
+    const intervalId = setInterval(syncWithSessionStorage, 1000);
+
+    return () => {
+      window.removeEventListener(STORAGE_EVENT_KEY, handleCustomEvent);
+      window.removeEventListener("storage", syncWithSessionStorage);
+      clearInterval(intervalId);
+    };
+  }, [applicationId]);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -172,6 +235,14 @@ export const ApplicationProvider = ({
         }
       } catch (error) {
         console.error("Error loading job data:", error);
+        // If there's an error loading job data, it could be because the application was deleted
+        // Check if applicationId is still valid in sessionStorage
+        if (typeof window !== "undefined") {
+          const storedAppId = sessionStorage.getItem("applicationId");
+          if (!storedAppId || storedAppId !== applicationId) {
+            resetApplication();
+          }
+        }
       }
     }
 
@@ -216,6 +287,8 @@ export const ApplicationProvider = ({
 
         if (!applicationRes) {
           applicationLoadingRef.current = false;
+          // Application not found - it might have been deleted
+          resetApplication();
           return;
         }
 
@@ -281,6 +354,13 @@ export const ApplicationProvider = ({
         dataLoadedRef.current = true;
       } catch (error) {
         console.error("Provider: Error loading application data:", error);
+        // If there's an error loading application data, check if it was deleted
+        if (typeof window !== "undefined") {
+          const storedAppId = sessionStorage.getItem("applicationId");
+          if (!storedAppId || storedAppId !== applicationId) {
+            resetApplication();
+          }
+        }
       } finally {
         // Clear loading flag
         applicationLoadingRef.current = false;
