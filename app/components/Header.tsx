@@ -1,5 +1,9 @@
 import NavBar from "./navbar";
-
+import { Suspense } from "react";
 export default function Header() {
-  return <NavBar />;
+  return (
+    <Suspense>
+      <NavBar />
+    </Suspense>
+  );
 }
