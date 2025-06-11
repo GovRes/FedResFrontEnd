@@ -11,54 +11,47 @@ import { ResumeType } from "@/app/utils/responseSchemas";
 import { useEffect, useState } from "react";
 import { getFileUrl } from "@/app/utils/client-utils";
 import pdfToText from "react-pdftotext";
-import { TextBlinkLoader } from "@/app/components/loader/Loader";
 
 const client = generateClient<Schema>();
 
 export default function ResumeUploader({
+  setLoading,
   setRefresh,
   setShowUploader,
 }: {
+  setLoading: Function;
   setRefresh: Function;
   setShowUploader: Function;
 }) {
   const { user } = useAuthenticator();
-  const [loading, setLoading] = useState(false);
+
   const [localResume, setLocalResume] = useState<ResumeType>();
 
-  async function fetchAwards({ resumeStrings }: { resumeStrings: string[] }) {
+  async function fetchAwards({ resumeString }: { resumeString: string }) {
     let awards = await awardsExtractor({
-      resumes: resumeStrings,
+      resume: resumeString,
     });
     await batchCreateModelRecords("Award", awards, user.userId);
     return awards;
   }
-  async function fetchEducation({
-    resumeStrings,
-  }: {
-    resumeStrings: string[];
-  }) {
+  async function fetchEducation({ resumeString }: { resumeString: string }) {
     let educations = await educationExtractor({
-      resumes: resumeStrings,
+      resume: resumeString,
     });
     await batchCreateModelRecords("Education", educations, user.userId);
     return educations;
   }
 
-  async function fetchPastJobs({ resumeStrings }: { resumeStrings: string[] }) {
+  async function fetchPastJobs({ resumeString }: { resumeString: string }) {
     let PastJobs = await pastJobsExtractor({
-      resumes: resumeStrings,
+      resume: resumeString,
     });
     await batchCreateModelRecords("PastJob", PastJobs, user.userId);
     return PastJobs;
   }
-  async function fetchVolunteers({
-    resumeStrings,
-  }: {
-    resumeStrings: string[];
-  }) {
+  async function fetchVolunteers({ resumeString }: { resumeString: string }) {
     let volunteers = await volunteersExtractor({
-      resumes: resumeStrings,
+      resume: resumeString,
     });
     await batchCreateModelRecords("Volunteer", volunteers, user.userId);
     return volunteers;
@@ -96,11 +89,10 @@ export default function ResumeUploader({
 
       const [awardsResult, educationResult, PastJobsResult, volunteersResult] =
         await Promise.all([
-          // tk make this one string at a time not an array
-          fetchAwards({ resumeStrings: [resumePromise] }),
-          fetchEducation({ resumeStrings: [resumePromise] }),
-          fetchPastJobs({ resumeStrings: [resumePromise] }),
-          fetchVolunteers({ resumeStrings: [resumePromise] }),
+          fetchAwards({ resumeString: resumePromise }),
+          fetchEducation({ resumeString: resumePromise }),
+          fetchPastJobs({ resumeString: resumePromise }),
+          fetchVolunteers({ resumeString: resumePromise }),
         ]);
       if (
         awardsResult &&
@@ -141,6 +133,7 @@ export default function ResumeUploader({
       return "";
     });
   }
+
   useEffect(() => {
     async function findItemsFromResume() {
       await processResume();
@@ -151,9 +144,7 @@ export default function ResumeUploader({
       findItemsFromResume();
     }
   }, [localResume]);
-  if (loading) {
-    <TextBlinkLoader text="loading resume data" />;
-  }
+
   return (
     <div>
       <div>

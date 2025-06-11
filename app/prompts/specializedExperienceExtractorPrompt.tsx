@@ -1,13 +1,85 @@
 import { ChatCompletionSystemMessageParam } from "openai/resources/index.mjs";
-const technicalRequirements =
-  'Additionally, for each specialized experience, generate a random string that is 10 characters long, consisting only of letters and numbers (no special characters and no white space). Assign this string to the "id" attribute on the specialized experience object. Do not fill in any optional values on the returned object.';
+
+const technicalRequirements = `
+Technical requirements:
+- Generate a unique 10-character alphanumeric ID for each specialized experience (letters and numbers only, no spaces or special characters)
+- Assign this ID to the "id" field of each specialized experience object
+- Only populate required fields; leave optional fields empty/undefined
+- Return valid JSON array format
+`;
 
 export const specializedExperienceExtractorPrompt: ChatCompletionSystemMessageParam =
   {
     role: "system",
-    content: `Given a summary of qualifications for a job, return the specialized experience required to apply for the job. Return only specialized experience, not general qualifications. These specialized experiences may be a degree program, licensure, experience with a particular kind of software, etc. In addition to a short name of the experience, return a sentence or two describing it, and a question that you would ask a user to begin helping them write a paragraph about that experience. The question should include the job title and department as well as the name of the specialized experience. Store this question in the "initialMessage" attribute of the object.
-    If the specialized experience is a degree program, include the name of the degree program and the name of the school in the description. If it is a certification, include the name of the certifying body. If it is a license, include the name of the licensing body.
-    Note the type of experience in the typeOfExperience attribute, using the closest match of the following: ["degree", "certification", "license", "experience", "other"].
-    ${technicalRequirements} 
-    An example would be: {id: "12fiwceiwe", title: "BS in Computer Science", description: "Bachelor's degree in Computer Science or a related field.", initialMessage: "I'm going to help you write a paragraph about getting your BS in computer science. We will include this in your application to become an IT security engineer at the Department of Defense. Can you tell me a bit about your undergraduate degree experience?", typeOfExperience: "degree"}.`,
+    content: `You are tasked with extracting specialized experience requirements from a job posting or qualifications summary.
+
+WHAT TO EXTRACT:
+- Specific degree requirements (not general education)
+- Professional certifications and licenses
+- Specialized software or technology experience
+- Industry-specific experience requirements
+- Technical skills with specific tools or platforms
+- Years of experience in particular roles or domains
+- Security clearance requirements
+- Language proficiency requirements
+
+WHAT NOT TO EXTRACT:
+- Do NOT include general qualifications like "good communication skills"
+- Do NOT include basic requirements like "high school diploma"
+- Do NOT invent requirements not explicitly mentioned
+- Do NOT include soft skills or personality traits
+- Do NOT include general work experience without specific specialization
+
+CATEGORIZATION:
+Use the most appropriate typeOfExperience from: ["degree", "certification", "license", "experience", "other"]
+
+OUTPUT FORMAT:
+Return a valid JSON array of specialized experience objects with this structure:
+- id: string (10-character alphanumeric identifier)
+- title: string (concise name of the requirement)
+- description: string (1-2 sentence explanation of the requirement)
+- initialMessage: string (conversational question to help user write about this experience)
+- typeOfExperience: string (category from the list above)
+
+INITIAL MESSAGE GUIDELINES:
+- Include the job title and department/organization name
+- Reference the specific specialized experience
+- Ask an open-ended question to gather relevant details
+- Keep tone conversational and helpful
+
+${technicalRequirements}
+
+EXAMPLES:
+[
+  {
+    "id": "a1b2c3d4e5",
+    "title": "Bachelor's in Computer Science",
+    "description": "Bachelor's degree in Computer Science, Information Technology, or closely related field from an accredited institution.",
+    "initialMessage": "I'm going to help you write about your computer science degree for your IT Security Engineer application at the Department of Defense. Can you tell me about your undergraduate program - what university you attended, your major focus areas, and any relevant coursework or projects?",
+    "typeOfExperience": "degree"
+  },
+  {
+    "id": "f6g7h8i9j0",
+    "title": "CISSP Certification",
+    "description": "Current Certified Information Systems Security Professional (CISSP) certification from (ISC)² or ability to obtain within 6 months.",
+    "initialMessage": "For your Cybersecurity Analyst position at the Department of Homeland Security, I need to help you describe your CISSP certification experience. When did you earn your CISSP, what domains did you focus on, and how have you maintained your certification?",
+    "typeOfExperience": "certification"
+  },
+  {
+    "id": "k1l2m3n4o5",
+    "title": "Secret Security Clearance",
+    "description": "Active Secret security clearance or ability to obtain and maintain clearance as required for access to classified information.",
+    "initialMessage": "I'm helping you write about your security clearance for the Intelligence Analyst role at the Central Intelligence Agency. Can you describe your current clearance level, when it was granted, and any relevant background investigation experience?",
+    "typeOfExperience": "other"
+  },
+  {
+    "id": "m6n7o8p9q0",
+    "title": "5+ Years Cybersecurity Experience",
+    "description": "Minimum of five years of progressive experience in cybersecurity, network security, or information assurance roles.",
+    "initialMessage": "For your Senior Security Engineer application at the National Security Agency, I'll help you describe your cybersecurity experience. Can you walk me through your career progression in cybersecurity - your roles, key responsibilities, and major accomplishments over the past five years?",
+    "typeOfExperience": "experience"
+  }
+]
+
+If no specialized experience requirements are found, return an empty array: []`,
   };

@@ -6,22 +6,18 @@ import {
   ChatCompletionUserMessageParam,
 } from "openai/resources/index.mjs";
 
-export const educationExtractor = async ({
-  resumes,
-}: {
-  resumes: string[];
-}) => {
+export const educationExtractor = async ({ resume }: { resume: string }) => {
   const userMessage: ChatCompletionUserMessageParam = {
     role: "user",
-    content: `resumes: ${resumes}`,
+    content: `resume: ${resume}`,
   };
-  const messagesForpastJobsExtractor: (
+  const messagesForEducationExtractor: (
     | ChatCompletionUserMessageParam
     | ChatCompletionSystemMessageParam
   )[] = [userMessage, educationExtractorPrompt];
   try {
     let res = await sendMessages({
-      messages: messagesForpastJobsExtractor,
+      messages: messagesForEducationExtractor,
       //has to match line 26 in api/ai/route.tsx
       name: "education",
     });

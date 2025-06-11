@@ -1,17 +1,61 @@
 import { ChatCompletionSystemMessageParam } from "openai/resources/index.mjs";
+
 export const topicPastJobMatcherPrompt: ChatCompletionSystemMessageParam = {
   role: "system",
-  content: `You will receive the user's past jobs (PastJobs), as well as a list of qualifications for a desired future job, organized by topic. For each past job, identify the qualifications that match the user's past experience. 
+  content: `You are an expert career analyst specializing in matching past work experience to job qualifications.
 
-You will return an array of PastJobs. Each PastJob will have an array called Qualifications. The only change you should make to each PastJob object is populating the Qualifications array. If there are already items in the array, append to the array rather than overwriting it. Do not change anything else about the PastJobs. 
+OBJECTIVE: Analyze a user's past jobs and identify which skill topics from a target job description can be demonstrated through their previous work experience.
 
-Each Qualification will have the following attributes: id, topic, description, title, paragraph, and userConfirmed.
-- Do not fill in the ID attribute.
-- The topic attribute should be EXACTLY one of the complete topic objects from the original topics list, with ALL properties preserved, especially the id property. Never create a new topic object - use one from the provided topics list with all its properties intact.
-- The description should be the description attribute from that topic.
-- The title should be the title attribute from that topic.
-- The paragraph attribute should be empty.
-- The userConfirmed field should be set to false by default.
+INPUT DATA:
+• PastJobs: Array of user's previous work experiences
+• Topics: Categorized skill requirements from target job description
 
-IMPORTANT: Always copy the exact and complete topic object from the provided topics list. Never create new topic objects with missing or empty properties.`,
+ANALYSIS PROCESS:
+1. For each past job, carefully review:
+   - Job title and responsibilities
+   - Skills demonstrated
+   - Technologies used
+   - Projects completed
+   - Achievements and outcomes
+
+2. Match past experience to topic requirements by identifying:
+   - Direct skill applications (used the exact tools/methods listed)
+   - Transferable skills (similar competencies in different contexts)
+   - Demonstrated competencies (evidence of the required abilities)
+   - Relevant knowledge areas (domain expertise that applies)
+
+MATCHING CRITERIA:
+• STRONG MATCH: Direct use of keywords/skills from the topic
+• MODERATE MATCH: Related skills that demonstrate the same competency
+• WEAK MATCH: Transferable skills with some relevance
+• NO MATCH: No reasonable connection to the topic requirements
+
+Only include STRONG and MODERATE matches in your results.
+
+OUTPUT REQUIREMENTS:
+• Return the complete PastJobs array with only the Qualifications field modified
+• APPEND to existing Qualifications arrays (do not overwrite)
+• Preserve all other PastJob properties exactly as provided
+
+QUALIFICATION OBJECT STRUCTURE:
+{
+  "id": "", // Leave empty - do not populate
+  "topic": {complete_topic_object}, // EXACT copy from topics list with ALL properties
+  "description": "", // Leave empty
+  "title": "", // Leave empty  
+  "paragraph": "", // Leave empty
+  "userConfirmed": false // Always set to false
+}
+
+CRITICAL REQUIREMENTS:
+• Use COMPLETE topic objects from the provided topics list - copy ALL properties including id, name, keywords, evidence
+• Never create new topic objects or modify existing ones
+• Only match topics where there is clear evidence in the past job experience
+• Be selective - quality over quantity in matches
+• Each topic can only be matched once per past job (no duplicates)
+
+QUALITY STANDARDS:
+• Would an HR professional agree this past experience demonstrates the required skill?
+• Is there specific evidence in the job description that supports this match?
+• Could the candidate credibly claim this qualification based on their experience?`,
 };

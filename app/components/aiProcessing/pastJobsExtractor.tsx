@@ -6,10 +6,10 @@ import {
   ChatCompletionUserMessageParam,
 } from "openai/resources/index.mjs";
 
-export const pastJobsExtractor = async ({ resumes }: { resumes: string[] }) => {
+export const pastJobsExtractor = async ({ resume }: { resume: string }) => {
   const userMessage: ChatCompletionUserMessageParam = {
     role: "user",
-    content: `resumes: ${resumes}`,
+    content: `resume: ${resume}`,
   };
   const messagesForPastJobsExtractor: (
     | ChatCompletionUserMessageParam

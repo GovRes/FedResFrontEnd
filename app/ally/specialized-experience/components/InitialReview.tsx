@@ -36,7 +36,6 @@ export default function InitialReview({}: // setReviewing,
   }
   async function storeSpecializedExperiences() {
     setLoading(true);
-    console.log(39, specializedExperiences);
     try {
       await createAndSaveSpecializedExperiences({
         specializedExperiences,
@@ -86,7 +85,6 @@ export default function InitialReview({}: // setReviewing,
       </div>
       <div>Do you have experience in all of these areas?</div>
       <div>
-        {/* tk this button should SAVE the specialized experiences to the application! Duh. */}
         <button onClick={() => storeSpecializedExperiences()}>
           Yes, I do.
         </button>
