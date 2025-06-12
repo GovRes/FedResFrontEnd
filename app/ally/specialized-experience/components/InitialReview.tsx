@@ -1,5 +1,7 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Tooltip } from "react-tooltip";
+import { GrCircleQuestion } from "react-icons/gr";
 import { specializedExperienceExtractor } from "@/app/components/aiProcessing/specializedExperienceExtractor";
 import styles from "../../ally.module.css";
 import { SpecializedExperienceType } from "@/app/utils/responseSchemas";
@@ -9,7 +11,6 @@ import { SpecializedExperienceContext } from "@/app/providers/specializedExperie
 import { useApplication } from "@/app/providers/applicationContext";
 import { useNextStepNavigation } from "@/app/utils/nextStepNavigation";
 import { completeSteps } from "@/app/utils/stepUpdater";
-import { updateModelRecord } from "@/app/crud/genericUpdate";
 import { createAndSaveSpecializedExperiences } from "@/app/crud/specializedExperience";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 export default function InitialReview({}: // setReviewing,
@@ -79,7 +80,17 @@ export default function InitialReview({}: // setReviewing,
         Specialized Experience:
         {specializedExperiences?.map(
           (experience: SpecializedExperienceType) => (
-            <li key={experience.id}>{experience.title}</li>
+            <li key={experience.id}>
+              {" "}
+              <a
+                data-tooltip-id={`${experience.id}-description`}
+                data-tooltip-content={experience.description}
+              >
+                <GrCircleQuestion />
+              </a>
+              {experience.title}
+              <Tooltip id={`${experience.id}-description`} />
+            </li>
           )
         )}
       </div>
