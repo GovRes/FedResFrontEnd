@@ -73,7 +73,7 @@ export async function batchCreateModelRecords(
   userId?: string
 ) {
   const results = [];
-
+  console.log("batch create", inputs, modelName);
   for (const input of inputs) {
     try {
       const result = await createModelRecord(modelName, input, userId);

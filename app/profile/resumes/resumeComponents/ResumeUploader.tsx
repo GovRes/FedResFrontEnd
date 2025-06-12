@@ -1,4 +1,5 @@
 import { generateClient } from "aws-amplify/api";
+import { useAuthenticator } from "@aws-amplify/ui-react";
 import { Uploader } from "@/app/components/forms/Uploader";
 import type { Schema } from "../../../../amplify/data/resource"; // Path to your backend resource definition
 import { awardsExtractor } from "@/app/components/aiProcessing/awardsExtractor";
@@ -6,7 +7,12 @@ import { batchCreateModelRecords } from "@/app/crud/genericCreate";
 import { educationExtractor } from "@/app/components/aiProcessing/educationExtractor";
 import { pastJobsExtractor } from "@/app/components/aiProcessing/pastJobsExtractor";
 import { volunteersExtractor } from "@/app/components/aiProcessing/volunteersExtractor";
-import { useAuthenticator } from "@aws-amplify/ui-react";
+import { listUserModelRecords } from "@/app/crud/genericListForUser";
+import {
+  AwardType,
+  EducationType,
+  PastJobType,
+} from "@/app/utils/responseSchemas";
 import { ResumeType } from "@/app/utils/responseSchemas";
 import { useEffect, useState } from "react";
 import { getFileUrl } from "@/app/utils/client-utils";
@@ -26,35 +32,91 @@ export default function ResumeUploader({
   const { user } = useAuthenticator();
 
   const [localResume, setLocalResume] = useState<ResumeType>();
+  const [existingAwards, setExistingAwards] = useState<AwardType[]>([]);
+  const [existingEducations, setExistingEducations] = useState<EducationType[]>(
+    []
+  );
+  const [existingPastJobs, setExistingPastJobs] = useState<PastJobType[]>([]);
+
+  useEffect(() => {
+    async function fetchExistingAwards() {
+      try {
+        const result = await listUserModelRecords("Award", user.userId);
+        if (result.items) {
+          setExistingAwards(result.items);
+        }
+      } catch (error) {
+        console.error("Failed to fetch educations:", error);
+      }
+    }
+    async function fetchExistingEducations() {
+      try {
+        const result = await listUserModelRecords("Education", user.userId);
+        if (result.items) {
+          setExistingEducations(result.items);
+        }
+      } catch (error) {
+        console.error("Failed to fetch educations:", error);
+      }
+    }
+    async function fetchExistingPastJobs() {
+      try {
+        const result = await listUserModelRecords("PastJob", user.userId);
+
+        if (result.items) {
+          setExistingPastJobs(result.items);
+        }
+      } catch (error) {
+        console.error("Failed to fetch past jobs:", error);
+      }
+    }
+
+    fetchExistingAwards();
+    fetchExistingEducations();
+    fetchExistingPastJobs();
+  }, []);
 
   async function fetchAwards({ resumeString }: { resumeString: string }) {
     let awards = await awardsExtractor({
       resume: resumeString,
+      existingAwards,
     });
-    await batchCreateModelRecords("Award", awards, user.userId);
-    return awards;
+    if (awards && awards.length > 0) {
+      await batchCreateModelRecords("Award", awards, user.userId);
+      return awards;
+    } else return [];
   }
   async function fetchEducation({ resumeString }: { resumeString: string }) {
     let educations = await educationExtractor({
       resume: resumeString,
+      existingEducations,
     });
-    await batchCreateModelRecords("Education", educations, user.userId);
-    return educations;
+    if (educations && educations.length > 0) {
+      await batchCreateModelRecords("Education", educations, user.userId);
+      return educations;
+    } else return [];
   }
 
   async function fetchPastJobs({ resumeString }: { resumeString: string }) {
-    let PastJobs = await pastJobsExtractor({
+    let pastJobs = await pastJobsExtractor({
       resume: resumeString,
+      existingPastJobs,
     });
-    await batchCreateModelRecords("PastJob", PastJobs, user.userId);
-    return PastJobs;
+    if (pastJobs && pastJobs.length > 0) {
+      await batchCreateModelRecords("PastJob", pastJobs, user.userId);
+
+      return pastJobs;
+    } else return [];
   }
   async function fetchVolunteers({ resumeString }: { resumeString: string }) {
     let volunteers = await volunteersExtractor({
+      existingPastJobs,
       resume: resumeString,
     });
-    await batchCreateModelRecords("Volunteer", volunteers, user.userId);
-    return volunteers;
+    if (volunteers && volunteers.length > 0) {
+      await batchCreateModelRecords("Volunteer", volunteers, user.userId);
+      return volunteers;
+    } else return [];
   }
 
   async function onSubmitResume({ fileName }: { fileName: string }) {
@@ -87,7 +149,7 @@ export default function ResumeUploader({
     try {
       const resumePromise = await processResumeToString(localResume!);
 
-      const [awardsResult, educationResult, PastJobsResult, volunteersResult] =
+      const [awardsResult, educationResult, pastJobsResult, volunteersResult] =
         await Promise.all([
           fetchAwards({ resumeString: resumePromise }),
           fetchEducation({ resumeString: resumePromise }),
@@ -97,7 +159,7 @@ export default function ResumeUploader({
       if (
         awardsResult &&
         educationResult &&
-        PastJobsResult &&
+        pastJobsResult &&
         volunteersResult
       ) {
         console.log("Resume processing complete");

@@ -23,7 +23,7 @@ export default function ExperienceDetailPage({
   id: string;
 }) {
   const router = useRouter();
-  const { applicationId, job, steps } = useApplication();
+  const { applicationId, job } = useApplication();
   const [loading, setLoading] = useState(true);
   const [pastJob, setPastJob] = useState<PastJobType | null>(null);
   const [isEditingMode, setIsEditingMode] = useState(false);
@@ -206,7 +206,7 @@ export default function ExperienceDetailPage({
         assistantName={assistantName}
         assistantInstructions={assistantInstructions}
         jobString={`${job?.title} at the ${job?.department}`}
-        sidebarTitle={`Qualifications for ${pastJob.title}`}
+        sidebarTitle={`Qualifications from ${pastJob.title} that might apply to ${job?.title}`}
         heading={`${pastJob.title} at ${pastJob.organization} - Applicable Work Experience`}
         isNestedView={true}
         parentId={pastJob.id}

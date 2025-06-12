@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use } from "react";
 import ExperienceDetailPage from "../../components/ExperienceDetailPage";
 import {
   pastJobsAssistantName,

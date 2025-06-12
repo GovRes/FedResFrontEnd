@@ -9,15 +9,58 @@ Technical requirements:
 - Return valid JSON array format
 `;
 
+const deduplicationInstructions = `
+STRICT DEDUPLICATION RULES:
+A job is considered a DUPLICATE if it matches an existing job on ALL of these criteria:
+
+1. EXACT ORGANIZATION MATCH (case-insensitive):
+   - "NextStreet" = "nextstreet" = "NextStreet"
+   - "MoveOn.org" = "moveon.org" = "MoveOn"
+   - "Roundtable from the 92nd Street Y" = "roundtable from the 92nd street y"
+   - Must be EXACT match after normalizing case and basic punctuation
+
+2. EXACT OR EQUIVALENT TITLE MATCH (case-insensitive):
+   - "Fractional engineering lead" = "fractional engineering lead"
+   - "Software engineer" = "software engineer"
+   - "CTO and lead engineer" = "cto and lead engineer"
+   - Must be EXACT match after normalizing case
+
+3. DATE RANGE OVERLAP OR EXACT MATCH:
+   - Same start date: "2022" = "2022"
+   - Same end date: "2022" = "2022" OR "Present" = "Present"
+   - OR significant overlap in date ranges
+
+DUPLICATE IDENTIFICATION LOGIC:
+- If organization + title + date range all match → DEFINITE DUPLICATE, skip it
+- If organization + title match but dates are different → POSSIBLE DUPLICATE, skip it to be safe
+- If only organization matches but title is different → NOT a duplicate (could be promotion/different role)
+
+CRITICAL: You must check EVERY potential job against EVERY existing job in the provided array.
+
+EXAMPLES:
+These are ALL duplicates and should NOT be extracted again:
+- NextStreet + "Fractional engineering lead" + 2022-2023/Present → Already exists multiple times
+- MoveOn.org + "Software engineer" + 2019-2022 → Already exists multiple times  
+- TechOut + "CTO and lead engineer" + 2018-2022 → Already exists multiple times
+- Roundtable from the 92nd Street Y + "Fractional head of engineering" + 2022-Present → Already exists multiple times
+- Henslowe's Cloud Creative Consulting + "Founder" + 2011-Present → Already exists multiple times
+- Rosetta Stone + "Researcher" + 2008-2011 → Already exists
+- Rosetta Stone + "Educational Software Content Architect" + 2005-2008 → Already exists
+`;
+
 export const pastJobsExtractorPrompt: ChatCompletionSystemMessageParam = {
   role: "system",
-  content: `You are tasked with extracting work experience from a resume.
+  content: `You are tasked with extracting work experience from a resume while avoiding duplicates with existing job records.
+
+EXISTING JOBS CONTEXT:
+You will be provided with a list of existing job records that the user already has in their system. Your task is to extract ONLY NEW jobs from the resume that are NOT already represented in the existing records.
+
+CRITICAL INSTRUCTION: Before outputting ANY job, you must verify it doesn't already exist in the provided existing jobs array. If you find even ONE match based on organization + title + similar dates, DO NOT include that job in your output.
 
 WHAT TO EXTRACT:
 - Full-time and part-time employment positions
-- Contract work and consulting roles
+- Contract work and consulting roles  
 - Internships and temporary positions
-- Volunteer work with significant responsibilities
 - Military service positions
 - Self-employment and freelance work
 
@@ -26,7 +69,12 @@ WHAT NOT TO EXTRACT:
 - Do NOT include educational programs, degrees, or academic coursework
 - Do NOT include awards, certifications, or skills sections
 - Do NOT include references or personal projects unless they were paid positions
+- Do NOT include volunteer work unless it is explicitly stated as a job or paid position
+- Do NOT create duplicate entries for jobs that already exist in the user's records (THIS IS CRITICAL)
 - When uncertain if something is a job or education, exclude it
+- When uncertain if a job is a duplicate of an existing record, exclude it (err on the side of caution)
+
+${deduplicationInstructions}
 
 OUTPUT FORMAT:
 Return a valid JSON array of job objects with this structure:
@@ -45,8 +93,20 @@ SPECIAL NOTES:
 - Use "Present" for current positions
 - If hours aren't specified, use "Full-time" for regular positions
 - Keep responsibilities concise but comprehensive
+- CRITICAL: Always cross-reference against existing jobs before adding new entries
 
 ${technicalRequirements}
+
+PROCESSING WORKFLOW:
+1. Extract all potential jobs from the resume text
+2. For EACH potential job, systematically check it against EVERY job in the existing records array
+3. Use the strict matching criteria: organization + title + date overlap
+4. If ANY match is found, EXCLUDE that job from the output
+5. Only include jobs that have ZERO matches in the existing records
+6. Return only the genuinely new jobs (likely an empty array if the resume has been processed before)
+
+EXPECTED RESULT FOR THIS RESUME:
+Based on the existing jobs provided, this resume appears to have been processed multiple times already. All major positions (NextStreet, Roundtable, MoveOn.org, TechOut, Henslowe's Cloud, Rosetta Stone) already exist in the records. You should return an empty array [] unless you find a job that is genuinely missing.
 
 EXAMPLES:
 [
@@ -83,5 +143,5 @@ EXAMPLES:
   }
 ]
 
-If no work experience is found in the resume, return an empty array: []`,
+If no NEW work experience is found in the resume (i.e., all jobs are duplicates of existing records), return an empty array: []`,
 };

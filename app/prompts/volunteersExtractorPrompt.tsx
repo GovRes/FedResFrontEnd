@@ -9,9 +9,50 @@ Technical requirements:
 - Return valid JSON array format
 `;
 
+const deduplicationInstructions = `
+STRICT DEDUPLICATION RULES:
+A volunteer experience is considered a DUPLICATE if it matches an existing volunteer record on ALL of these criteria:
+
+1. EXACT ORGANIZATION MATCH (case-insensitive):
+   - "American Red Cross" = "american red cross" = "American Red Cross"
+   - "Big Brothers Big Sisters" = "big brothers big sisters"
+   - "Local Food Bank" = "local food bank"
+   - Must be EXACT match after normalizing case and basic punctuation
+
+2. EXACT OR EQUIVALENT TITLE MATCH (case-insensitive):
+   - "Tax Preparer" = "tax preparer"
+   - "Youth Mentor" = "youth mentor"
+   - "Board Member" = "board member"
+   - "Volunteer" = "volunteer" (generic titles)
+   - Must be EXACT match after normalizing case
+
+3. DATE RANGE OVERLAP OR EXACT MATCH:
+   - Same start date: "2022" = "2022"
+   - Same end date: "2022" = "2022" OR "Present" = "Present"
+   - OR significant overlap in date ranges
+
+DUPLICATE IDENTIFICATION LOGIC:
+- If organization + title + date range all match → DEFINITE DUPLICATE, skip it
+- If organization + title match but dates are different → POSSIBLE DUPLICATE, skip it to be safe
+- If only organization matches but title is different → NOT a duplicate (could be different volunteer roles)
+
+CRITICAL: You must check EVERY potential volunteer experience against EVERY existing volunteer record in the provided array.
+
+SPECIAL CONSIDERATIONS FOR VOLUNTEERS:
+- Many people have multiple volunteer roles at the same organization over time
+- Only consider it a duplicate if the role/title is also the same
+- Board positions vs. general volunteer work are different roles
+- Different program areas within same org (e.g., "Reading Tutor" vs "Fundraising Volunteer") are separate roles
+`;
+
 export const volunteersExtractorPrompt: ChatCompletionSystemMessageParam = {
   role: "system",
-  content: `You are tasked with extracting volunteer and community service experience from a resume.
+  content: `You are tasked with extracting volunteer and community service experience from a resume while avoiding duplicates with existing volunteer records.
+
+EXISTING VOLUNTEERS CONTEXT:
+You will be provided with a list of existing volunteer records that the user already has in their system. Your task is to extract ONLY NEW volunteer experiences from the resume that are NOT already represented in the existing records.
+
+CRITICAL INSTRUCTION: Before outputting ANY volunteer experience, you must verify it doesn't already exist in the provided existing volunteer records array. If you find even ONE match based on organization + title + similar dates, DO NOT include that volunteer experience in your output.
 
 WHAT TO EXTRACT:
 - Formal volunteer positions with organizations
@@ -29,6 +70,11 @@ WHAT NOT TO EXTRACT:
 - Do NOT include educational experiences or coursework
 - Do NOT include personal hobbies or activities without organizational involvement
 - Do NOT include awards, certifications, or memberships without active service
+- Do NOT create duplicate entries for volunteer experiences that already exist in the user's records (THIS IS CRITICAL)
+- When uncertain if something is a volunteer role or paid work, exclude it
+- When uncertain if a volunteer experience is a duplicate of an existing record, exclude it (err on the side of caution)
+
+${deduplicationInstructions}
 
 OUTPUT FORMAT:
 Return a valid JSON array of volunteer objects with this structure:
@@ -46,8 +92,17 @@ FORMATTING NOTES:
 - If hours aren't specified, estimate based on context or use "Part-time" or "Occasional"
 - Keep responsibilities concise but highlight impact and skills developed
 - Include quantifiable achievements when mentioned
+- CRITICAL: Always cross-reference against existing volunteer records before adding new entries
 
 ${technicalRequirements}
+
+PROCESSING WORKFLOW:
+1. Extract all potential volunteer experiences from the resume text
+2. For EACH potential volunteer experience, systematically check it against EVERY volunteer record in the existing records array
+3. Use the strict matching criteria: organization + title + date overlap
+4. If ANY match is found, EXCLUDE that volunteer experience from the output
+5. Only include volunteer experiences that have ZERO matches in the existing records
+6. Return only the genuinely new volunteer experiences
 
 EXAMPLES:
 [
@@ -93,5 +148,5 @@ EXAMPLES:
   }
 ]
 
-If no volunteer experience is found in the resume, return an empty array: []`,
+If no NEW volunteer experience is found in the resume (i.e., all volunteer experiences are duplicates of existing records), return an empty array: []`,
 };
