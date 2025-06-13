@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useEditableParagraph } from "./editableParagraphContext";
+import { PastJobType } from "../utils/responseSchemas";
 
 // Generic item type that can be extended by specific item types
 export type BaseItem = {
@@ -32,6 +33,7 @@ type ChatContextType = {
   // Meta info
   assistantName: string;
   assistantInstructions: string;
+  additionalContext?: PastJobType[];
   jobString: string;
 
   // For nested structures
@@ -51,6 +53,7 @@ const ChatContext = createContext<ChatContextType | null>(null);
 // Provider component
 export function ChatProvider({
   children,
+  additionalContext,
   initialItems,
   initialAssistantName,
   initialAssistantInstructions,
@@ -63,6 +66,7 @@ export function ChatProvider({
   isEditMode = false, // New prop
 }: {
   children: React.ReactNode;
+  additionalContext?: PastJobType[];
   initialItems: BaseItem[];
   currentStepId: string;
   initialAssistantName: string;
@@ -302,6 +306,7 @@ export function ChatProvider({
   // Create the context value - cast to make TypeScript happy
   const contextValue: ChatContextType = {
     items: items,
+    additionalContext: additionalContext,
     currentIndex,
     currentItem,
     currentStepId,

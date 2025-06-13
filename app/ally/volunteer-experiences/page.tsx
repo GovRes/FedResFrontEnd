@@ -5,9 +5,11 @@ import { PastJobType } from "@/app/utils/responseSchemas";
 import { TextBlinkLoader } from "@/app/components/loader/Loader";
 import { listUserModelRecords } from "@/app/crud/genericListForUser";
 import { useAuthenticator } from "@aws-amplify/ui-react";
+import { useApplication } from "@/app/providers/applicationContext";
+import { topicPastJobMatcher } from "@/app/components/aiProcessing/topicPastJobMatcher";
 export default function volunteersPage() {
   const [localPastJobs, setLocalPastJobs] = useState<PastJobType[]>([]);
-
+  const { job } = useApplication();
   const { user } = useAuthenticator();
 
   const [loading, setLoading] = useState(true);
@@ -27,6 +29,21 @@ export default function volunteersPage() {
     }
     getpastJobs();
   }, [JSON.stringify(user)]);
+
+  useEffect(() => {
+    async function matchJobsToTopics() {
+      if (!job || !job.topics || job.topics.length === 0) return;
+      await topicPastJobMatcher({
+        pastJobs: localPastJobs,
+        topics: job?.topics,
+      });
+    }
+    if (localPastJobs.length > 0) {
+      setLoading(true);
+      matchJobsToTopics();
+      setLoading(false);
+    }
+  }, [JSON.stringify(localPastJobs)]);
 
   if (loading) {
     return <TextBlinkLoader text="fetching your saved volunteer experiences" />;

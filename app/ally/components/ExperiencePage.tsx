@@ -42,6 +42,7 @@ export default function ExperiencePage({
           associationType: "PastJob",
         })) as PastJobType[];
         const pastJobs = pastJobsRes.filter((job) => job.type === type);
+        console.log(pastJobsRes, 30, type);
 
         // Store jobs in state for the job list view
         setPastJobs(pastJobs);
@@ -58,6 +59,7 @@ export default function ExperiencePage({
 
         // If no jobs, move to the next step
         if (!pastJobs || pastJobs.length === 0) {
+          console.log("no jobs");
           navigateToNextIncompleteStep(currentStepId);
           return;
         }
@@ -66,7 +68,7 @@ export default function ExperiencePage({
         const jobWithUnconfirmedQuals = pastJobs.find((job) =>
           job.qualifications?.some((qual) => !qual.userConfirmed)
         );
-
+        console.log(70, jobWithUnconfirmedQuals);
         if (jobWithUnconfirmedQuals) {
           console.log(63);
           // Redirect to the job with unconfirmed qualifications

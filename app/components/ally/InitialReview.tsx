@@ -60,13 +60,14 @@ export default function InitialReview<
             itemType === "VolunteerExperience" ? "PastJob" : itemType,
         });
       }
+
       const updatedSteps = await completeSteps({
         steps,
         stepId: currentStepId,
         applicationId,
       });
       setSteps(updatedSteps);
-      await navigateToNextIncompleteStep(currentStepId);
+      navigateToNextIncompleteStep(currentStepId);
     }
   };
 

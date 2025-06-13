@@ -5,8 +5,10 @@ import Sidebar from "./Sidebar";
 import ChatInterface from "./ChatInterface";
 import ProgressTracker from "./ProgressTracker";
 import styles from "./chatInterface.module.css";
+import { PastJobType } from "@/app/utils/responseSchemas";
 
 type ChatLayoutProps<T extends BaseItem> = {
+  additionalContext?: PastJobType[];
   items: T[];
   saveFunction: (item: T) => Promise<void>;
   onComplete: () => void;
@@ -26,6 +28,7 @@ export default function ChatLayout<T extends BaseItem>({
   items,
   saveFunction,
   onComplete,
+  additionalContext,
   assistantName,
   assistantInstructions,
   jobString,
@@ -37,7 +40,6 @@ export default function ChatLayout<T extends BaseItem>({
   isNestedView = false,
   isEditMode = false,
 }: ChatLayoutProps<T>) {
-  console.log(41, items);
   return (
     <div
       className={`${styles.chatLayoutContainer} ${
@@ -55,6 +57,7 @@ export default function ChatLayout<T extends BaseItem>({
 
       <EditableParagraphProvider>
         <ChatProvider
+          additionalContext={additionalContext}
           initialItems={items}
           initialAssistantName={assistantName}
           initialAssistantInstructions={assistantInstructions}

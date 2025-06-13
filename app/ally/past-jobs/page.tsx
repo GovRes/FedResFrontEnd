@@ -5,28 +5,32 @@ import { PastJobType } from "@/app/utils/responseSchemas";
 import { TextBlinkLoader } from "@/app/components/loader/Loader";
 import { listUserModelRecords } from "@/app/crud/genericListForUser";
 import { useAuthenticator } from "@aws-amplify/ui-react";
+import { useApplication } from "@/app/providers/applicationContext";
+import { topicPastJobMatcher } from "@/app/components/aiProcessing/topicPastJobMatcher";
 export default function pastJobsPage() {
-  const [localpastJobs, setLocalpastJobs] = useState<PastJobType[]>([]);
-
+  const [localPastJobs, setLocalPastJobs] = useState<PastJobType[]>([]);
+  const { job } = useApplication();
   const { user } = useAuthenticator();
 
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function getpastJobs() {
+    async function fetchAndMatch() {
       if (!user) return;
       setLoading(true);
+      // Fetch past jobs
       let res = await listUserModelRecords("PastJob", user.userId);
       if (res.items.length > 0) {
         res.items = res.items.filter(
           (job: PastJobType) => job.type === "PastJob"
         );
-        setLocalpastJobs(res.items);
+        setLocalPastJobs(res.items);
       }
       setLoading(false);
     }
-    getpastJobs();
-  }, [JSON.stringify(user)]);
+
+    fetchAndMatch();
+  }, [JSON.stringify(user), job?.topics]);
 
   if (loading) {
     return <TextBlinkLoader text="fetching your saved jobs" />;
@@ -36,8 +40,8 @@ export default function pastJobsPage() {
     <InitialReview
       currentStepId="past-jobs"
       itemType="PastJob"
-      localItems={localpastJobs}
-      setLocalItems={setLocalpastJobs}
+      localItems={localPastJobs}
+      setLocalItems={setLocalPastJobs}
     />
   );
 }

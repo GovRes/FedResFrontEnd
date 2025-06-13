@@ -2,7 +2,10 @@
 import ChatLayout from "@/app/components/chat/ChatLayout";
 import { getApplicationAssociations } from "@/app/crud/application";
 import { useApplication } from "@/app/providers/applicationContext";
-import { SpecializedExperienceType } from "@/app/utils/responseSchemas";
+import {
+  PastJobType,
+  SpecializedExperienceType,
+} from "@/app/utils/responseSchemas";
 import { useEffect, useState } from "react";
 import { updateModelRecord } from "@/app/crud/genericUpdate";
 import { useNextStepNavigation } from "@/app/utils/nextStepNavigation";
@@ -14,6 +17,7 @@ import {
 import { TextBlinkLoader } from "@/app/components/loader/Loader";
 
 export default function ExperienceWriterPage() {
+  const [additionalContext, setAdditionalContext] = useState<PastJobType[]>([]);
   const [items, setItems] = useState<SpecializedExperienceType[]>([]);
   const [loading, setLoading] = useState(true);
   const { applicationId, job, steps, setSteps } = useApplication();
@@ -23,18 +27,25 @@ export default function ExperienceWriterPage() {
       if (!applicationId) return;
       setLoading(true);
       try {
-        const res = await getApplicationAssociations({
+        const experienceRes = await getApplicationAssociations({
           applicationId: applicationId,
           associationType: "SpecializedExperience",
         });
-        console.log(26, res);
-        if (res && res.length > 0) {
-          const qualitativeExperiences = res.filter(
+        if (experienceRes && experienceRes.length > 0) {
+          const qualitativeExperiences = experienceRes.filter(
             (res) =>
               res.typeOfExperience === "experience" ||
               res.typeOfExperience === "other"
           );
           setItems(qualitativeExperiences as SpecializedExperienceType[]);
+        }
+
+        const pastJobRes = await getApplicationAssociations({
+          applicationId: applicationId,
+          associationType: "PastJob",
+        });
+        if (pastJobRes && pastJobRes.length > 0) {
+          setAdditionalContext(pastJobRes);
         }
         setLoading(false);
       } catch (error) {
@@ -74,6 +85,7 @@ export default function ExperienceWriterPage() {
   }
   return (
     <ChatLayout
+      additionalContext={additionalContext}
       items={items}
       currentStepId="specialized-experience-details"
       saveFunction={saveItem}
@@ -81,7 +93,7 @@ export default function ExperienceWriterPage() {
       assistantName={specializedExperienceAssistantName}
       assistantInstructions={specializedExperienceAssistantInstructions}
       jobString={`${job?.title} at the ${job?.department}`}
-      sidebarTitle={`Qualifications for ${job?.title}`}
+      sidebarTitle={`Specialized Experience for ${job?.title}`}
       heading={`Specialized Experience`}
       isNestedView={false}
     />

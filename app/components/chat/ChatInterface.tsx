@@ -11,6 +11,7 @@ type Message = {
 export default function ChatInterface() {
   // Get context data
   const {
+    additionalContext,
     currentItem,
     paragraphData,
     setParagraphData,
@@ -29,7 +30,6 @@ export default function ChatInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [threadId, setThreadId] = useState<string | null>(null);
-
   // Common prompt suggestions
   const userPrompts = [
     "Can you give me an example?",
@@ -75,7 +75,8 @@ export default function ChatInterface() {
         How would you like to improve it? You can give me specific instructions, or I can suggest improvements.`;
       } else {
         // For creating new content
-        initialMessage = `I'm going to help you write a paragraph about ${currentItem.title} to include in your application for ${jobString}. Can you tell me a bit about your experience?`;
+        setThreadId(null);
+        initialMessage = `I'm going to help you write a paragraph about ${currentItem.title} to include in your application for ${jobString}. Can you tell me a bit about your relevant experience?`;
       }
 
       setMessages([{ role: "assistant", content: initialMessage }]);
@@ -113,7 +114,11 @@ export default function ChatInterface() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          assistantInstructions: `${customInstructions}. Here are some more details about this item: ${currentItem?.title} - ${currentItem?.description}`,
+          assistantInstructions: `${customInstructions}. Here are some more details about this item: ${
+            currentItem?.title
+          } - ${currentItem?.description}. ${
+            additionalContext && "here is some additional context: "
+          }${additionalContext ? JSON.stringify(additionalContext) : ""}`,
           assistantName,
           message: input,
           threadId: threadId,

@@ -74,7 +74,7 @@ export default function ExperienceDetailPage({
         console.log(pastJobs);
         // 2. Find the specific job by ID
         const job = pastJobs.find((j) => j.id === id);
-        console.log(job);
+        console.log("77", job?.qualifications);
         if (job) {
           // 3. Ensure qualifications is properly formatted
           const formattedJob: PastJobType = {
@@ -199,6 +199,7 @@ export default function ExperienceDetailPage({
   return (
     <EditableParagraphProvider>
       <ChatLayout
+        additionalContext={[pastJob]}
         items={pastJob.qualifications}
         currentStepId={currentStepId}
         saveFunction={saveQualification}
@@ -206,7 +207,7 @@ export default function ExperienceDetailPage({
         assistantName={assistantName}
         assistantInstructions={assistantInstructions}
         jobString={`${job?.title} at the ${job?.department}`}
-        sidebarTitle={`Qualifications from ${pastJob.title} that might apply to ${job?.title}`}
+        sidebarTitle={`Qualifications from ${pastJob.title} at ${pastJob.organization} that might apply to ${job?.title}`}
         heading={`${pastJob.title} at ${pastJob.organization} - Applicable Work Experience`}
         isNestedView={true}
         parentId={pastJob.id}
