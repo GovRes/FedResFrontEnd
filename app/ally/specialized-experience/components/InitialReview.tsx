@@ -65,8 +65,19 @@ export default function InitialReview({}: // setReviewing,
       setSpecializedExperiences(specializedExperienceRes);
       setLoading(false);
     }
+    async function completeAndMoveOn() {
+      await completeStep();
+      navigateToNextIncompleteStep("specialized-experience");
+    }
     fetchSpecializedExperience({ job });
-  }, []);
+    if (
+      !specializedExperiences ||
+      (specializedExperiences.length === 0 && applicationId)
+    ) {
+      console.log("No specialized experiences found, fetching...");
+      completeAndMoveOn();
+    }
+  }, [applicationId]);
 
   if (loading) {
     return <TextBlinkLoader text="Loading specialized experiences..." />;

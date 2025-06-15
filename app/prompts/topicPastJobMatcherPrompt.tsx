@@ -56,6 +56,7 @@ QUALIFICATION OBJECT STRUCTURE:
   "title": "",  //give the qualification a title based on the topic name
   "paragraph": "", // Leave empty
   "userConfirmed": false // Always set to false
+  "question": "a question you might ask a candidate to assess their experience with this topic, as it relates to this prior job experience. Make sure that it directly connects to the job, including naming the job."
 }
 
 CRITICAL REQUIREMENTS:

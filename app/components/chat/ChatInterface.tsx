@@ -8,6 +8,47 @@ type Message = {
   content: string;
 };
 
+// Utility function to highlight keywords in generated paragraphs
+function highlightKeywords(text: string, keywords: string[]): string {
+  if (!keywords || keywords.length === 0) return text;
+
+  let highlightedText = text;
+
+  // Sort keywords by length (longest first) to avoid partial matches
+  const sortedKeywords = keywords
+    .filter((keyword) => keyword && keyword.trim().length > 0)
+    .sort((a, b) => b.length - a.length);
+
+  sortedKeywords.forEach((keyword) => {
+    // Create regex that matches whole words and phrases, case insensitive
+    const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`\\b${escapedKeyword}\\b`, "gi");
+
+    // Replace matches that aren't already bolded
+    highlightedText = highlightedText.replace(regex, (match, offset) => {
+      const beforeMatch = highlightedText.substring(0, offset);
+      const afterMatch = highlightedText.substring(offset + match.length);
+
+      // Check if already inside ** markers
+      const lastDoubleStar = beforeMatch.lastIndexOf("**");
+      const nextDoubleStar = afterMatch.indexOf("**");
+
+      // If we find ** before and after, and they're the closest ones, skip
+      if (lastDoubleStar !== -1 && nextDoubleStar !== -1) {
+        const beforeLastStar = beforeMatch.substring(0, lastDoubleStar);
+        const openStars = (beforeLastStar.match(/\*\*/g) || []).length;
+        if (openStars % 2 === 0) {
+          return match; // Already bolded
+        }
+      }
+
+      return `**${match}**`;
+    });
+  });
+
+  return highlightedText;
+}
+
 export default function ChatInterface() {
   // Get context data
   const {
@@ -30,6 +71,8 @@ export default function ChatInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [threadId, setThreadId] = useState<string | null>(null);
+  const [isInFeedbackMode, setIsInFeedbackMode] = useState(false);
+
   // Common prompt suggestions
   const userPrompts = [
     "Can you give me an example?",
@@ -63,7 +106,8 @@ export default function ChatInterface() {
 
   // Initialize with welcome message
   useEffect(() => {
-    if (currentItem) {
+    console.log(currentItem);
+    if (currentItem && !isInFeedbackMode) {
       let initialMessage = "";
 
       if (isEditingExistingParagraph) {
@@ -75,13 +119,20 @@ export default function ChatInterface() {
         How would you like to improve it? You can give me specific instructions, or I can suggest improvements.`;
       } else {
         // For creating new content
-        setThreadId(null);
-        initialMessage = `I'm going to help you write a paragraph about ${currentItem.title} to include in your application for ${jobString}. Can you tell me a bit about your relevant experience?`;
+        initialMessage = `${currentItem.question}`;
       }
 
+      // Reset state for new item
+      setThreadId(null);
       setMessages([{ role: "assistant", content: initialMessage }]);
     }
-  }, [currentItem, jobString, isEditingExistingParagraph, paragraphData]);
+  }, [
+    currentItem,
+    jobString,
+    isEditingExistingParagraph,
+    paragraphData,
+    isInFeedbackMode,
+  ]);
 
   // Handle chat submission
   const handleChatSubmit = async (e: React.FormEvent) => {
@@ -107,17 +158,17 @@ export default function ChatInterface() {
         Here is their current paragraph: "${paragraphData}". 
         Help them improve it based on their feedback. If you generate a new paragraph, make sure it builds on the existing content.`;
       }
-
       const response = await fetch("/api/detailed-chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          assistantInstructions: `${customInstructions}. Here are some more details about this item: ${
-            currentItem?.title
-          } - ${currentItem?.description}. ${
-            additionalContext && "here is some additional context: "
+          assistantInstructions: `${customInstructions}. Here are some more details about this item: ${JSON.stringify(
+            currentItem
+          )}. ${
+            additionalContext &&
+            "here is information about prior job experience that you should use.: "
           }${additionalContext ? JSON.stringify(additionalContext) : ""}`,
           assistantName,
           message: input,
@@ -151,6 +202,8 @@ export default function ChatInterface() {
       // Update paragraph data if provided
       if (data.paragraph) {
         setParagraphData(data.paragraph);
+        // Reset feedback mode when new paragraph is generated
+        setIsInFeedbackMode(false);
       }
 
       // Handle errors
@@ -186,6 +239,37 @@ export default function ChatInterface() {
   // Handle manual edit of paragraph
   const handleManualEdit = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setParagraphData(e.target.value);
+  };
+
+  // Handle editing a generated paragraph
+  const handleEditParagraph = () => {
+    // Switch to manual edit mode for the generated paragraph
+    setEditMode("manual");
+  };
+
+  // Handle completing manual edit of a generated paragraph
+  const handleDoneEditing = () => {
+    // For newly generated paragraphs, just return to chat mode to show the paragraph
+    setEditMode("chat");
+  };
+
+  // Handle giving feedback on a generated paragraph
+  const handleGiveFeedback = () => {
+    // Set feedback mode to prevent useEffect from resetting messages
+    setIsInFeedbackMode(true);
+
+    // Add the current paragraph to the chat history so both user and AI can reference it
+    // Then clear it from the paragraph display area
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        content: `Here's the paragraph I generated:\n\n"${paragraphData}"\n\nWhat would you like me to change or improve? I can modify this version based on your feedback.`,
+      },
+    ]);
+
+    // Clear the paragraph from the display area to show chat interface
+    setParagraphData("");
   };
 
   // Switch between chat and manual editing modes
@@ -276,11 +360,19 @@ export default function ChatInterface() {
             </div>
           )}
 
-          {/* Paragraph display */}
+          {/* Paragraph display with keyword highlighting */}
           {paragraphData ? (
             <div className={styles.paragraphContainer}>
               <h3>Generated Paragraph</h3>
-              <div className={styles.paragraphText}>{paragraphData}</div>
+              <div
+                className={styles.paragraphText}
+                dangerouslySetInnerHTML={{
+                  __html: highlightKeywords(
+                    paragraphData,
+                    currentItem?.keywords || []
+                  ).replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>"),
+                }}
+              />
 
               <div className={styles.paragraphActions}>
                 <form onSubmit={handleParagraphSubmit}>
@@ -290,6 +382,26 @@ export default function ChatInterface() {
                       : "Accept & Continue"}
                   </button>
                 </form>
+
+                {/* Add options for newly generated paragraphs */}
+                {!isEditingExistingParagraph && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleEditParagraph}
+                      className={styles.editButton}
+                    >
+                      Edit Manually
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleGiveFeedback}
+                      className={styles.feedbackButton}
+                    >
+                      Give Feedback & Regenerate
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ) : (
@@ -319,13 +431,15 @@ export default function ChatInterface() {
         </div>
       )}
 
-      {/* Manual Edit Mode */}
-      {isEditingExistingParagraph && editMode === "manual" && (
+      {/* Manual Edit Mode - show when editing existing paragraph OR when user wants to edit generated paragraph */}
+      {((isEditingExistingParagraph && editMode === "manual") ||
+        (!isEditingExistingParagraph && editMode === "manual")) && (
         <div className={styles.manualEditContainer}>
           <h3>Manual Edit Mode</h3>
           <p className={styles.editInstructions}>
             Edit the paragraph directly in the text box below. When you're
-            finished, click "Save Changes".
+            finished, click{" "}
+            {isEditingExistingParagraph ? '"Save Changes"' : '"Done Editing"'}.
           </p>
 
           <textarea
@@ -336,14 +450,27 @@ export default function ChatInterface() {
           />
 
           <div className={styles.manualEditActions}>
-            <button onClick={handleCancelEdit} className={styles.cancelButton}>
-              Cancel
+            <button
+              onClick={() => setEditMode("chat")}
+              className={styles.cancelButton}
+            >
+              {isEditingExistingParagraph ? "Cancel" : "Back to Chat"}
             </button>
-            <form onSubmit={handleParagraphSubmit}>
-              <button type="submit" className={styles.acceptButton}>
-                Save Changes
+
+            {isEditingExistingParagraph ? (
+              <form onSubmit={handleParagraphSubmit}>
+                <button type="submit" className={styles.acceptButton}>
+                  Save Changes
+                </button>
+              </form>
+            ) : (
+              <button
+                onClick={handleDoneEditing}
+                className={styles.acceptButton}
+              >
+                Done Editing
               </button>
-            </form>
+            )}
           </div>
         </div>
       )}

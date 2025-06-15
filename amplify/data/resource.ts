@@ -92,7 +92,6 @@ const schema = a.schema({
     evidence: a.string(),
     jobId: a.id().required(),
     job: a.belongsTo("Job", "jobId"),
-    question: a.string(),
     qualifications: a.hasMany("Qualification", "topicId"),
   })
   .authorization((allow) => [allow.authenticated()]),
@@ -126,11 +125,12 @@ const schema = a.schema({
     title: a.string().required(),
     description: a.string().required(),
     paragraph: a.string(),
-    userConfirmed: a.boolean().required(),
+    pastJobs: a.hasMany("PastJobQualification", "qualificationId"),
+    question: a.string(),
     topicId: a.id().required(),
     topic: a.belongsTo("Topic", "topicId"),
+    userConfirmed: a.boolean().required(),
     userId: a.id().required(),
-    pastJobs: a.hasMany("PastJobQualification", "qualificationId"),
   })
   .authorization((allow) => [allow.owner()]),
 

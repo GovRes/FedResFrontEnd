@@ -15,6 +15,9 @@ let assistantInstance:
   | (OpenAI.Beta.Assistants.Assistant & { _request_id?: string | null })
   | null = null;
 
+// Store the last instructions to detect changes
+let lastInstructions: string = "";
+
 // Helper function to check for active runs and cancel if needed
 async function checkAndHandleActiveRuns(threadId: string) {
   try {
@@ -58,7 +61,7 @@ export async function POST(req: Request) {
       threadId: existingThreadId,
     } = body;
 
-    // Create or get the assistant
+    // Create or update the assistant
     if (!assistantInstance) {
       console.log("Creating new assistant...");
       assistantInstance = await openai.beta.assistants.create({
@@ -86,7 +89,30 @@ export async function POST(req: Request) {
           },
         ],
       });
+      lastInstructions = assistantInstructions;
       console.log("Assistant created:", assistantInstance.id);
+    } else if (lastInstructions !== assistantInstructions) {
+      // Instructions have changed - update the assistant
+      console.log("Instructions changed, updating assistant...");
+      console.log(
+        "Old instructions preview:",
+        lastInstructions.substring(0, 100) + "..."
+      );
+      console.log(
+        "New instructions preview:",
+        assistantInstructions.substring(0, 100) + "..."
+      );
+
+      assistantInstance = await openai.beta.assistants.update(
+        assistantInstance.id,
+        {
+          instructions: assistantInstructions,
+        }
+      );
+      lastInstructions = assistantInstructions;
+      console.log("Assistant updated with new instructions");
+    } else {
+      console.log("Using existing assistant with same instructions");
     }
 
     // Create or use an existing thread

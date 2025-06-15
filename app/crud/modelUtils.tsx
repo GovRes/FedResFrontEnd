@@ -62,7 +62,7 @@ export const modelFields: Record<string, string[]> = {
     "initialMessage",
     "userId",
   ],
-  Topic: ["title", "keywords", "description", "evidence", "jobId", "question"],
+  Topic: ["title", "keywords", "description", "evidence", "jobId"],
   PastJob: [
     "endDate",
     "gsLevel",
@@ -82,6 +82,7 @@ export const modelFields: Record<string, string[]> = {
     "title",
     "description",
     "paragraph",
+    "question",
     "userConfirmed",
     "topicId",
     "userId",

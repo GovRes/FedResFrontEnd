@@ -86,7 +86,6 @@ export const Topic = z.object({
   description: z.string().optional(),
   //maybe are not needed
   evidence: z.string().optional(),
-  question: z.string().optional(),
 });
 
 export type SpecializedExperienceType = z.infer<typeof SpecializedExperience>;
@@ -111,6 +110,7 @@ export const Qualification = z.object({
   description: z.string(),
   title: z.string(),
   paragraph: z.string().optional(),
+  question: z.string().optional(),
   userId: z.string(),
   userConfirmed: z.boolean(),
 });

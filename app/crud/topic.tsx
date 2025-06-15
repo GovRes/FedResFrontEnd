@@ -43,7 +43,6 @@ export const createOrFindSimilarTopics = async ({
               keywords
               description
               evidence
-              question
               jobId
             }
           }
@@ -94,7 +93,7 @@ export const createOrFindSimilarTopics = async ({
               keywords
               description
               evidence
-              question
+             
               jobId
             }
           }
@@ -105,7 +104,6 @@ export const createOrFindSimilarTopics = async ({
             keywords: topic.keywords,
             description: topic.description,
             evidence: topic.evidence,
-            question: topic.question,
             jobId: jobId, // Include jobId in the creation input
           },
         },
@@ -172,7 +170,6 @@ export const fetchTopicsByJobId = async (
               keywords
               description
               evidence
-              question
               jobId
               createdAt
               updatedAt

@@ -272,6 +272,7 @@ export const getApplicationAssociations = async <T extends AssociationType>({
                   title
                   description
                   paragraph
+                  question
                   userConfirmed
                   userId
                   topic {
@@ -281,7 +282,6 @@ export const getApplicationAssociations = async <T extends AssociationType>({
                     keywords
                     description
                     evidence
-                    question
                   }
                 }
               }
@@ -369,6 +369,7 @@ export const getApplicationAssociations = async <T extends AssociationType>({
                   title: qual.title || "",
                   description: qual.description || "",
                   paragraph: qual.paragraph,
+                  question: qual.question,
                   userConfirmed: qual.userConfirmed || false,
                   userId: qual.userId || item.userId,
                   topic: qual.topic
@@ -379,7 +380,7 @@ export const getApplicationAssociations = async <T extends AssociationType>({
                         keywords: qual.topic.keywords || [],
                         description: qual.topic.description,
                         evidence: qual.topic.evidence,
-                        question: qual.topic.question,
+                        question: qual.question,
                       }
                     : {
                         id: "",

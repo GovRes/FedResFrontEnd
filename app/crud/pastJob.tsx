@@ -138,8 +138,30 @@ export async function parallelBatchUpdatePastJobsWithQualifications(
     },
   };
 }
+
+/**
+ * Helper function to check if two qualifications are essentially the same
+ * Based on title and description similarity
+ */
+function areQualificationsSimilar(qual1: any, qual2: any): boolean {
+  // Simple similarity check - you might want to make this more sophisticated
+  const title1 = (qual1.title || "").toLowerCase().trim();
+  const title2 = (qual2.title || "").toLowerCase().trim();
+  const desc1 = (qual1.description || "").toLowerCase().trim();
+  const desc2 = (qual2.description || "").toLowerCase().trim();
+
+  // Check if titles are identical or very similar
+  const titlesMatch = title1 === title2;
+
+  // Check if descriptions are identical or very similar
+  const descriptionsMatch = desc1 === desc2;
+
+  return titlesMatch && descriptionsMatch;
+}
+
 /**
  * Specialized function to update a PastJob record including its qualifications
+ * This function will ADD new qualifications without removing existing ones
  *
  * @param {string} pastJobId - The ID of the PastJob to update
  * @param {Object} pastJobData - The PastJob data to update
@@ -171,16 +193,6 @@ export async function updatePastJobWithQualifications(
     console.log("PastJob basic info updated successfully");
 
     if (qualificationsToUse && qualificationsToUse.length > 0) {
-      // Ensure all qualifications have IDs
-      for (const qualification of qualificationsToUse) {
-        if (!qualification.id) {
-          qualification.id = uuidv4();
-          console.log(
-            `Generated new ID for qualification: ${qualification.id}`
-          );
-        }
-      }
-
       // 2. Fetch existing qualification relationships
       const listExistingRelationshipsQuery = `
         query ListPastJobQualifications($pastJobId: ID!) {
@@ -194,6 +206,7 @@ export async function updatePastJobWithQualifications(
                 title
                 description
                 paragraph
+                question
                 userConfirmed
                 topicId
                 userId
@@ -218,61 +231,64 @@ export async function updatePastJobWithQualifications(
         `Found ${existingRelationships.length} existing relationships`
       );
 
-      // Create a map of existing qualification IDs for faster lookups
-      const existingQualificationIds = new Set(
-        existingRelationships.map((rel: any) => rel.qualificationId)
+      // Create a map of existing qualifications for similarity checking
+      const existingQualifications = existingRelationships.map(
+        (rel: any) => rel.qualification
       );
 
-      // Create a map of existing relationships by qualification ID for faster lookups
-      const existingRelationshipsMap = existingRelationships.reduce(
-        (map: any, rel: any) => {
-          map[rel.qualificationId] = rel;
-          return map;
-        },
-        {}
-      );
-
-      // 3. Process each qualification
+      // 3. Process each new qualification
       for (const qualification of qualificationsToUse) {
         try {
-          console.log(
-            `Processing qualification: ${qualification.id}`,
-            `Title: ${qualification.title}`,
-            `Exists: ${existingQualificationIds.has(qualification.id)}`
+          // Check if this qualification is similar to any existing one
+          const similarExisting = existingQualifications.find((existing: any) =>
+            areQualificationsSimilar(qualification, existing)
           );
 
-          // First ensure the Qualification record exists
-          let qualificationExists = existingQualificationIds.has(
-            qualification.id
-          );
-
-          // Also check if the qualification exists directly in the database
-          if (!qualificationExists) {
-            const getQualificationQuery = `
-              query GetQualification($id: ID!) {
-                getQualification(id: $id) {
-                  id
-                }
-              }
-            `;
-
-            const existingQualResult = await client.graphql({
-              query: getQualificationQuery,
-              variables: {
-                id: qualification.id,
-              },
-              authMode: "userPool",
-            });
-
-            const existingQualification = (existingQualResult as any).data
-              ?.getQualification;
-            qualificationExists = !!existingQualification;
+          if (similarExisting) {
             console.log(
-              `Qualification lookup result: ${
-                qualificationExists ? "Found" : "Not found"
-              }`
+              `Skipping qualification "${qualification.title}" - similar to existing qualification "${similarExisting.title}"`
+            );
+            continue; // Skip this qualification as it's too similar to an existing one
+          }
+
+          // Generate ID if not present
+          if (!qualification.id) {
+            qualification.id = uuidv4();
+            console.log(
+              `Generated new ID for qualification: ${qualification.id}`
             );
           }
+
+          console.log(
+            `Processing new qualification: ${qualification.id}`,
+            `Title: ${qualification.title}`
+          );
+
+          // Check if the qualification exists directly in the database
+          const getQualificationQuery = `
+            query GetQualification($id: ID!) {
+              getQualification(id: $id) {
+                id
+              }
+            }
+          `;
+
+          const existingQualResult = await client.graphql({
+            query: getQualificationQuery,
+            variables: {
+              id: qualification.id,
+            },
+            authMode: "userPool",
+          });
+
+          const existingQualification = (existingQualResult as any).data
+            ?.getQualification;
+          const qualificationExists = !!existingQualification;
+          console.log(
+            `Qualification lookup result: ${
+              qualificationExists ? "Found" : "Not found"
+            }`
+          );
 
           // Prepare the qualification input with safe defaults
           const qualificationInput = {
@@ -280,6 +296,7 @@ export async function updatePastJobWithQualifications(
             title: qualification.title || "",
             description: qualification.description || "",
             paragraph: qualification.paragraph || "",
+            question: qualification.question || "",
             userConfirmed: qualification.userConfirmed || false,
             topicId: qualification.topic?.id || "",
             userId: pastJobData.userId,
@@ -400,44 +417,13 @@ export async function updatePastJobWithQualifications(
         }
       }
 
-      // 4. Determine which relationships to delete
-      const currentQualificationIds = new Set(
-        qualificationsToUse.map((qual: any) => qual.id)
-      );
-      const relationshipsToDelete = existingRelationships.filter(
-        (rel: any) => !currentQualificationIds.has(rel.qualificationId)
-      );
-
+      // NOTE: Removed the deletion logic here - we no longer delete existing qualifications
       console.log(
-        `Found ${relationshipsToDelete.length} relationships to delete`
+        "Preserved all existing qualifications - no deletions performed"
       );
-
-      // 5. Delete relationships that are no longer needed
-      const deleteMutation = `
-        mutation DeletePastJobQualification($input: DeletePastJobQualificationInput!) {
-          deletePastJobQualification(input: $input) {
-            id
-          }
-        }
-      `;
-
-      for (const relationship of relationshipsToDelete) {
-        console.log(
-          `Deleting relationship: ${relationship.id} for qualification ${relationship.qualificationId}`
-        );
-        await client.graphql({
-          query: deleteMutation,
-          variables: {
-            input: {
-              id: relationship.id,
-            },
-          },
-          authMode: "userPool",
-        });
-      }
     }
 
-    // 6. Fetch the updated PastJob with its relationships
+    // 4. Fetch the updated PastJob with its relationships
     const getPastJobQuery = `
       query GetPastJob($id: ID!) {
         getPastJob(id: $id) {
@@ -466,6 +452,7 @@ export async function updatePastJobWithQualifications(
                 title
                 description
                 paragraph
+                question
                 userConfirmed
                 topicId
                 topic {
@@ -474,7 +461,7 @@ export async function updatePastJobWithQualifications(
                   keywords
                   description
                   evidence
-                  question
+                 
                 }
                 userId
               }

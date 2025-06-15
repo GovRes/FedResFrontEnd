@@ -9,7 +9,6 @@ RESPONSE FORMAT: Return a valid JSON array of topic objects with this exact stru
     "keywords": ["keyword 1", "keyword 2", "keyword 3"],
     "evidence": "",
     "description": "Description of the topic and its relevance to the job",
-    "question": "a question you might ask a candidate to assess their experience with this topic"
   }
 ]
 

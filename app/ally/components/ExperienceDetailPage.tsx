@@ -205,7 +205,18 @@ export default function ExperienceDetailPage({
         saveFunction={saveQualification}
         onComplete={handleComplete}
         assistantName={assistantName}
-        assistantInstructions={assistantInstructions}
+        assistantInstructions={`${assistantInstructions}
+
+        PAST JOB CONTEXT:
+        - Job Title: ${pastJob.title}
+        - Organization: ${pastJob.organization}
+        - Start Date: ${pastJob.startDate}
+        - End Date: ${pastJob.endDate}
+        - Hours: ${pastJob.hours}
+        - GS Level: ${pastJob.gsLevel}
+        - Responsibilities: ${pastJob.responsibilities}
+        
+        Use this context when asking questions and writing paragraphs.`}
         jobString={`${job?.title} at the ${job?.department}`}
         sidebarTitle={`Qualifications from ${pastJob.title} at ${pastJob.organization} that might apply to ${job?.title}`}
         heading={`${pastJob.title} at ${pastJob.organization} - Applicable Work Experience`}
