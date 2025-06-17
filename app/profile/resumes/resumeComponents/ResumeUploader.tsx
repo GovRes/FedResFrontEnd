@@ -1,12 +1,9 @@
 import { generateClient } from "aws-amplify/api";
 import { useAuthenticator } from "@aws-amplify/ui-react";
+import * as pdfjsLib from "pdfjs-dist";
 import { Uploader } from "@/app/components/forms/Uploader";
-import type { Schema } from "../../../../amplify/data/resource"; // Path to your backend resource definition
-import { awardsExtractor } from "@/app/components/aiProcessing/awardsExtractor";
+import type { Schema } from "../../../../amplify/data/resource";
 import { batchCreateModelRecords } from "@/app/crud/genericCreate";
-import { educationExtractor } from "@/app/components/aiProcessing/educationExtractor";
-import { pastJobsExtractor } from "@/app/components/aiProcessing/pastJobsExtractor";
-import { volunteersExtractor } from "@/app/components/aiProcessing/volunteersExtractor";
 import { listUserModelRecords } from "@/app/crud/genericListForUser";
 import {
   AwardType,
@@ -17,6 +14,10 @@ import { ResumeType } from "@/app/utils/responseSchemas";
 import { useEffect, useState } from "react";
 import { getFileUrl } from "@/app/utils/client-utils";
 import pdfToText from "react-pdftotext";
+import { genericExtractor } from "@/app/components/aiProcessing/genericExtractor";
+import { educationExtractorPrompt } from "@/app/prompts/educationExtractorPrompt";
+import { pastJobsExtractorPrompt } from "@/app/prompts/pastJobsExtractorPrompt";
+import { awardsExtractorPrompt } from "@/app/prompts/awardsExtractorPrompt";
 
 const client = generateClient<Schema>();
 
@@ -30,6 +31,7 @@ export default function ResumeUploader({
   setShowUploader: Function;
 }) {
   const { user } = useAuthenticator();
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
 
   const [localResume, setLocalResume] = useState<ResumeType>();
   const [existingAwards, setExistingAwards] = useState<AwardType[]>([]);
@@ -46,7 +48,7 @@ export default function ResumeUploader({
           setExistingAwards(result.items);
         }
       } catch (error) {
-        console.error("Failed to fetch educations:", error);
+        console.error("Failed to fetch awards:", error);
       }
     }
     async function fetchExistingEducations() {
@@ -76,20 +78,39 @@ export default function ResumeUploader({
     fetchExistingPastJobs();
   }, []);
 
-  async function fetchAwards({ resumeString }: { resumeString: string }) {
-    let awards = await awardsExtractor({
-      resume: resumeString,
-      existingAwards,
+  async function fetchAwards({
+    resumeImages,
+    resume,
+  }: {
+    resumeImages?: string[];
+    resume?: string;
+  }) {
+    let awards = await await genericExtractor({
+      resumeImages,
+      resume,
+      existingRecords: existingAwards,
+      extractorType: "awards",
+      systemPrompt: awardsExtractorPrompt,
     });
     if (awards && awards.length > 0) {
       await batchCreateModelRecords("Award", awards, user.userId);
       return awards;
     } else return [];
   }
-  async function fetchEducation({ resumeString }: { resumeString: string }) {
-    let educations = await educationExtractor({
-      resume: resumeString,
-      existingEducations,
+
+  async function fetchEducation({
+    resumeImages,
+    resume,
+  }: {
+    resumeImages?: string[];
+    resume?: string;
+  }) {
+    let educations = await genericExtractor({
+      resumeImages,
+      resume,
+      existingRecords: existingEducations,
+      extractorType: "education",
+      systemPrompt: educationExtractorPrompt,
     });
     if (educations && educations.length > 0) {
       await batchCreateModelRecords("Education", educations, user.userId);
@@ -97,21 +118,39 @@ export default function ResumeUploader({
     } else return [];
   }
 
-  async function fetchPastJobs({ resumeString }: { resumeString: string }) {
-    let pastJobs = await pastJobsExtractor({
-      resume: resumeString,
-      existingPastJobs,
+  async function fetchPastJobs({
+    resumeImages,
+    resume,
+  }: {
+    resumeImages?: string[];
+    resume?: string;
+  }) {
+    let pastJobs = await await genericExtractor({
+      resumeImages,
+      resume,
+      existingRecords: existingPastJobs,
+      extractorType: "pastJobs",
+      systemPrompt: pastJobsExtractorPrompt,
     });
     if (pastJobs && pastJobs.length > 0) {
       await batchCreateModelRecords("PastJob", pastJobs, user.userId);
-
       return pastJobs;
     } else return [];
   }
-  async function fetchVolunteers({ resumeString }: { resumeString: string }) {
-    let volunteers = await volunteersExtractor({
-      existingPastJobs,
-      resume: resumeString,
+
+  async function fetchVolunteers({
+    resumeImages,
+    resume,
+  }: {
+    resumeImages?: string[];
+    resume?: string;
+  }) {
+    let volunteers = await genericExtractor({
+      resumeImages,
+      resume,
+      existingRecords: existingPastJobs,
+      extractorType: "volunteers",
+      systemPrompt: pastJobsExtractorPrompt,
     });
     if (volunteers && volunteers.length > 0) {
       await batchCreateModelRecords("Volunteer", volunteers, user.userId);
@@ -134,7 +173,6 @@ export default function ResumeUploader({
     }
     if (newResume) {
       setRefresh(true);
-      // setShowUploader(false);
       setLocalResume({
         ...newResume,
         path: newResume.fileName,
@@ -147,15 +185,30 @@ export default function ResumeUploader({
   async function processResume() {
     setLoading(true);
     try {
-      const resumePromise = await processResumeToString(localResume!);
+      // Try vision approach first
+      let resumeImages: string[] = [];
+      let resumeText: string = "";
+
+      try {
+        resumeImages = await convertPdfToImages(localResume!);
+        console.log("Converted resume to", resumeImages.length, "images");
+      } catch (imageError) {
+        console.log(
+          "Image conversion failed, falling back to text extraction:",
+          imageError
+        );
+        resumeText = await processResumeToString(localResume!);
+        console.log("Extracted text length:", resumeText.length);
+      }
 
       const [awardsResult, educationResult, pastJobsResult, volunteersResult] =
         await Promise.all([
-          fetchAwards({ resumeString: resumePromise }),
-          fetchEducation({ resumeString: resumePromise }),
-          fetchPastJobs({ resumeString: resumePromise }),
-          fetchVolunteers({ resumeString: resumePromise }),
+          fetchAwards({ resumeImages, resume: resumeText }),
+          fetchEducation({ resumeImages, resume: resumeText }),
+          fetchPastJobs({ resumeImages, resume: resumeText }),
+          fetchVolunteers({ resumeImages, resume: resumeText }),
         ]);
+
       if (
         awardsResult &&
         educationResult &&
@@ -165,13 +218,72 @@ export default function ResumeUploader({
         console.log("Resume processing complete");
       }
     } catch (error) {
-      console.log(error);
+      console.log("Resume processing error:", error);
     } finally {
       setLoading(false);
     }
   }
 
-  async function processResumeToString(resume: ResumeType) {
+  async function convertPdfToImages(resume: ResumeType): Promise<string[]> {
+    try {
+      const fileUrl = await getFileUrl({ path: resume.path });
+      if (!fileUrl) {
+        throw new Error("Could not get file URL");
+      }
+
+      console.log("Fetching PDF from:", fileUrl.toString());
+
+      // Fetch the PDF
+      const response = await fetch(fileUrl.toString());
+      if (!response.ok) {
+        throw new Error(`Failed to fetch PDF: ${response.statusText}`);
+      }
+
+      const pdfArrayBuffer = await response.arrayBuffer();
+
+      // Load PDF document
+      const pdf = await pdfjsLib.getDocument({ data: pdfArrayBuffer }).promise;
+      const images: string[] = [];
+
+      console.log(`PDF has ${pdf.numPages} pages`);
+
+      // Convert each page to canvas, then to image
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+
+        // Set up canvas with higher resolution for better OCR
+        const scale = 2.0;
+        const viewport = page.getViewport({ scale });
+
+        // Create canvas element
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d")!;
+
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        // Render PDF page to canvas
+        await page.render({
+          canvasContext: context,
+          viewport: viewport,
+        }).promise;
+
+        // Convert canvas to base64 image
+        const imageDataUrl = canvas.toDataURL("image/png", 0.95);
+        images.push(imageDataUrl);
+
+        console.log(`Converted page ${pageNum}/${pdf.numPages}`);
+      }
+
+      return images;
+    } catch (error) {
+      console.error("Failed to convert PDF to images:", error);
+      throw error;
+    }
+  }
+
+  // Keep as fallback method
+  async function processResumeToString(resume: ResumeType): Promise<string> {
     return await getFileUrl({ path: resume.path }).then(async (fileUrl) => {
       if (fileUrl) {
         const urlString = fileUrl.toString();

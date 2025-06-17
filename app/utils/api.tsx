@@ -4,18 +4,26 @@ import { ChatCompletionUserMessageParam } from "openai/src/resources/index.js";
 export async function sendMessages({
   messages,
   name,
+  useVision = false,
 }: {
   messages: (
     | ChatCompletionUserMessageParam
     | ChatCompletionSystemMessageParam
   )[];
   name: string;
+  useVision?: boolean;
 }) {
-  console.log("Sending messages to OpenAI API:", messages, name);
+  console.log(
+    "Sending messages to OpenAI API:",
+    messages,
+    name,
+    "Vision:",
+    useVision
+  );
   const res = await fetch("/api/ai", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages, name }),
+    body: JSON.stringify({ messages, name, useVision }),
   });
 
   const text = await res.text();

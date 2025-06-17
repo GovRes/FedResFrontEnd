@@ -44,7 +44,7 @@ export const Navbar = () => {
     <header>
       <nav>
         <Link href="/" className={styles.navLogo}>
-          Gov Res
+          GovRes
         </Link>
 
         <div className={`${styles.navMenu} ${showMenu ? styles.showMenu : ""}`}>

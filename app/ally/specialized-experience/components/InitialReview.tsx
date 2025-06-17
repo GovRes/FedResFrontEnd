@@ -92,14 +92,14 @@ export default function InitialReview({}: // setReviewing,
         {specializedExperiences?.map(
           (experience: SpecializedExperienceType) => (
             <li key={experience.id}>
-              {" "}
+              {experience.title}
               <a
                 data-tooltip-id={`${experience.id}-description`}
                 data-tooltip-content={experience.description}
               >
+                {" "}
                 <GrCircleQuestion />
               </a>
-              {experience.title}
               <Tooltip id={`${experience.id}-description`} />
             </li>
           )

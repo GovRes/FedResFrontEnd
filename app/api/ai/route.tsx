@@ -48,10 +48,14 @@ export async function POST(req: NextRequest) {
     return new Response(`Invalid schema name: ${data.name}`, { status: 400 });
   }
   console.log(49, selectedSchema, schemaName);
+
   try {
+    // Choose model based on whether we're using vision
+    const model = data.useVision ? "gpt-4o" : "gpt-4o-mini";
+
     const completion = await client.beta.chat.completions.parse({
       messages: data.messages,
-      model: "gpt-4o-mini",
+      model: model,
       response_format: zodResponseFormat(selectedSchema, schemaName),
     });
 

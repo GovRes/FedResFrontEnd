@@ -61,7 +61,10 @@ export default function ExperienceDashboard({
             (item): item is PastJobType =>
               "type" in item && item.type === "PastJob"
           );
-          setItems(filteredItems);
+          const sortedItems = filteredItems.sort((a, b) =>
+            a.organization > b.organization ? 1 : -1
+          );
+          setItems(sortedItems);
           return;
         }
         // Now itemsRes should match the expected type for setItems

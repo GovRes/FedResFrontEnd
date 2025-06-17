@@ -33,7 +33,7 @@ interface ApplicationContextType {
 export const defaultSteps: StepsType[] = [
   {
     id: "usa-jobs",
-    title: "USA Jobs",
+    title: "USAJobs",
     description: "Select a federal job",
     completed: false,
     path: "/job-search",
