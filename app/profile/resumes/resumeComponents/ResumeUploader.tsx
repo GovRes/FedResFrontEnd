@@ -149,11 +149,11 @@ export default function ResumeUploader({
       resumeImages,
       resume,
       existingRecords: existingPastJobs,
-      extractorType: "volunteers",
+      extractorType: "pastJobs",
       systemPrompt: pastJobsExtractorPrompt,
     });
     if (volunteers && volunteers.length > 0) {
-      await batchCreateModelRecords("Volunteer", volunteers, user.userId);
+      await batchCreateModelRecords("PastJob", volunteers, user.userId);
       return volunteers;
     } else return [];
   }
