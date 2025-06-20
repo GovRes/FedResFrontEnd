@@ -12,6 +12,7 @@ import { completeSteps } from "@/app/utils/stepUpdater";
 import { useApplication } from "@/app/providers/applicationContext";
 import { useNextStepNavigation } from "@/app/utils/nextStepNavigation";
 import { createOrGetJob } from "@/app/crud/job";
+import { useRouter } from "next/navigation";
 export interface MatchedObjectDescriptor {
   PositionTitle: string;
   DepartmentName: string;
@@ -42,14 +43,13 @@ export interface Result {
 
 export default function UsaJobsResults({
   searchResults,
-  setShowSearchForm,
 }: {
   searchResults: Result[];
-  setShowSearchForm: Function;
 }) {
   const { steps, setJob, setSteps, setApplicationId } = useApplication();
   const { navigateToNextIncompleteStep } = useNextStepNavigation();
   const { user } = useAuthenticator();
+  const router = useRouter();
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [currentJob, setCurrentJob] = useState<Result | null>();
   function selectJob({ job }: { job: Result }) {
@@ -57,8 +57,7 @@ export default function UsaJobsResults({
     setCurrentJob(job);
   }
   function returnToSearch() {
-    setShowSearchForm(true);
-    window.scrollTo(0, 0);
+    router.push("/ally/job-search/");
   }
   async function setJobAndProceed() {
     if (currentJob) {

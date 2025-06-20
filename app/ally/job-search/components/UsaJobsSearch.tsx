@@ -24,12 +24,10 @@ export default function UsaJobsSearch({
   searchObject,
   setSearchObject,
   setSearchResults,
-}: // setShowSearchForm,
-{
+}: {
   searchObject: JobSearchObject;
   setSearchObject: Function;
   setSearchResults: Function;
-  // setShowSearchForm: Function;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -85,7 +83,6 @@ export default function UsaJobsSearch({
     } else {
       router.push("/ally/job-search/no-results");
     }
-    // setShowSearchForm(false);
     setSearchResults(results);
   }
 
