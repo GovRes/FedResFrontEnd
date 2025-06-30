@@ -3,7 +3,7 @@ import { useContext, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { JobSearchContext } from "@/app/providers/jobSearchContext";
 import UsaJobsSearch from "@/app/ally/job-search/components/UsaJobsSearch";
-import { TextBlinkLoader } from "@/app/components/loader/Loader";
+import { Loader } from "@/app/components/loader/Loader";
 import { fetchUserAttributes } from "aws-amplify/auth";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { JobSearchObject } from "@/app/utils/responseSchemas";
@@ -40,7 +40,7 @@ export default function JobSearchPage() {
   };
 
   if (!searchObject) {
-    return <TextBlinkLoader text="Warming up the engines" />;
+    return <Loader text="Warming up the engines" />;
   }
 
   return (

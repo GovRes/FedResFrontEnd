@@ -5,7 +5,7 @@ import { GrCircleQuestion } from "react-icons/gr";
 import { specializedExperienceExtractor } from "@/app/components/aiProcessing/specializedExperienceExtractor";
 import styles from "../../ally.module.css";
 import { SpecializedExperienceType } from "@/app/utils/responseSchemas";
-import { TextBlinkLoader } from "@/app/components/loader/Loader";
+import { Loader } from "@/app/components/loader/Loader";
 
 import { SpecializedExperienceContext } from "@/app/providers/specializedExperienceContext";
 import { useApplication } from "@/app/providers/applicationContext";
@@ -80,7 +80,7 @@ export default function InitialReview({}: // setReviewing,
   }, [applicationId]);
 
   if (loading) {
-    return <TextBlinkLoader text="Loading specialized experiences..." />;
+    return <Loader text="Loading specialized experiences..." />;
   }
   return (
     <div className={styles.allyChatContainer}>

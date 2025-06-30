@@ -1,5 +1,5 @@
 "use client";
-import { TextBlinkLoader } from "@/app/components/loader/Loader";
+import { Loader } from "@/app/components/loader/Loader";
 import { fetchModelRecord } from "@/app/crud/genericFetch";
 import EducationForm from "../../components/EducationForm";
 import { updateModelRecord } from "@/app/crud/genericUpdate";
@@ -63,7 +63,7 @@ export default function EditPastJobPage({
   }, []);
 
   if (loading) {
-    return <TextBlinkLoader text="loading education data" />;
+    return <Loader text="loading education data" />;
   }
   if (!loading && formData) {
     return (

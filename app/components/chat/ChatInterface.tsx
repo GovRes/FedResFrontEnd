@@ -419,7 +419,7 @@ export default function ChatInterface() {
                 <button
                   type="submit"
                   disabled={isLoading || !input.trim()}
-                  className={styles.submitButton}
+                  className="submit-button"
                 >
                   {isLoading ? "Sending..." : "Send"}
                 </button>
@@ -452,7 +452,7 @@ export default function ChatInterface() {
           <div className={styles.manualEditActions}>
             <button
               onClick={() => setEditMode("chat")}
-              className={styles.cancelButton}
+              className="cancel-button"
             >
               {isEditingExistingParagraph ? "Cancel" : "Back to Chat"}
             </button>

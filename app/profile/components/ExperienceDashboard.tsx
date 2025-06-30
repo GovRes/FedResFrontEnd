@@ -14,7 +14,7 @@ import {
   fetchUserAssociations,
   AssociationType,
 } from "@/app/crud/userAssociations";
-import { TextBlinkLoader } from "../../components/loader/Loader";
+import { Loader } from "../../components/loader/Loader";
 import { pascalToDashed } from "@/app/utils/stringBuilders";
 
 // Define a type that represents all possible item types
@@ -82,7 +82,7 @@ export default function ExperienceDashboard({
   }, [experienceType, items.length]);
 
   if (loading) {
-    return <TextBlinkLoader text="Loading..." />;
+    return <Loader text="Loading..." />;
   }
 
   return (

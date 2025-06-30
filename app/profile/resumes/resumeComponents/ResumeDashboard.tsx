@@ -3,7 +3,7 @@ import ResumesTable from "./ResumesTable";
 import ResumeUploader from "./ResumeUploader";
 import { list } from "aws-amplify/storage";
 import { ResumeType } from "@/app/utils/responseSchemas";
-import { TextBlinkLoader } from "@/app/components/loader/Loader";
+import { Loader } from "@/app/components/loader/Loader";
 
 export default function ResumeDashboard() {
   const [resumes, setResumes] = useState<ResumeType[]>([]);
@@ -32,7 +32,7 @@ export default function ResumeDashboard() {
     }
   }, [refresh]);
   if (loading) {
-    return <TextBlinkLoader text="loading resume data" />;
+    return <Loader text="loading resume data" />;
   }
 
   return (

@@ -1,23 +1,28 @@
 import { useEffect, useState } from "react";
-
-import { GrCheckmark, GrClose, GrEdit } from "react-icons/gr";
-import styles from "../../profileStyles.module.css";
-import { handleUpdateUserAttribute } from "@/app/utils/userAttributeInterface";
+import styles from "./editableAttributeStyles.module.css";
+import { handleUpdateUserAttribute } from "@/app/utils/userAttributeUtils";
 import { Toggle } from "@/app/components/forms/Inputs";
+import SubmitCancelButtonArray from "./SubmitCancelButtonArray";
+import EditButton from "./EditButton";
+import EditableAttributeContainer from "./EditableAttributeContainer";
 
-export default function ProfileAttributeBooleanField({
+export default function EditableAttributeBooleanField({
   attributeKey,
+  currentlyEditing,
   title,
   value,
   setAttributes,
+  setCurrentlyEditing,
 }: {
   attributeKey: string;
+  currentlyEditing: string | null;
   title: string;
   value: boolean | string;
   setAttributes: Function;
+  setCurrentlyEditing: (key: string | null) => void;
 }) {
   const stringToBool = value === "true";
-  const [showEdit, setShowEdit] = useState(false);
+  const showEdit = currentlyEditing === attributeKey;
   const [checked, setChecked] = useState(stringToBool);
   useEffect(() => {
     setChecked(value === "true");
@@ -33,10 +38,19 @@ export default function ProfileAttributeBooleanField({
         ...prev,
         [attributeKey]: checked.toString(),
       }));
-      setShowEdit(false);
+      cancelEdit();
     } else {
       return response;
     }
+  }
+
+  function startEdit() {
+    setCurrentlyEditing(attributeKey);
+  }
+
+  function cancelEdit() {
+    setCurrentlyEditing(null);
+    setChecked(stringToBool); // Reset form value on cancel
   }
 
   function onChange() {
@@ -44,32 +58,18 @@ export default function ProfileAttributeBooleanField({
   }
 
   return (
-    <div className={styles.editableContainer}>
-      <span className={styles.attributeTitle}>{title}: </span>
+    <EditableAttributeContainer title={title}>
       {showEdit ? (
-        <form className={styles.form} onSubmit={submit}>
+        <form className={styles.attributeForm} onSubmit={submit}>
           <Toggle checked={checked} onChange={onChange} />
-          <button
-            type="submit"
-            className={`${styles.icon} ${styles.submitButton}`}
-          >
-            <GrCheckmark />
-          </button>
-          <button
-            className={`${styles.icon} ${styles.cancelButton}`}
-            onClick={() => setShowEdit(false)}
-          >
-            <GrClose />
-          </button>
+          <SubmitCancelButtonArray cancelEdit={cancelEdit} />
         </form>
       ) : (
         <span>
           {value === "true" ? "Yes" : "No"}
-          <span onClick={() => setShowEdit(true)} className={styles.icon}>
-            <GrEdit />
-          </span>
+          <EditButton startEdit={startEdit} />
         </span>
       )}
-    </div>
+    </EditableAttributeContainer>
   );
 }

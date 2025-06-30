@@ -23,7 +23,7 @@ export default function ProfileNavigation({
   currentPath: string;
 }) {
   return (
-    <div className={styles.tabs}>
+    <div className="tabs">
       {navItems.map((item) => (
         <div key={item.id}>
           <input

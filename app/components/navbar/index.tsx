@@ -14,7 +14,10 @@ export const Navbar = () => {
   const toggleMenu = () => {
     setShowMenu(!showMenu);
   };
-  const { user } = useAuthenticator((context) => [context.user]);
+  const { authStatus, user, signOut } = useAuthenticator((context) => [
+    context.user,
+    context.signOut,
+  ]);
   const searchParams = useSearchParams();
   const login = searchParams.get("login");
 
@@ -94,7 +97,7 @@ export const Navbar = () => {
                 Ally
               </Link>
             </li>
-            {user && (
+            {authStatus !== "configuring" && user && (
               <li>
                 <Link
                   className={styles.navLink}
@@ -106,7 +109,12 @@ export const Navbar = () => {
               </li>
             )}
             <li>
-              {showLogin ? (
+              {authStatus !== "configuring" && user ? (
+                <div className={styles.userMenu}>
+                  <span>Hello {user.signInDetails?.loginId}</span>
+                  <button onClick={() => signOut()}>Sign out</button>
+                </div>
+              ) : showLogin ? (
                 <NavLogin setShowLogin={setShowLogin} />
               ) : (
                 <span className={styles.navLink} onClick={toggleLogin}>

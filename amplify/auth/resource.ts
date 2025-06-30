@@ -1,15 +1,11 @@
-import { defineAuth } from '@aws-amplify/backend';
+import { defineAuth } from "@aws-amplify/backend";
+import { postConfirmation } from "./post-confirmation/resource";
 
-/**
- * Define and configure your auth resource
- * When used alongside the sandbox CLI command, any updates to this file will be reflected in the cloud
- * You can use the sandbox for development and testing purposes, but for production use cases you should create a permanent environment
- */
 export const auth = defineAuth({
   loginWith: {
     email: true,
   },
-    
+  groups: ["users", "admins", "superAdmins"],
   userAttributes: {
     birthdate: {
       mutable: true,
@@ -42,7 +38,7 @@ export const auth = defineAuth({
     "custom:disabled": {
       mutable: true,
       dataType: "Boolean",
-    },    
+    },
     "custom:fedEmploymentStatus": {
       mutable: true,
       dataType: "String",

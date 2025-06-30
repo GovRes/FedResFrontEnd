@@ -1,26 +1,40 @@
 import { useEffect, useState } from "react";
-import { GrCheckmark, GrClose, GrEdit } from "react-icons/gr";
-import styles from "../../profileStyles.module.css";
-import { handleUpdateUserAttribute } from "@/app/utils/userAttributeInterface";
+import { handleUpdateUserAttribute } from "@/app/utils/userAttributeUtils";
+import SubmitCancelButtonArray from "./SubmitCancelButtonArray";
+import EditButton from "./EditButton";
+import EditableAttributeContainer from "./EditableAttributeContainer";
+import styles from "./editableAttributeStyles.module.css";
 
-export default function ProfileAttributeSelectField({
+export default function EditableAttributeSelectField({
   attributeKey,
+  currentlyEditing,
   options,
   title,
   value,
   setAttributes,
+  setCurrentlyEditing,
 }: {
   attributeKey: string;
+  currentlyEditing: string | null;
   options: Record<string, string>;
   title: string;
   value: string;
   setAttributes: Function;
+  setCurrentlyEditing: (key: string | null) => void;
 }) {
   const [formValue, setFormValue] = useState(value);
-  const [showEdit, setShowEdit] = useState(false);
+  const showEdit = currentlyEditing === attributeKey;
 
   function onChange(e: { target: { value: any } }) {
     setFormValue(e.target.value);
+  }
+  function startEdit() {
+    setCurrentlyEditing(attributeKey);
+  }
+
+  function cancelEdit() {
+    setCurrentlyEditing(null);
+    setFormValue(value); // Reset form value on cancel
   }
   useEffect(() => {
     setFormValue(value);
@@ -31,17 +45,16 @@ export default function ProfileAttributeSelectField({
     const response = await handleUpdateUserAttribute(attributeKey, formValue);
     if (response === "200") {
       setAttributes((prev: any) => ({ ...prev, [attributeKey]: formValue }));
-      setShowEdit(false);
+      cancelEdit();
     } else {
       return response;
     }
   }
 
   return (
-    <div className={styles.editableContainer}>
-      <span className={styles.attributeTitle}>{title}: </span>
+    <EditableAttributeContainer title={title}>
       {showEdit ? (
-        <form className={styles.form} onSubmit={submit}>
+        <form className={styles.attributeForm} onSubmit={submit}>
           <select defaultValue={value} onChange={onChange}>
             {Object.keys(options).map((key) => {
               return (
@@ -52,27 +65,14 @@ export default function ProfileAttributeSelectField({
             })}
           </select>
 
-          <button
-            type="submit"
-            className={`${styles.icon} ${styles.submitButton}`}
-          >
-            <GrCheckmark />
-          </button>
-          <button
-            className={`${styles.icon} ${styles.cancelButton}`}
-            onClick={() => setShowEdit(false)}
-          >
-            <GrClose />
-          </button>
+          <SubmitCancelButtonArray cancelEdit={cancelEdit} />
         </form>
       ) : (
         <span>
           {options[value]}
-          <span onClick={() => setShowEdit(true)} className={styles.icon}>
-            <GrEdit />
-          </span>
+          <EditButton startEdit={startEdit} />
         </span>
       )}
-    </div>
+    </EditableAttributeContainer>
   );
 }

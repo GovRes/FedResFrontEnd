@@ -11,6 +11,7 @@ import {
 import { getApplicationWithJob } from "@/app/crud/application";
 import { StepsType } from "@/app/utils/responseSchemas";
 import { defaultSteps } from "@/app/providers/applicationContext";
+import { Loader } from "../components/loader/Loader";
 
 // This component will be inside the ApplicationProvider
 function ApplicationLoader({ children }: { children: ReactNode }) {
@@ -118,12 +119,7 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
 
   // Loading state UI
   if (isLoading && pathname === "/ally") {
-    return (
-      <div className={styles.loadingContainer}>
-        <div className={styles.loadingSpinner}></div>
-        <p>Loading your application progress...</p>
-      </div>
-    );
+    return <Loader text="Loading your application progress..." />;
   }
 
   // Normal content once loaded or if not on root path
@@ -145,7 +141,7 @@ export default function AllyLayout({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div className={styles.layout}>
+    <div className="layout">
       <ApplicationProvider
         initialSteps={initialSteps}
         initialAppId={initialAppId}

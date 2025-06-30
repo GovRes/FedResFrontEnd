@@ -1,6 +1,37 @@
-import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
+import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 const schema = a.schema({
-    Application: a
+  User: a
+    .model({
+      academicLevel: a.string(),
+      birthdate: a.string(),
+      citizen: a.boolean(),
+      currentAgency: a.string(),
+      disabled: a.boolean(),
+      email: a.string().required(),
+      familyName: a.string(),
+      fedEmploymentStatus: a.string(),
+      gender: a.string(),
+      givenName: a.string(),
+      groups: a.string().array(),
+      id: a.id().required(),
+      militarySpouse: a.boolean(),
+      veteran: a.boolean(),
+      // Relationships to existing models
+      applications: a.hasMany("Application", "userId"),
+      awards: a.hasMany("Award", "userId"),
+      educations: a.hasMany("Education", "userId"),
+      pastJobs: a.hasMany("PastJob", "userId"),
+      qualifications: a.hasMany("Qualification", "userId"),
+      resumes: a.hasMany("Resume", "userId"),
+      specializedExperiences: a.hasMany("SpecializedExperience", "userId"),
+    })
+    .authorization((allow) => [
+      allow.owner(),
+      allow.authenticated().to(["read"]),
+      allow.group("superAdmins"),
+      allow.publicApiKey().to(["create", "read"]),
+    ]),
+  Application: a
     .model({
       awards: a.hasMany("AwardApplication", "applicationId"),
       completedSteps: a.string().array(),
@@ -9,39 +40,45 @@ const schema = a.schema({
       jobId: a.id().required(),
       job: a.belongsTo("Job", "jobId"),
       resumes: a.hasMany("ResumeApplication", "applicationId"),
-      specializedExperiences: a.hasMany("SpecializedExperienceApplication", "applicationId"),
+      specializedExperiences: a.hasMany(
+        "SpecializedExperienceApplication",
+        "applicationId"
+      ),
       status: a.string().default("draft"),
       userId: a.id().required(),
+      user: a.belongsTo("User", "userId"),
       pastJobs: a.hasMany("PastJobApplication", "applicationId"),
     })
     .authorization((allow) => [allow.owner()]),
-    // Define Award model
+  // Define Award model
   Award: a
-  .model({
-    id: a.id().required(),
-    title: a.string().required(),
-    date: a.string().required(),
-    userId: a.id().required(),
-    applications: a.hasMany("AwardApplication", "awardId")
-  })
-  .authorization((allow) => [allow.owner()]),
-   // Define Education model
-   Education: a
-   .model({
-     id: a.id().required(),
-     degree: a.string().required(),
-     major: a.string().required(),
-     school: a.string().required(),
-     schoolCity: a.string(),
-     schoolState: a.string(),
-     date: a.string().required(),
-     title: a.string().required(),
-     gpa: a.string(),
-     userConfirmed: a.boolean(),
-     userId: a.id().required(),
-     applications: a.hasMany("EducationApplication", "educationId")
-   })
-   .authorization((allow) => [allow.owner()]),
+    .model({
+      id: a.id().required(),
+      title: a.string().required(),
+      date: a.string().required(),
+      userId: a.id().required(),
+      user: a.belongsTo("User", "userId"),
+      applications: a.hasMany("AwardApplication", "awardId"),
+    })
+    .authorization((allow) => [allow.owner()]),
+  // Define Education model
+  Education: a
+    .model({
+      id: a.id().required(),
+      degree: a.string().required(),
+      major: a.string().required(),
+      school: a.string().required(),
+      schoolCity: a.string(),
+      schoolState: a.string(),
+      date: a.string().required(),
+      title: a.string().required(),
+      gpa: a.string(),
+      userConfirmed: a.boolean(),
+      userId: a.id().required(),
+      user: a.belongsTo("User", "userId"),
+      applications: a.hasMany("EducationApplication", "educationId"),
+    })
+    .authorization((allow) => [allow.owner()]),
 
   Job: a
     .model({
@@ -65,36 +102,41 @@ const schema = a.schema({
       id: a.id().required(),
       fileName: a.string().required(),
       userId: a.id(),
+      user: a.belongsTo("User", "userId"),
       applications: a.hasMany("ResumeApplication", "resumeId"),
     })
     .authorization((allow) => [allow.owner()]),
-     // Define SpecializedExperience model
+  // Define SpecializedExperience model
   SpecializedExperience: a
-  .model({
-    id: a.id().required(),
-    title: a.string().required(),
-    description: a.string().required(),
-    userConfirmed: a.boolean(),
-    paragraph: a.string(),
-    initialMessage: a.string().required(),
-    typeOfExperience: a.string(),
-    userId: a.id().required(),
-    applications: a.hasMany("SpecializedExperienceApplication", "specializedExperienceId")
-  })
-  .authorization((allow) => [allow.owner()]),
-    // Define Topic model
+    .model({
+      id: a.id().required(),
+      title: a.string().required(),
+      description: a.string().required(),
+      userConfirmed: a.boolean(),
+      paragraph: a.string(),
+      initialMessage: a.string().required(),
+      typeOfExperience: a.string(),
+      userId: a.id().required(),
+      user: a.belongsTo("User", "userId"),
+      applications: a.hasMany(
+        "SpecializedExperienceApplication",
+        "specializedExperienceId"
+      ),
+    })
+    .authorization((allow) => [allow.owner()]),
+  // Define Topic model
   Topic: a
-  .model({
-    id: a.id().required(),
-    title: a.string().required(),
-    keywords: a.string().array().required(),
-    description: a.string(),
-    evidence: a.string(),
-    jobId: a.id().required(),
-    job: a.belongsTo("Job", "jobId"),
-    qualifications: a.hasMany("Qualification", "topicId"),
-  })
-  .authorization((allow) => [allow.authenticated()]),
+    .model({
+      id: a.id().required(),
+      title: a.string().required(),
+      keywords: a.string().array().required(),
+      description: a.string(),
+      evidence: a.string(),
+      jobId: a.id().required(),
+      job: a.belongsTo("Job", "jobId"),
+      qualifications: a.hasMany("Qualification", "topicId"),
+    })
+    .authorization((allow) => [allow.authenticated()]),
 
   // Define pastJob model
   PastJob: a
@@ -115,27 +157,29 @@ const schema = a.schema({
       title: a.string().required(),
       type: a.string().required(),
       userId: a.id().required(),
+      user: a.belongsTo("User", "userId"),
     })
     .authorization((allow) => [allow.owner()]),
 
-    // Define Qualification model
-    Qualification: a
-  .model({
-    id: a.id().required(),
-    title: a.string().required(),
-    description: a.string().required(),
-    paragraph: a.string(),
-    pastJobs: a.hasMany("PastJobQualification", "qualificationId"),
-    question: a.string(),
-    topicId: a.id().required(),
-    topic: a.belongsTo("Topic", "topicId"),
-    userConfirmed: a.boolean().required(),
-    userId: a.id().required(),
-  })
-  .authorization((allow) => [allow.owner()]),
+  // Define Qualification model
+  Qualification: a
+    .model({
+      id: a.id().required(),
+      title: a.string().required(),
+      description: a.string().required(),
+      paragraph: a.string(),
+      pastJobs: a.hasMany("PastJobQualification", "qualificationId"),
+      question: a.string(),
+      topicId: a.id().required(),
+      topic: a.belongsTo("Topic", "topicId"),
+      userConfirmed: a.boolean().required(),
+      userId: a.id().required(),
+      user: a.belongsTo("User", "userId"),
+    })
+    .authorization((allow) => [allow.owner()]),
 
-//join tables
-AwardApplication: a
+  //join tables
+  AwardApplication: a
     .model({
       id: a.id().required(),
       awardId: a.id().required(),
@@ -145,7 +189,7 @@ AwardApplication: a
     })
     .authorization((allow) => [allow.authenticated()]),
 
-    EducationApplication: a
+  EducationApplication: a
     .model({
       id: a.id().required(),
       educationId: a.id().required(),
@@ -154,8 +198,8 @@ AwardApplication: a
       application: a.belongsTo("Application", "applicationId"),
     })
     .authorization((allow) => [allow.authenticated()]),
-    
-    ResumeApplication: a
+
+  ResumeApplication: a
     .model({
       id: a.id().required(),
       resumeId: a.id().required(),
@@ -165,17 +209,20 @@ AwardApplication: a
     })
     .authorization((allow) => [allow.authenticated()]),
 
-    SpecializedExperienceApplication: a
+  SpecializedExperienceApplication: a
     .model({
       id: a.id().required(),
       specializedExperienceId: a.id().required(),
       applicationId: a.id().required(),
-      specializedExperience: a.belongsTo("SpecializedExperience", "specializedExperienceId"),
+      specializedExperience: a.belongsTo(
+        "SpecializedExperience",
+        "specializedExperienceId"
+      ),
       application: a.belongsTo("Application", "applicationId"),
     })
     .authorization((allow) => [allow.authenticated()]),
 
-    PastJobApplication: a
+  PastJobApplication: a
     .model({
       id: a.id().required(),
       pastJobId: a.id().required(),
@@ -185,7 +232,7 @@ AwardApplication: a
     })
     .authorization((allow) => [allow.authenticated()]),
 
-    PastJobQualification: a
+  PastJobQualification: a
     .model({
       id: a.id().required(),
       pastJobId: a.id().required(),
@@ -195,16 +242,23 @@ AwardApplication: a
     })
     .authorization((allow) => [allow.authenticated()]),
 });
-// 
+//
 export type Schema = ClientSchema<typeof schema>;
 
 export const data = defineData({
   schema,
   authorizationModes: {
-    defaultAuthorizationMode: 'userPool',
+    defaultAuthorizationMode: "userPool",
+    apiKeyAuthorizationMode: {
+      expiresInDays: 30,
+    },
   },
-});
 
+  // authorizationModes: {
+  //   defaultAuthorizationMode: "userPool",
+  //   iamAuthorizationMode: true, // Just enable IAM mode
+  // },
+});
 
 /*== STEP 2 ===============================================================
 Go to your frontend source code. From your client-side code, generate a

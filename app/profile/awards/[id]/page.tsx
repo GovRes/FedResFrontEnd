@@ -4,7 +4,7 @@ import { GrEdit } from "react-icons/gr";
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { AwardType } from "@/app/utils/responseSchemas";
-import { TextBlinkLoader } from "@/app/components/loader/Loader";
+import { Loader } from "@/app/components/loader/Loader";
 export default function AwardPage({
   params,
 }: {
@@ -23,7 +23,7 @@ export default function AwardPage({
     fetchData();
   }, []);
   if (loading) {
-    return <TextBlinkLoader text="loading award data" />;
+    return <Loader text="loading award data" />;
   }
   if (!loading && award) {
     return (

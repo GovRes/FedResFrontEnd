@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { TextBlinkLoader } from "@/app/components/loader/Loader";
+import { Loader } from "@/app/components/loader/Loader";
 import { useApplication } from "@/app/providers/applicationContext";
 import { getApplicationAssociations } from "@/app/crud/application";
 import { PastJobType } from "@/app/utils/responseSchemas";
@@ -101,7 +101,7 @@ export default function ExperiencePage({
 
   // If still loading
   if (loading) {
-    return <TextBlinkLoader text="Finding job experience details..." />;
+    return <Loader text="Finding job experience details..." />;
   }
 
   // If there's an error

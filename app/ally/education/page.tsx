@@ -2,7 +2,7 @@
 import { EducationType } from "@/app/utils/responseSchemas";
 import { useEffect, useState } from "react";
 import InitialReview from "@/app/components/ally/InitialReview";
-import { TextBlinkLoader } from "@/app/components/loader/Loader";
+import { Loader } from "@/app/components/loader/Loader";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { listUserModelRecords } from "@/app/crud/genericListForUser";
 
@@ -24,7 +24,7 @@ export default function EducationPage({}) {
     getEducation();
   }, [JSON.stringify(user)]);
   if (loading) {
-    return <TextBlinkLoader text="Loading education" />;
+    return <Loader text="Loading education" />;
   }
 
   return (

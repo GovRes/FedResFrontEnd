@@ -14,7 +14,7 @@ import {
   specializedExperienceAssistantInstructions,
   specializedExperienceAssistantName,
 } from "@/app/prompts/specializedExperienceWriterPrompt";
-import { TextBlinkLoader } from "@/app/components/loader/Loader";
+import { Loader } from "@/app/components/loader/Loader";
 
 export default function ExperienceWriterPage() {
   const [additionalContext, setAdditionalContext] = useState<PastJobType[]>([]);
@@ -81,7 +81,7 @@ export default function ExperienceWriterPage() {
     await navigateToNextIncompleteStep("specialized-experience-details");
   }
   if (loading) {
-    return <TextBlinkLoader text="Loading specialized experiences" />;
+    return <Loader text="Loading specialized experiences" />;
   }
   return (
     <ChatLayout

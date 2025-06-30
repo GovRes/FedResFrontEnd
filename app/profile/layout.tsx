@@ -2,7 +2,6 @@
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
-import styles from "./profileStyles.module.css";
 import ProfileNavigation from "./components/ProfileNavigation";
 
 export default function ProfileLayout({
@@ -19,9 +18,9 @@ export default function ProfileLayout({
   if (authStatus !== "authenticated") router.push("/?login=true");
 
   return (
-    <div className={styles.profileContainer}>
+    <div className="content-container">
       <ProfileNavigation currentPath={pathname} />
-      <div className={styles.tabContent}>{children}</div>
+      <div className="tab-content">{children}</div>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 "use client";
-import { TextBlinkLoader } from "@/app/components/loader/Loader";
+import { Loader } from "@/app/components/loader/Loader";
 import { updateModelRecord } from "@/app/crud/genericUpdate";
 import { fetchModelRecord } from "@/app/crud/genericFetch";
 import AwardForm from "@/app/profile/awards/components/AwardForm";
@@ -56,7 +56,7 @@ export default function EditAwardPage({
   }, []);
 
   if (loading) {
-    return <TextBlinkLoader text="loading award data" />;
+    return <Loader text="loading award data" />;
   }
   if (!loading && formData) {
     return (

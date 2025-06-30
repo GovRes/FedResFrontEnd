@@ -3,7 +3,7 @@ import React, { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { EditableParagraphProvider } from "@/app/providers/editableParagraphContext";
 import ChatLayout from "@/app/components/chat/ChatLayout";
-import { TextBlinkLoader } from "@/app/components/loader/Loader";
+import { Loader } from "@/app/components/loader/Loader";
 import { useApplication } from "@/app/providers/applicationContext";
 import { getApplicationAssociations } from "@/app/crud/application";
 import { updatePastJobWithQualifications } from "@/app/crud/pastJob";
@@ -182,7 +182,7 @@ export default function ExperienceDetailPage({
 
   // Display loading state
   if (loading) {
-    return <TextBlinkLoader text="Loading job experience details" />;
+    return <Loader text="Loading job experience details" />;
   }
 
   // If no past job found

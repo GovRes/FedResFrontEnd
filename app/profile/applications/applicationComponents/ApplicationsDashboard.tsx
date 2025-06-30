@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import ApplicationsTable from "./ApplicationsTable";
 import { ApplicationType } from "@/app/utils/responseSchemas";
-import { TextBlinkLoader } from "../../../components/loader/Loader";
+import { Loader } from "../../../components/loader/Loader";
 import { listUserApplications } from "@/app/crud/application";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import Link from "next/link";
@@ -37,7 +37,7 @@ export default function ApplicationDashboard() {
   }, [applications.length, user]);
 
   if (loading) {
-    return <TextBlinkLoader text="Loading..." />;
+    return <Loader text="Loading..." />;
   }
   if (applications.length === 0) {
     return (

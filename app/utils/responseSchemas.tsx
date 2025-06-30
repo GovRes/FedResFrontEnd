@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { UserType } from "@/app/utils/userAttributeInterface";
+import { UserType } from "@/app/utils/userAttributeUtils";
 import { agencies } from "@/app/utils/usaJobsCodes";
 export type ApplicationType = {
   awards?: AwardType[];

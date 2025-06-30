@@ -2,7 +2,7 @@
 import { useState } from "react";
 import PastJobForm from "../../components/components/PastJobForm";
 import { PastJobType } from "@/app/utils/responseSchemas";
-import { TextBlinkLoader } from "@/app/components/loader/Loader";
+import { Loader } from "@/app/components/loader/Loader";
 import { useRouter } from "next/navigation";
 import { createModelRecord } from "@/app/crud/genericCreate";
 import { useAuthenticator } from "@aws-amplify/ui-react";
@@ -59,7 +59,7 @@ export default function NewVolunteerPage() {
   };
 
   if (loading) {
-    return <TextBlinkLoader text="loading volunteer data" />;
+    return <Loader text="loading volunteer data" />;
   }
   return (
     <div>
