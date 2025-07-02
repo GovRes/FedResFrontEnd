@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { handleUpdateUserAttribute } from "@/app/utils/userAttributeUtils";
+import {
+  handleUpdateUserAttribute,
+  testDatabaseSync,
+  testSimpleDatabaseUpdate,
+  updateUserTypeAttribute,
+  UserType,
+} from "@/app/utils/userAttributeUtils";
 import EditableAttributeContainer from "./EditableAttributeContainer";
 import SubmitCancelButtonArray from "./SubmitCancelButtonArray";
 import EditButton from "./EditButton";
@@ -13,7 +19,7 @@ export default function EditableAttributeStringField({
   setAttributes,
   setCurrentlyEditing,
 }: {
-  attributeKey: string;
+  attributeKey: keyof UserType;
   currentlyEditing: string | null;
   title: string;
   value: string;
@@ -39,15 +45,18 @@ export default function EditableAttributeStringField({
     setFormValue(value);
   }, [value]);
 
+  // async function submit(e: { preventDefault: () => void; target: any }) {
+  //   e.preventDefault();
+  //   const response = await updateUserTypeAttribute(attributeKey, formValue);
+  //   if (response === "200") {
+  //     setAttributes((prev: any) => ({ ...prev, [attributeKey]: formValue }));
+  //     cancelEdit();
+  //   } else {
+  //     return response;
+  //   }
+  // }
   async function submit(e: { preventDefault: () => void; target: any }) {
-    e.preventDefault();
-    const response = await handleUpdateUserAttribute(attributeKey, formValue);
-    if (response === "200") {
-      setAttributes((prev: any) => ({ ...prev, [attributeKey]: formValue }));
-      cancelEdit();
-    } else {
-      return response;
-    }
+    testSimpleDatabaseUpdate();
   }
 
   return (
@@ -64,7 +73,7 @@ export default function EditableAttributeStringField({
         </form>
       ) : (
         <span>
-          {value}
+          {formValue}
           <EditButton startEdit={startEdit} />
         </span>
       )}

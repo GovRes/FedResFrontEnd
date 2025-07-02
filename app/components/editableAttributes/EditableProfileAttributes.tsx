@@ -20,12 +20,11 @@ export default function EditableProfileAttributes({
   setAttributes: (arg0: UserType) => void;
 }) {
   const [currentlyEditing, setCurrentlyEditing] = useState<string | null>(null);
-  console.log("EditableProfileAttributes attributes", attributes);
   return (
     <div>
       <h1>Profile</h1>
       <EditableAttributeStringField
-        attributeKey="given_name"
+        attributeKey="givenName"
         currentlyEditing={currentlyEditing}
         title="First Name"
         value={attributes.givenName || ""}
@@ -33,7 +32,7 @@ export default function EditableProfileAttributes({
         setCurrentlyEditing={setCurrentlyEditing}
       />
       <EditableAttributeStringField
-        attributeKey="family_name"
+        attributeKey="familyName"
         currentlyEditing={currentlyEditing}
         title="Last Name"
         value={attributes.familyName || ""}
@@ -98,8 +97,7 @@ export default function EditableProfileAttributes({
         setAttributes={setAttributes}
         setCurrentlyEditing={setCurrentlyEditing}
       />
-      {(attributes as Record<string, string>)["custom:fedEmploymentStatus"] ===
-        "CURRENT-FED" && (
+      {attributes.fedEmploymentStatus === "CURRENT-FED" && (
         <EditableAttributeSelectField
           attributeKey="currentAgency"
           currentlyEditing={currentlyEditing}

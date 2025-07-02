@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import styles from "./editableAttributeStyles.module.css";
-import { handleUpdateUserAttribute } from "@/app/utils/userAttributeUtils";
+import {
+  handleUpdateUserAttribute,
+  updateUserTypeAttribute,
+  UserType,
+} from "@/app/utils/userAttributeUtils";
 import { Toggle } from "@/app/components/forms/Inputs";
 import SubmitCancelButtonArray from "./SubmitCancelButtonArray";
 import EditButton from "./EditButton";
@@ -14,7 +18,7 @@ export default function EditableAttributeBooleanField({
   setAttributes,
   setCurrentlyEditing,
 }: {
-  attributeKey: string;
+  attributeKey: keyof UserType;
   currentlyEditing: string | null;
   title: string;
   value: boolean | string;
@@ -29,7 +33,7 @@ export default function EditableAttributeBooleanField({
   }, [value]);
   async function submit(e: { preventDefault: () => void; target: any }) {
     e.preventDefault();
-    const response = await handleUpdateUserAttribute(
+    const response = await updateUserTypeAttribute(
       attributeKey,
       checked.toString()
     );
@@ -66,7 +70,7 @@ export default function EditableAttributeBooleanField({
         </form>
       ) : (
         <span>
-          {value === "true" ? "Yes" : "No"}
+          {checked ? "Yes" : "No"}
           <EditButton startEdit={startEdit} />
         </span>
       )}

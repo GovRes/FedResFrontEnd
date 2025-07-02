@@ -2,21 +2,30 @@ import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 const schema = a.schema({
   User: a
     .model({
+      // Basic fields that match Cognito
+      email: a.string().required(),
+      givenName: a.string(),
+      familyName: a.string(),
+
+      // Custom fields for your app
       academicLevel: a.string(),
       birthdate: a.string(),
       citizen: a.boolean(),
       currentAgency: a.string(),
       disabled: a.boolean(),
-      email: a.string().required(),
-      familyName: a.string(),
       fedEmploymentStatus: a.string(),
       gender: a.string(),
-      givenName: a.string(),
-      groups: a.string().array(),
-      id: a.id().required(),
       militarySpouse: a.boolean(),
       veteran: a.boolean(),
-      // Relationships to existing models
+
+      // System fields
+      groups: a.string().array().default(["users"]),
+      owner: a.string(), // This will store the Cognito sub for ownership
+      isActive: a.boolean().default(true),
+      createdAt: a.datetime(),
+      updatedAt: a.datetime(),
+
+      // Relationships
       applications: a.hasMany("Application", "userId"),
       awards: a.hasMany("Award", "userId"),
       educations: a.hasMany("Education", "userId"),
@@ -26,10 +35,14 @@ const schema = a.schema({
       specializedExperiences: a.hasMany("SpecializedExperience", "userId"),
     })
     .authorization((allow) => [
-      allow.owner(),
+      // Users can read basic info of all authenticated users
       allow.authenticated().to(["read"]),
-      allow.group("superAdmins"),
-      allow.publicApiKey().to(["create", "read"]),
+      // Users can only update their own records (owner field automatically set to user's sub)
+      allow.owner().to(["update"]),
+      // Admins can do everything
+      allow.group("admins").to(["create", "read", "update", "delete"]),
+      // System can create users (for post-confirmation trigger)
+      allow.publicApiKey().to(["create"]),
     ]),
   Application: a
     .model({
@@ -253,38 +266,4 @@ export const data = defineData({
       expiresInDays: 30,
     },
   },
-
-  // authorizationModes: {
-  //   defaultAuthorizationMode: "userPool",
-  //   iamAuthorizationMode: true, // Just enable IAM mode
-  // },
 });
-
-/*== STEP 2 ===============================================================
-Go to your frontend source code. From your client-side code, generate a
-Data client to make CRUDL requests to your table. (THIS SNIPPET WILL ONLY
-WORK IN THE FRONTEND CODE FILE.)
-
-Using JavaScript or Next.js React Server Components, Middleware, Server 
-Actions or Pages Router? Review how to generate Data clients for those use
-cases: https://docs.amplify.aws/gen2/build-a-backend/data/connect-to-API/
-=========================================================================*/
-
-/*
-"use client"
-import { generateClient } from "aws-amplify/data";
-import type { Schema } from "@/amplify/data/resource";
-
-const client = generateClient<Schema>() // use this Data client for CRUDL requests
-*/
-
-/*== STEP 3 ===============================================================
-Fetch records from the database and use them in your frontend component.
-(THIS SNIPPET WILL ONLY WORK IN THE FRONTEND CODE FILE.)
-=========================================================================*/
-
-/* For example, in a React component, you can use this snippet in your
-  function's RETURN statement */
-// const { data: todos } = await client.models.Todo.list()
-
-// return <ul>{todos.map(todo => <li key={todo.id}>{todo.content}</li>)}</ul>

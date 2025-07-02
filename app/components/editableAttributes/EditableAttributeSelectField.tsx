@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { handleUpdateUserAttribute } from "@/app/utils/userAttributeUtils";
+import {
+  handleUpdateUserAttribute,
+  updateUserTypeAttribute,
+  UserType,
+} from "@/app/utils/userAttributeUtils";
 import SubmitCancelButtonArray from "./SubmitCancelButtonArray";
 import EditButton from "./EditButton";
 import EditableAttributeContainer from "./EditableAttributeContainer";
@@ -14,7 +18,7 @@ export default function EditableAttributeSelectField({
   setAttributes,
   setCurrentlyEditing,
 }: {
-  attributeKey: string;
+  attributeKey: keyof UserType;
   currentlyEditing: string | null;
   options: Record<string, string>;
   title: string;
@@ -42,7 +46,7 @@ export default function EditableAttributeSelectField({
 
   async function submit(e: { preventDefault: () => void; target: any }) {
     e.preventDefault();
-    const response = await handleUpdateUserAttribute(attributeKey, formValue);
+    const response = await updateUserTypeAttribute(attributeKey, formValue);
     if (response === "200") {
       setAttributes((prev: any) => ({ ...prev, [attributeKey]: formValue }));
       cancelEdit();

@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { handleUpdateUserAttribute } from "@/app/utils/userAttributeUtils";
+import {
+  handleUpdateUserAttribute,
+  updateUserTypeAttribute,
+  UserType,
+} from "@/app/utils/userAttributeUtils";
 import SubmitCancelButtonArray from "./SubmitCancelButtonArray";
 import EditButton from "./EditButton";
 import styles from "./editableAttributeStyles.module.css";
@@ -13,7 +17,7 @@ export default function EditableAttributeEmailField({
   setAttributes,
   setCurrentlyEditing,
 }: {
-  attributeKey: string;
+  attributeKey: keyof UserType;
   currentlyEditing: string | null;
   title: string;
   value: string;
@@ -40,7 +44,7 @@ export default function EditableAttributeEmailField({
 
   async function submit(e: { preventDefault: () => void; target: any }) {
     e.preventDefault();
-    const response = await handleUpdateUserAttribute(attributeKey, formValue);
+    const response = await updateUserTypeAttribute(attributeKey, formValue);
     if (response === "200") {
       setAttributes((prev: any) => ({ ...prev, [attributeKey]: formValue }));
       cancelEdit();

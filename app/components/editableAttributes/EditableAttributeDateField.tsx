@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import styles from "./editableAttributeStyles.module.css";
-import { handleUpdateUserAttribute } from "@/app/utils/userAttributeUtils";
+import {
+  updateUserTypeAttribute,
+  UserType,
+} from "@/app/utils/userAttributeUtils";
 import EditButton from "./EditButton";
 import SubmitCancelButtonArray from "./SubmitCancelButtonArray";
 import EditableAttributeContainer from "./EditableAttributeContainer";
@@ -13,7 +16,7 @@ export default function EditableAttributeDateField({
   setAttributes,
   setCurrentlyEditing,
 }: {
-  attributeKey: string;
+  attributeKey: keyof UserType;
   currentlyEditing: string | null;
   title: string;
   value: string;
@@ -39,7 +42,7 @@ export default function EditableAttributeDateField({
 
   async function submit(e: { preventDefault: () => void; target: any }) {
     e.preventDefault();
-    const response = await handleUpdateUserAttribute(attributeKey, formValue);
+    const response = await updateUserTypeAttribute(attributeKey, formValue);
     if (response === "200") {
       setAttributes((prev: any) => ({ ...prev, [attributeKey]: formValue }));
       setFormValue(value);
