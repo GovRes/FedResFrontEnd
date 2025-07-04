@@ -25,12 +25,15 @@ export default function EditableAttributeBooleanField({
   setAttributes: Function;
   setCurrentlyEditing: (key: string | null) => void;
 }) {
-  const stringToBool = value === "true";
+  // Convert value to boolean consistently
+  const boolValue = value === true || value === "true";
   const showEdit = currentlyEditing === attributeKey;
-  const [checked, setChecked] = useState(stringToBool);
+  const [checked, setChecked] = useState(boolValue);
+
   useEffect(() => {
-    setChecked(value === "true");
+    setChecked(value === true || value === "true");
   }, [value]);
+
   async function submit(e: { preventDefault: () => void; target: any }) {
     e.preventDefault();
     const response = await updateUserTypeAttribute(
@@ -38,10 +41,10 @@ export default function EditableAttributeBooleanField({
       checked.toString()
     );
     if (response === "200") {
-      setAttributes((prev: any) => ({
-        ...prev,
-        [attributeKey]: checked.toString(),
-      }));
+      // Call setAttributes with the update data directly
+      await setAttributes({
+        [attributeKey]: checked,
+      });
       cancelEdit();
     } else {
       return response;
@@ -54,7 +57,7 @@ export default function EditableAttributeBooleanField({
 
   function cancelEdit() {
     setCurrentlyEditing(null);
-    setChecked(stringToBool); // Reset form value on cancel
+    setChecked(boolValue); // Reset to current value
   }
 
   function onChange() {
@@ -70,7 +73,7 @@ export default function EditableAttributeBooleanField({
         </form>
       ) : (
         <span>
-          {checked ? "Yes" : "No"}
+          {boolValue ? "Yes" : "No"}
           <EditButton startEdit={startEdit} />
         </span>
       )}

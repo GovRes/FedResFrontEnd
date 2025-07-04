@@ -1,5 +1,9 @@
 import { defineAuth } from "@aws-amplify/backend";
-import { postConfirmation } from "./post-confirmation/resource";
+// import { defineFunction } from "@aws-amplify/backend";
+
+// const postConfirmationFunction = defineFunction({
+//   entry: "./post-confirmation-handler.ts",
+// });
 
 export const auth = defineAuth({
   loginWith: {
@@ -52,4 +56,7 @@ export const auth = defineAuth({
       dataType: "Boolean",
     },
   },
+  // triggers: {
+  //   postConfirmation: postConfirmationFunction,
+  // },
 });

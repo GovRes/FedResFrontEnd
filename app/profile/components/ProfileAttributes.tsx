@@ -3,21 +3,20 @@ import { useEffect, useState } from "react";
 import EditableProfileAttributes from "@/app/components/editableAttributes/EditableProfileAttributes";
 import { toUserTypeFromCognito } from "@/app/utils/userAttributeUtils";
 import { UserType } from "@/app/utils/userAttributeUtils";
+import { useCurrentUser } from "@/lib/hooks/useCurrentUser";
 
 export default function EditableAttributes() {
-  const [attributes, setAttributes] = useState<UserType>();
-  useEffect(() => {
-    fetchUserAttributes()
-      .then((attrs) => toUserTypeFromCognito(attrs))
-      .then((updatedAttrs) => setAttributes(updatedAttrs));
-  }, []);
-  if (!attributes) {
+  const { profile, updateProfile } = useCurrentUser();
+  console.log("Editable atr", profile);
+
+  if (!profile) {
     return <div>Loading...</div>;
   }
+
   return (
     <EditableProfileAttributes
-      attributes={attributes}
-      setAttributes={setAttributes}
+      attributes={profile}
+      updateProfile={updateProfile}
     />
   );
 }

@@ -7,19 +7,42 @@ import { useAuthenticator } from "@aws-amplify/ui-react";
 import { IoClose, IoMenu } from "react-icons/io5";
 import NavLogin from "./NavLogin";
 import { useSearchParams } from "next/navigation";
+import { useUserInitialization } from "@/lib/hooks/useUserInitialization";
+
+// Separate component to handle user initialization
+function UserInitializationHandler({ user }: { user: any }) {
+  const {
+    user: dbUser,
+    loading: userLoading,
+    error: userError,
+  } = useUserInitialization();
+
+  return { dbUser, userLoading, userError };
+}
 
 export const Navbar = () => {
   const [showMenu, setShowMenu] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+
   const toggleMenu = () => {
     setShowMenu(!showMenu);
   };
+
   const { authStatus, user, signOut } = useAuthenticator((context) => [
     context.user,
     context.signOut,
+    context.authStatus,
   ]);
+
   const searchParams = useSearchParams();
   const login = searchParams.get("login");
+
+  // Always call the hook, but conditionally use the results
+  const {
+    user: dbUser,
+    loading: userLoading,
+    error: userError,
+  } = useUserInitialization();
 
   const toggleLogin = () => {
     setShowLogin(!showLogin);
@@ -31,17 +54,20 @@ export const Navbar = () => {
     }
   }, [login]);
 
-  useEffect(() => {
-    if (user) {
-      setShowLogin(true);
-    }
-  }, [user]);
-
   const closeMenuOnMobile = () => {
     if (window.innerWidth <= 1150) {
       setShowMenu(false);
     }
   };
+
+  console.log(
+    "🔍 Navbar render - authStatus:",
+    authStatus,
+    "user:",
+    !!user,
+    "showLogin:",
+    showLogin
+  );
 
   return (
     <header>
@@ -111,15 +137,28 @@ export const Navbar = () => {
             <li>
               {authStatus !== "configuring" && user ? (
                 <div className={styles.userMenu}>
-                  <span>Hello {user.signInDetails?.loginId}</span>
+                  {/* Only show initialization status when user is authenticated */}
+                  {user && userLoading ? (
+                    <span>Setting up profile...</span>
+                  ) : user && userError ? (
+                    <span style={{ color: "red" }}>Profile error</span>
+                  ) : user && dbUser ? (
+                    <span>
+                      Hello {dbUser.givenName || user.signInDetails?.loginId}
+                    </span>
+                  ) : user ? (
+                    <span>Hello {user.signInDetails?.loginId}</span>
+                  ) : null}
                   <button onClick={() => signOut()}>Sign out</button>
                 </div>
-              ) : showLogin ? (
-                <NavLogin setShowLogin={setShowLogin} />
               ) : (
-                <span className={styles.navLink} onClick={toggleLogin}>
-                  Login/Sign Up
-                </span>
+                <>
+                  {!showLogin ? (
+                    <span className={styles.navLink} onClick={toggleLogin}>
+                      Login/Sign Up
+                    </span>
+                  ) : null}
+                </>
               )}
             </li>
           </ul>
@@ -135,6 +174,9 @@ export const Navbar = () => {
           <IoMenu />
         </div>
       </nav>
+
+      {/* Render login modal outside of the nav list to avoid conditional rendering issues */}
+      {showLogin && !user && <NavLogin setShowLogin={setShowLogin} />}
     </header>
   );
 };

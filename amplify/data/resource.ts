@@ -1,4 +1,5 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+
 const schema = a.schema({
   User: a
     .model({
@@ -19,8 +20,8 @@ const schema = a.schema({
       veteran: a.boolean(),
 
       // System fields
-      groups: a.string().array().default(["users"]),
-      owner: a.string(), // This will store the Cognito sub for ownership
+      groups: a.string().array(),
+      cognitoUserId: a.string(),
       isActive: a.boolean().default(true),
       createdAt: a.datetime(),
       updatedAt: a.datetime(),
@@ -35,15 +36,9 @@ const schema = a.schema({
       specializedExperiences: a.hasMany("SpecializedExperience", "userId"),
     })
     .authorization((allow) => [
-      // Users can read basic info of all authenticated users
-      allow.authenticated().to(["read"]),
-      // Users can only update their own records (owner field automatically set to user's sub)
-      allow.owner().to(["update"]),
-      // Admins can do everything
-      allow.group("admins").to(["create", "read", "update", "delete"]),
-      // System can create users (for post-confirmation trigger)
-      allow.publicApiKey().to(["create"]),
+      allow.authenticated().to(["create", "read", "update", "delete"]),
     ]),
+
   Application: a
     .model({
       awards: a.hasMany("AwardApplication", "applicationId"),
@@ -62,8 +57,10 @@ const schema = a.schema({
       user: a.belongsTo("User", "userId"),
       pastJobs: a.hasMany("PastJobApplication", "applicationId"),
     })
-    .authorization((allow) => [allow.owner()]),
-  // Define Award model
+    .authorization((allow) => [
+      allow.authenticated().to(["create", "read", "update", "delete"]),
+    ]),
+
   Award: a
     .model({
       id: a.id().required(),
@@ -73,8 +70,10 @@ const schema = a.schema({
       user: a.belongsTo("User", "userId"),
       applications: a.hasMany("AwardApplication", "awardId"),
     })
-    .authorization((allow) => [allow.owner()]),
-  // Define Education model
+    .authorization((allow) => [
+      allow.authenticated().to(["create", "read", "update", "delete"]),
+    ]),
+
   Education: a
     .model({
       id: a.id().required(),
@@ -91,7 +90,9 @@ const schema = a.schema({
       user: a.belongsTo("User", "userId"),
       applications: a.hasMany("EducationApplication", "educationId"),
     })
-    .authorization((allow) => [allow.owner()]),
+    .authorization((allow) => [
+      allow.authenticated().to(["create", "read", "update", "delete"]),
+    ]),
 
   Job: a
     .model({
@@ -107,9 +108,10 @@ const schema = a.schema({
       usaJobsId: a.string().required(),
       applications: a.hasMany("Application", "jobId"),
     })
-    .authorization((allow) => [allow.authenticated()]),
+    .authorization((allow) => [
+      allow.authenticated().to(["create", "read", "update", "delete"]),
+    ]),
 
-  // Define Resume model
   Resume: a
     .model({
       id: a.id().required(),
@@ -118,8 +120,10 @@ const schema = a.schema({
       user: a.belongsTo("User", "userId"),
       applications: a.hasMany("ResumeApplication", "resumeId"),
     })
-    .authorization((allow) => [allow.owner()]),
-  // Define SpecializedExperience model
+    .authorization((allow) => [
+      allow.authenticated().to(["create", "read", "update", "delete"]),
+    ]),
+
   SpecializedExperience: a
     .model({
       id: a.id().required(),
@@ -136,8 +140,10 @@ const schema = a.schema({
         "specializedExperienceId"
       ),
     })
-    .authorization((allow) => [allow.owner()]),
-  // Define Topic model
+    .authorization((allow) => [
+      allow.authenticated().to(["create", "read", "update", "delete"]),
+    ]),
+
   Topic: a
     .model({
       id: a.id().required(),
@@ -149,9 +155,10 @@ const schema = a.schema({
       job: a.belongsTo("Job", "jobId"),
       qualifications: a.hasMany("Qualification", "topicId"),
     })
-    .authorization((allow) => [allow.authenticated()]),
+    .authorization((allow) => [
+      allow.authenticated().to(["create", "read", "update", "delete"]),
+    ]),
 
-  // Define pastJob model
   PastJob: a
     .model({
       applications: a.hasMany("PastJobApplication", "pastJobId"),
@@ -172,9 +179,10 @@ const schema = a.schema({
       userId: a.id().required(),
       user: a.belongsTo("User", "userId"),
     })
-    .authorization((allow) => [allow.owner()]),
+    .authorization((allow) => [
+      allow.authenticated().to(["create", "read", "update", "delete"]),
+    ]),
 
-  // Define Qualification model
   Qualification: a
     .model({
       id: a.id().required(),
@@ -189,9 +197,11 @@ const schema = a.schema({
       userId: a.id().required(),
       user: a.belongsTo("User", "userId"),
     })
-    .authorization((allow) => [allow.owner()]),
+    .authorization((allow) => [
+      allow.authenticated().to(["create", "read", "update", "delete"]),
+    ]),
 
-  //join tables
+  // Join tables
   AwardApplication: a
     .model({
       id: a.id().required(),
@@ -200,7 +210,9 @@ const schema = a.schema({
       award: a.belongsTo("Award", "awardId"),
       application: a.belongsTo("Application", "applicationId"),
     })
-    .authorization((allow) => [allow.authenticated()]),
+    .authorization((allow) => [
+      allow.authenticated().to(["create", "read", "update", "delete"]),
+    ]),
 
   EducationApplication: a
     .model({
@@ -210,7 +222,9 @@ const schema = a.schema({
       education: a.belongsTo("Education", "educationId"),
       application: a.belongsTo("Application", "applicationId"),
     })
-    .authorization((allow) => [allow.authenticated()]),
+    .authorization((allow) => [
+      allow.authenticated().to(["create", "read", "update", "delete"]),
+    ]),
 
   ResumeApplication: a
     .model({
@@ -220,7 +234,9 @@ const schema = a.schema({
       resume: a.belongsTo("Resume", "resumeId"),
       application: a.belongsTo("Application", "applicationId"),
     })
-    .authorization((allow) => [allow.authenticated()]),
+    .authorization((allow) => [
+      allow.authenticated().to(["create", "read", "update", "delete"]),
+    ]),
 
   SpecializedExperienceApplication: a
     .model({
@@ -233,7 +249,9 @@ const schema = a.schema({
       ),
       application: a.belongsTo("Application", "applicationId"),
     })
-    .authorization((allow) => [allow.authenticated()]),
+    .authorization((allow) => [
+      allow.authenticated().to(["create", "read", "update", "delete"]),
+    ]),
 
   PastJobApplication: a
     .model({
@@ -243,7 +261,9 @@ const schema = a.schema({
       pastJob: a.belongsTo("PastJob", "pastJobId"),
       application: a.belongsTo("Application", "applicationId"),
     })
-    .authorization((allow) => [allow.authenticated()]),
+    .authorization((allow) => [
+      allow.authenticated().to(["create", "read", "update", "delete"]),
+    ]),
 
   PastJobQualification: a
     .model({
@@ -253,17 +273,17 @@ const schema = a.schema({
       pastJob: a.belongsTo("PastJob", "pastJobId"),
       qualification: a.belongsTo("Qualification", "qualificationId"),
     })
-    .authorization((allow) => [allow.authenticated()]),
+    .authorization((allow) => [
+      allow.authenticated().to(["create", "read", "update", "delete"]),
+    ]),
 });
-//
+
 export type Schema = ClientSchema<typeof schema>;
 
 export const data = defineData({
   schema,
   authorizationModes: {
     defaultAuthorizationMode: "userPool",
-    apiKeyAuthorizationMode: {
-      expiresInDays: 30,
-    },
+    // Keep API key mode removed to avoid circular dependencies
   },
 });

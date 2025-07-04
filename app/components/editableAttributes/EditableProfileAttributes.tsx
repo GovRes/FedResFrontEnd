@@ -14,11 +14,12 @@ import { UserType } from "@/app/utils/userAttributeUtils";
 
 export default function EditableProfileAttributes({
   attributes,
-  setAttributes,
+  updateProfile,
 }: {
   attributes: UserType;
-  setAttributes: (arg0: UserType) => void;
+  updateProfile: (updates: Partial<UserType>) => Promise<boolean>;
 }) {
+  console.log("Current attributes:", attributes);
   const [currentlyEditing, setCurrentlyEditing] = useState<string | null>(null);
   return (
     <div>
@@ -27,16 +28,16 @@ export default function EditableProfileAttributes({
         attributeKey="givenName"
         currentlyEditing={currentlyEditing}
         title="First Name"
-        value={attributes.givenName || ""}
-        setAttributes={setAttributes}
+        value={attributes.givenName ?? ""}
+        setAttributes={updateProfile}
         setCurrentlyEditing={setCurrentlyEditing}
       />
       <EditableAttributeStringField
         attributeKey="familyName"
         currentlyEditing={currentlyEditing}
         title="Last Name"
-        value={attributes.familyName || ""}
-        setAttributes={setAttributes}
+        value={attributes.familyName ?? ""}
+        setAttributes={updateProfile}
         setCurrentlyEditing={setCurrentlyEditing}
       />
       <EditableAttributeEmailField
@@ -44,57 +45,57 @@ export default function EditableProfileAttributes({
         currentlyEditing={currentlyEditing}
         title="Email"
         value={attributes.email || ""}
-        setAttributes={setAttributes}
+        setAttributes={updateProfile}
         setCurrentlyEditing={setCurrentlyEditing}
       />
       <EditableAttributeBooleanField
         attributeKey="citizen"
         currentlyEditing={currentlyEditing}
         title="Are you a US Citizen?"
-        value={attributes.citizen || true}
-        setAttributes={setAttributes}
+        value={attributes.citizen ?? true}
+        setAttributes={updateProfile}
         setCurrentlyEditing={setCurrentlyEditing}
       />
       <EditableAttributeBooleanField
         attributeKey="veteran"
         currentlyEditing={currentlyEditing}
         title="Are you a veteran?"
-        value={attributes.veteran || false}
-        setAttributes={setAttributes}
+        value={attributes.veteran ?? false}
+        setAttributes={updateProfile}
         setCurrentlyEditing={setCurrentlyEditing}
       />
       <EditableAttributeBooleanField
         attributeKey="militarySpouse"
         currentlyEditing={currentlyEditing}
         title="Are you a military spouse?"
-        value={attributes.militarySpouse || false}
-        setAttributes={setAttributes}
+        value={attributes.militarySpouse ?? false}
+        setAttributes={updateProfile}
         setCurrentlyEditing={setCurrentlyEditing}
       />
       <EditableAttributeBooleanField
         attributeKey="disabled"
         currentlyEditing={currentlyEditing}
         title="Are you an individual with a disability?"
-        value={attributes.disabled || false}
-        setAttributes={setAttributes}
+        value={attributes.disabled ?? false}
+        setAttributes={updateProfile}
         setCurrentlyEditing={setCurrentlyEditing}
       />
       <EditableAttributeSelectField
         attributeKey="academicLevel"
         currentlyEditing={currentlyEditing}
         title="Highest level of education completed"
-        value={attributes.academicLevel || ""}
+        value={attributes.academicLevel ?? ""}
         options={academicLevels}
-        setAttributes={setAttributes}
+        setAttributes={updateProfile}
         setCurrentlyEditing={setCurrentlyEditing}
       />
       <EditableAttributeSelectField
         attributeKey="fedEmploymentStatus"
         currentlyEditing={currentlyEditing}
         title="Are you curently a federal employee?"
-        value={attributes.fedEmploymentStatus || ""}
+        value={attributes.fedEmploymentStatus ?? ""}
         options={federalEmploymentStatus}
-        setAttributes={setAttributes}
+        setAttributes={updateProfile}
         setCurrentlyEditing={setCurrentlyEditing}
       />
       {attributes.fedEmploymentStatus === "CURRENT-FED" && (
@@ -102,9 +103,9 @@ export default function EditableProfileAttributes({
           attributeKey="currentAgency"
           currentlyEditing={currentlyEditing}
           title="If so, what is your current Agency"
-          value={attributes.currentAgency || ""}
+          value={attributes.currentAgency ?? ""}
           options={agencies}
-          setAttributes={setAttributes}
+          setAttributes={updateProfile}
           setCurrentlyEditing={setCurrentlyEditing}
         />
       )}

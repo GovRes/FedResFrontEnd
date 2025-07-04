@@ -46,15 +46,21 @@ export default function EditableAttributeSelectField({
 
   async function submit(e: { preventDefault: () => void; target: any }) {
     e.preventDefault();
+    console.log("Updating", attributeKey, "to", formValue);
+
     const response = await updateUserTypeAttribute(attributeKey, formValue);
     if (response === "200") {
-      setAttributes((prev: any) => ({ ...prev, [attributeKey]: formValue }));
+      console.log("API success, updating local state");
+      // Call setAttributes with the update data directly
+      await setAttributes({
+        [attributeKey]: formValue,
+      });
       cancelEdit();
     } else {
+      console.log("API failed:", response);
       return response;
     }
   }
-
   return (
     <EditableAttributeContainer title={title}>
       {showEdit ? (

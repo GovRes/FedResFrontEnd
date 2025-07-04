@@ -45,20 +45,23 @@ export default function EditableAttributeStringField({
     setFormValue(value);
   }, [value]);
 
-  // async function submit(e: { preventDefault: () => void; target: any }) {
-  //   e.preventDefault();
-  //   const response = await updateUserTypeAttribute(attributeKey, formValue);
-  //   if (response === "200") {
-  //     setAttributes((prev: any) => ({ ...prev, [attributeKey]: formValue }));
-  //     cancelEdit();
-  //   } else {
-  //     return response;
-  //   }
-  // }
   async function submit(e: { preventDefault: () => void; target: any }) {
-    testSimpleDatabaseUpdate();
-  }
+    e.preventDefault();
+    console.log("Updating", attributeKey, "to", formValue);
 
+    const response = await updateUserTypeAttribute(attributeKey, formValue);
+    if (response === "200") {
+      console.log("API success, updating local state");
+      // Call setAttributes with the update data directly
+      await setAttributes({
+        [attributeKey]: formValue,
+      });
+      cancelEdit();
+    } else {
+      console.log("API failed:", response);
+      return response;
+    }
+  }
   return (
     <EditableAttributeContainer title={title}>
       {showEdit ? (
@@ -73,7 +76,7 @@ export default function EditableAttributeStringField({
         </form>
       ) : (
         <span>
-          {formValue}
+          {value}
           <EditButton startEdit={startEdit} />
         </span>
       )}

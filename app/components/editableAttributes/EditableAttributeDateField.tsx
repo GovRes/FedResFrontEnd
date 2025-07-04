@@ -44,8 +44,11 @@ export default function EditableAttributeDateField({
     e.preventDefault();
     const response = await updateUserTypeAttribute(attributeKey, formValue);
     if (response === "200") {
-      setAttributes((prev: any) => ({ ...prev, [attributeKey]: formValue }));
-      setFormValue(value);
+      // Call setAttributes with the update data directly
+      await setAttributes({
+        [attributeKey]: formValue,
+      });
+      cancelEdit();
     } else {
       return response;
     }
