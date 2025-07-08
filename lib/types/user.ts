@@ -17,6 +17,7 @@ export interface UserProfile {
   fedEmploymentStatus?: string | null;
   gender?: string | null;
   militarySpouse?: boolean | null;
+  roles?: string[] | null; // Array of role names
   veteran?: boolean | null;
   groups?: SafeStringArray;
   isActive?: boolean | null;
@@ -44,4 +45,5 @@ export interface UserUpdateData {
 // Type for admin operations
 export interface AdminUserUpdate extends UserUpdateData {
   email?: string;
+  roles?: string[] | null;
 }

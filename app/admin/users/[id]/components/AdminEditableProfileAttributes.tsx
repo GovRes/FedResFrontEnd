@@ -8,6 +8,9 @@ import {
   agencies,
   federalEmploymentStatus,
 } from "@/app/utils/usaJobsCodes";
+import AdminEditableAttributeCheckboxField from "./AdminEditableAttributeCheckboxField";
+import { useRoles } from "@/lib/hooks/useRoles";
+import { Loader } from "@/app/components/loader/Loader";
 // Import other admin field types as needed
 
 interface AdminEditableProfileAttributesProps {
@@ -20,6 +23,24 @@ export default function AdminEditableProfileAttributes({
   updateUser,
 }: AdminEditableProfileAttributesProps) {
   const [currentlyEditing, setCurrentlyEditing] = useState<string | null>(null);
+  const { roleOptions, loading: rolesLoading, error: rolesError } = useRoles();
+  console.log(rolesLoading, rolesError, roleOptions);
+  if (rolesLoading) {
+    return (
+      <div>
+        <Loader text="loading roles" />
+      </div>
+    );
+  }
+
+  // Show error state if roles failed to load
+  if (rolesError) {
+    return (
+      <div>
+        <span>Error loading roles: {rolesError}</span>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-profile-editor">
@@ -113,6 +134,15 @@ export default function AdminEditableProfileAttributes({
             setCurrentlyEditing={setCurrentlyEditing}
           />
         )}
+        <AdminEditableAttributeCheckboxField
+          attributeKey="roles"
+          currentlyEditing={currentlyEditing}
+          title="Role"
+          value={profile.roles}
+          options={roleOptions}
+          updateUser={updateUser}
+          setCurrentlyEditing={setCurrentlyEditing}
+        />
       </div>
 
       {/* Debug info in development */}

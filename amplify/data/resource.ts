@@ -22,8 +22,6 @@ const schema = a.schema({
       // System fields
       groups: a.string().array(),
       cognitoUserId: a.string(),
-      roles: a.string().array(), // ["user", "admin", "superadmin"]
-      permissions: a.string().array(), // ["user:read", "application:create", "admin:users"]
       isActive: a.boolean().default(true),
       createdAt: a.datetime(),
       updatedAt: a.datetime(),
@@ -36,6 +34,8 @@ const schema = a.schema({
       qualifications: a.hasMany("Qualification", "userId"),
       resumes: a.hasMany("Resume", "userId"),
       specializedExperiences: a.hasMany("SpecializedExperience", "userId"),
+      userRoles: a.hasMany("UserRole", "userId"),
+      userPermission: a.hasMany("UserPermission", "userId"),
     })
     .authorization((allow) => [
       allow.authenticated().to(["create", "read", "update", "delete"]),
@@ -121,6 +121,7 @@ const schema = a.schema({
       action: a.string().required(), // "create", "read", "update", "delete", "approve"
       description: a.string(),
       isActive: a.boolean().default(true),
+      users: a.hasMany("UserPermission", "permissionId"), // Users assigned this role
     })
     .authorization((allow) => [allow.authenticated().to(["read"])]),
   Resume: a
@@ -145,10 +146,10 @@ const schema = a.schema({
       isActive: a.boolean().default(true),
       createdAt: a.datetime(),
       updatedAt: a.datetime(),
+      users: a.hasMany("UserRole", "roleId"), // Users assigned this role
     })
     .authorization((allow) => [
-      allow.authenticated().to(["read"]),
-      // Only admins can manage roles - handle in app logic
+      allow.authenticated().to(["create", "read", "update", "delete"]),
     ]),
   SpecializedExperience: a
     .model({
@@ -298,6 +299,35 @@ const schema = a.schema({
       qualificationId: a.id().required(),
       pastJob: a.belongsTo("PastJob", "pastJobId"),
       qualification: a.belongsTo("Qualification", "qualificationId"),
+    })
+    .authorization((allow) => [
+      allow.authenticated().to(["create", "read", "update", "delete"]),
+    ]),
+  // Add this new model:
+  UserPermission: a
+    .model({
+      id: a.id().required(),
+      userId: a.id().required(),
+      permissionId: a.id().required(),
+      user: a.belongsTo("User", "userId"),
+      permission: a.belongsTo("Permission", "permissionId"),
+      assignedAt: a.datetime(),
+      assignedBy: a.string(), // Who assigned this role
+    })
+    .authorization((allow) => [
+      allow.authenticated().to(["create", "read", "update", "delete"]),
+    ]),
+
+  // Add this new model:
+  UserRole: a
+    .model({
+      id: a.id().required(),
+      userId: a.id().required(),
+      roleId: a.id().required(),
+      user: a.belongsTo("User", "userId"),
+      role: a.belongsTo("Role", "roleId"),
+      assignedAt: a.datetime(),
+      assignedBy: a.string(), // Who assigned this role
     })
     .authorization((allow) => [
       allow.authenticated().to(["create", "read", "update", "delete"]),

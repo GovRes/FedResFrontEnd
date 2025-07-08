@@ -77,35 +77,66 @@ export class UserManagementService {
    */
   async getUserById(userId: string): Promise<UserProfile | null> {
     try {
-      const { data } = await client.models.User.get({ id: userId });
+      const { data: userData } = await client.models.User.get(
+        { id: userId },
+        {
+          selectionSet: [
+            "id",
+            "cognitoUserId",
+            "email",
+            "givenName",
+            "familyName",
+            "academicLevel",
+            "birthdate",
+            "citizen",
+            "currentAgency",
+            "disabled",
+            "fedEmploymentStatus",
+            "gender",
+            "militarySpouse",
+            "veteran",
+            "groups",
+            "isActive",
+            "createdAt",
+            "updatedAt",
+            "userRoles.role.name", // Try to get nested role names
+          ],
+        }
+      );
 
-      if (!data) {
+      if (!userData) {
         return null;
       }
-      // Convert Amplify model to UserProfile interface
+
+      // Extract role names from the nested data
+      const userRoles =
+        userData.userRoles?.map((ur) => ur.role?.name).filter(Boolean) || [];
+
       return {
-        id: data.id,
-        owner: data.cognitoUserId, // Use cognitoUserId as owner for compatibility
-        email: data.email,
-        givenName: data.givenName,
-        familyName: data.familyName,
-        academicLevel: data.academicLevel,
-        birthdate: data.birthdate,
-        citizen: data.citizen,
-        currentAgency: data.currentAgency,
-        disabled: data.disabled,
-        fedEmploymentStatus: data.fedEmploymentStatus,
-        gender: data.gender,
-        militarySpouse: data.militarySpouse,
-        veteran: data.veteran,
-        groups: this.safeStringArray(data.groups),
-        isActive: data.isActive,
-        createdAt: data.createdAt,
-        updatedAt: data.updatedAt,
+        id: userData.id,
+        owner: userData.cognitoUserId,
+        email: userData.email,
+        givenName: userData.givenName,
+        familyName: userData.familyName,
+        academicLevel: userData.academicLevel,
+        birthdate: userData.birthdate,
+        citizen: userData.citizen,
+        currentAgency: userData.currentAgency,
+        disabled: userData.disabled,
+        fedEmploymentStatus: userData.fedEmploymentStatus,
+        gender: userData.gender,
+        militarySpouse: userData.militarySpouse,
+        veteran: userData.veteran,
+        groups: this.safeStringArray(userData.groups),
+        roles: userRoles,
+        isActive: userData.isActive,
+        createdAt: userData.createdAt,
+        updatedAt: userData.updatedAt,
       };
     } catch (error) {
-      console.error("Error getting user by ID:", error);
-      return null;
+      console.error("Error getting user by ID with optimized query:", error);
+      // Fallback to the basic approach
+      return this.getUserById(userId);
     }
   }
   /**
@@ -177,7 +208,154 @@ export class UserManagementService {
       throw error;
     }
   }
+  async updateUserRoles(userId: string, newRoles: string[]): Promise<void> {
+    try {
+      console.log(
+        "🔄 Starting role update for user:",
+        userId,
+        "new roles:",
+        newRoles
+      );
 
+      // Get current UserRole relationships for this user
+      const { data: currentUserRoles } = await client.models.UserRole.list({
+        filter: { userId: { eq: userId } },
+      });
+
+      console.log("📋 Current user roles:", currentUserRoles);
+
+      // Get all available roles to map names to IDs
+      const { data: allRoles } = await client.models.Role.list();
+      const roleMap = new Map(
+        allRoles?.map((role) => [role.name, role.id]) || []
+      );
+
+      console.log("🗺️ Role name to ID mapping:", Object.fromEntries(roleMap));
+
+      // Convert new role names to role IDs
+      const newRoleIds = newRoles
+        .map((roleName) => roleMap.get(roleName))
+        .filter((roleId): roleId is string => roleId !== undefined);
+
+      console.log("🆔 New role IDs:", newRoleIds);
+
+      // Get current role IDs for comparison
+      const currentRoleIds = currentUserRoles?.map((ur) => ur.roleId) || [];
+
+      console.log("📊 Current role IDs:", currentRoleIds);
+
+      // Remove roles that are no longer assigned
+      const rolesToRemove =
+        currentUserRoles?.filter((ur) => !newRoleIds.includes(ur.roleId)) || [];
+
+      for (const userRole of rolesToRemove) {
+        console.log("🗑️ Removing role relationship:", userRole.id);
+        await client.models.UserRole.delete({ id: userRole.id });
+      }
+
+      // Add new roles that weren't previously assigned
+      const rolesToAdd = newRoleIds.filter(
+        (roleId) => !currentRoleIds.includes(roleId)
+      );
+
+      for (const roleId of rolesToAdd) {
+        console.log("➕ Adding role relationship for role ID:", roleId);
+        await client.models.UserRole.create({
+          userId: userId,
+          roleId: roleId,
+          assignedAt: new Date().toISOString(),
+          assignedBy: "admin", // You might want to pass the current admin's ID here
+        });
+      }
+
+      console.log("✅ Role update completed successfully");
+    } catch (error) {
+      console.error("❌ Error updating user roles:", error);
+      throw new Error(
+        `Failed to update user roles: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  }
+  async assignRoleToUser(userId: string, roleName: string): Promise<boolean> {
+    try {
+      // First find the role by name
+      const { data: roles } = await client.models.Role.list({
+        filter: { name: { eq: roleName } },
+      });
+
+      if (!roles || roles.length === 0) {
+        console.error(`Role '${roleName}' not found`);
+        return false;
+      }
+
+      const role = roles[0];
+
+      // Check if user already has this role
+      const { data: existingUserRoles } = await client.models.UserRole.list({
+        filter: {
+          and: [{ userId: { eq: userId } }, { roleId: { eq: role.id } }],
+        },
+      });
+
+      if (existingUserRoles && existingUserRoles.length > 0) {
+        console.log(`User already has role '${roleName}'`);
+        return true; // Already assigned
+      }
+
+      // Create the UserRole relationship
+      await client.models.UserRole.create({
+        userId: userId,
+        roleId: role.id,
+        assignedAt: new Date().toISOString(),
+        assignedBy: "admin", // You might want to pass this as a parameter
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Error assigning role to user:", error);
+      return false;
+    }
+  }
+
+  async removeRoleFromUser(userId: string, roleName: string): Promise<boolean> {
+    try {
+      // First find the role by name
+      const { data: roles } = await client.models.Role.list({
+        filter: { name: { eq: roleName } },
+      });
+
+      if (!roles || roles.length === 0) {
+        console.error(`Role '${roleName}' not found`);
+        return false;
+      }
+
+      const role = roles[0];
+
+      // Find the UserRole relationship
+      const { data: userRoles } = await client.models.UserRole.list({
+        filter: {
+          and: [{ userId: { eq: userId } }, { roleId: { eq: role.id } }],
+        },
+      });
+
+      if (!userRoles || userRoles.length === 0) {
+        console.log(`User doesn't have role '${roleName}'`);
+        return true; // Already removed
+      }
+
+      // Delete the UserRole relationship
+      for (const userRole of userRoles) {
+        await client.models.UserRole.delete({ id: userRole.id });
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error removing role from user:", error);
+      return false;
+    }
+  }
   /**
    * Admin function: Get all users
    */
@@ -216,57 +394,79 @@ export class UserManagementService {
     try {
       console.log("🔧 Admin updating user:", userId, "with updates:", updates);
 
-      // Create properly typed update data
-      const updateData = {
-        id: userId, // Required field
-        updatedAt: new Date().toISOString(),
-        // Only include fields that are being updated and are not undefined/system fields
-        ...(updates.email !== undefined && { email: updates.email }),
-        ...(updates.givenName !== undefined && {
-          givenName: updates.givenName,
-        }),
-        ...(updates.familyName !== undefined && {
-          familyName: updates.familyName,
-        }),
-        ...(updates.academicLevel !== undefined && {
-          academicLevel: updates.academicLevel,
-        }),
-        ...(updates.birthdate !== undefined && {
-          birthdate: updates.birthdate,
-        }),
-        ...(updates.citizen !== undefined && { citizen: updates.citizen }),
-        ...(updates.currentAgency !== undefined && {
-          currentAgency: updates.currentAgency,
-        }),
-        ...(updates.disabled !== undefined && { disabled: updates.disabled }),
-        ...(updates.fedEmploymentStatus !== undefined && {
-          fedEmploymentStatus: updates.fedEmploymentStatus,
-        }),
-        ...(updates.gender !== undefined && { gender: updates.gender }),
-        ...(updates.militarySpouse !== undefined && {
-          militarySpouse: updates.militarySpouse,
-        }),
-        ...(updates.veteran !== undefined && { veteran: updates.veteran }),
-        ...(updates.groups !== undefined && {
-          groups: Array.isArray(updates.groups)
-            ? updates.groups.filter(
-                (item): item is string => typeof item === "string"
-              )
-            : updates.groups,
-        }),
-        ...(updates.isActive !== undefined && { isActive: updates.isActive }),
-      };
+      // Separate roles from other user attributes
+      const { roles, ...userUpdates } = updates;
 
-      console.log("📊 Final update data:", updateData);
+      // Update user attributes (excluding roles)
+      if (Object.keys(userUpdates).length > 0) {
+        // Create properly typed update data
+        const updateData = {
+          id: userId, // Required field
+          updatedAt: new Date().toISOString(),
+          // Only include fields that are being updated and are not undefined/system fields
+          ...(userUpdates.email !== undefined && { email: userUpdates.email }),
+          ...(userUpdates.givenName !== undefined && {
+            givenName: userUpdates.givenName,
+          }),
+          ...(userUpdates.familyName !== undefined && {
+            familyName: userUpdates.familyName,
+          }),
+          ...(userUpdates.academicLevel !== undefined && {
+            academicLevel: userUpdates.academicLevel,
+          }),
+          ...(userUpdates.birthdate !== undefined && {
+            birthdate: userUpdates.birthdate,
+          }),
+          ...(userUpdates.citizen !== undefined && {
+            citizen: userUpdates.citizen,
+          }),
+          ...(userUpdates.currentAgency !== undefined && {
+            currentAgency: userUpdates.currentAgency,
+          }),
+          ...(userUpdates.disabled !== undefined && {
+            disabled: userUpdates.disabled,
+          }),
+          ...(userUpdates.fedEmploymentStatus !== undefined && {
+            fedEmploymentStatus: userUpdates.fedEmploymentStatus,
+          }),
+          ...(userUpdates.gender !== undefined && {
+            gender: userUpdates.gender,
+          }),
+          ...(userUpdates.militarySpouse !== undefined && {
+            militarySpouse: userUpdates.militarySpouse,
+          }),
+          ...(userUpdates.veteran !== undefined && {
+            veteran: userUpdates.veteran,
+          }),
+          ...(userUpdates.groups !== undefined && {
+            groups: Array.isArray(userUpdates.groups)
+              ? userUpdates.groups.filter(
+                  (item): item is string => typeof item === "string"
+                )
+              : userUpdates.groups,
+          }),
+          ...(userUpdates.isActive !== undefined && {
+            isActive: userUpdates.isActive,
+          }),
+        };
 
-      const { data, errors } = await client.models.User.update(updateData);
+        console.log("📊 Final update data:", updateData);
 
-      if (errors?.length) {
-        console.error("❌ Database update errors:", errors);
-        throw new Error(`Update failed: ${errors[0].message}`);
+        const { data, errors } = await client.models.User.update(updateData);
+
+        if (errors?.length) {
+          console.error("❌ Database update errors:", errors);
+          throw new Error(`Update failed: ${errors[0].message}`);
+        }
+
+        console.log("✅ User updated successfully:", data);
       }
 
-      console.log("✅ User updated successfully:", data);
+      // Handle role updates if provided
+      if (roles !== undefined) {
+        console.log("🎭 Updating user roles:", roles);
+        await this.updateUserRoles(userId, roles || []);
+      }
 
       // NOTE: We do NOT call syncToCognito here because:
       // 1. This is an admin function for updating OTHER users

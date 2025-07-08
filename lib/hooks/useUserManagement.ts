@@ -22,7 +22,6 @@ interface UseUserManagementReturn {
   loadUserById: (databaseUserId: string) => Promise<void>;
   updateUser: (updates: AdminUserUpdate) => Promise<boolean>;
   deactivateUser: () => Promise<boolean>;
-  deleteUser: () => Promise<boolean>;
   refreshUser: () => Promise<void>;
   clearUser: () => void;
 
@@ -31,7 +30,6 @@ interface UseUserManagementReturn {
   refreshAllUsers: () => Promise<void>;
   updateAnyUser: (userId: string, updates: AdminUserUpdate) => Promise<boolean>;
   deactivateAnyUser: (userId: string) => Promise<boolean>;
-  deleteAnyUser: (userId: string) => Promise<boolean>;
 }
 
 export function useUserManagement({
@@ -196,35 +194,6 @@ export function useUserManagement({
     loadUser,
   ]);
 
-  // Delete the current user
-  const deleteUser = useCallback(async (): Promise<boolean> => {
-    if (!profile) {
-      setError("No user loaded to delete");
-      return false;
-    }
-
-    console.log("Deleting user:", profile.id);
-    try {
-      setError(null);
-      const success = await userManagementService.deleteUser(profile.id);
-
-      if (success) {
-        // Clear the profile after successful deletion
-        setProfile(null);
-        setCurrentCognitoUserId(undefined);
-        setCurrentDatabaseUserId(undefined);
-      }
-
-      return success;
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Deletion failed";
-      console.error("Error deleting user:", errorMessage);
-      setError(errorMessage);
-      return false;
-    }
-  }, [profile]);
-
   // Refresh the current user
   const refreshUser = useCallback(async (): Promise<void> => {
     if (currentDatabaseUserId) {
@@ -331,36 +300,6 @@ export function useUserManagement({
     [profile, refreshAllUsers, refreshUser]
   );
 
-  // Delete any user by their database ID
-  const deleteAnyUser = useCallback(
-    async (userId: string): Promise<boolean> => {
-      console.log("Deleting user:", userId);
-      try {
-        setAllUsersError(null);
-        const success = await userManagementService.deleteUser(userId);
-
-        if (success) {
-          // Refresh all users to get the updated data
-          await refreshAllUsers();
-
-          // If the deleted user is the currently loaded user, clear it
-          if (profile && profile.id === userId) {
-            clearUser();
-          }
-        }
-
-        return success;
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Deletion failed";
-        console.error("Error deleting user:", errorMessage);
-        setAllUsersError(errorMessage);
-        return false;
-      }
-    },
-    [profile, refreshAllUsers, clearUser]
-  );
-
   // Auto-load user on mount if cognitoUserId is provided
   useEffect(() => {
     if (autoLoad && cognitoUserId && cognitoUserId !== currentCognitoUserId) {
@@ -384,7 +323,6 @@ export function useUserManagement({
     loadUserById,
     updateUser,
     deactivateUser,
-    deleteUser,
     refreshUser,
     clearUser,
 
@@ -393,6 +331,5 @@ export function useUserManagement({
     refreshAllUsers,
     updateAnyUser,
     deactivateAnyUser,
-    deleteAnyUser,
   };
 }

@@ -6,17 +6,17 @@ import EditButton from "@/app/components/editableAttributes/EditButton";
 import styles from "./editableAttributeStyles.module.css";
 import LoadingButton from "@/app/components/editableAttributes/LoadingButton";
 
-interface AdminEditableAttributeSelectFieldProps {
+interface AdminEditableAttributeCheckboxFieldProps {
   attributeKey: keyof UserProfile;
   currentlyEditing: string | null;
   options: Record<string, string>;
   title: string;
-  value: string;
+  value?: string[] | null | undefined;
   updateUser: (updates: AdminUserUpdate) => Promise<boolean>;
   setCurrentlyEditing: (key: string | null) => void;
 }
 
-export default function AdminEditableAttributeStringField({
+export default function AdminEditableAttributeCheckboxField({
   attributeKey,
   currentlyEditing,
   options,
@@ -24,8 +24,10 @@ export default function AdminEditableAttributeStringField({
   value,
   updateUser,
   setCurrentlyEditing,
-}: AdminEditableAttributeSelectFieldProps) {
-  const [formValue, setFormValue] = useState(value || "");
+}: AdminEditableAttributeCheckboxFieldProps) {
+  const [formValue, setFormValue] = useState<string[]>(
+    Array.isArray(value) ? value : value ? [value] : []
+  );
   const [loading, setLoading] = useState(false);
   const showEdit = currentlyEditing === attributeKey;
 
@@ -35,15 +37,23 @@ export default function AdminEditableAttributeStringField({
 
   function cancelEdit() {
     setCurrentlyEditing(null);
-    setFormValue(value); // Reset form value on cancel
+    setFormValue(Array.isArray(value) ? value : value ? [value] : []); // Reset form value on cancel
   }
 
-  function onChange(e: { target: { value: string } }) {
-    setFormValue(e.target.value);
+  function onCheckboxChange(optionValue: string, checked: boolean) {
+    setFormValue((prev: string[]) => {
+      if (checked) {
+        // Add the role if checked and not already present
+        return prev.includes(optionValue) ? prev : [...prev, optionValue];
+      } else {
+        // Remove the role if unchecked
+        return prev.filter((role) => role !== optionValue);
+      }
+    });
   }
 
   useEffect(() => {
-    setFormValue(value);
+    setFormValue(Array.isArray(value) ? value : value ? [value] : []);
   }, [value]);
 
   async function submit(e: { preventDefault: () => void }) {
@@ -56,7 +66,7 @@ export default function AdminEditableAttributeStringField({
     try {
       // Create the update object with only the field being changed
       const updates: AdminUserUpdate = {
-        [attributeKey]: formValue || null,
+        [attributeKey]: formValue.length > 0 ? formValue : null,
       };
 
       console.log("📝 Admin update object:", updates);
@@ -77,25 +87,30 @@ export default function AdminEditableAttributeStringField({
       setLoading(false);
     }
   }
-
+  const displayValue =
+    value && value.length > 0
+      ? value.map((key: string | number) => options[key] || key).join(", ")
+      : "No roles assigned";
+  console.log("keys", options ? Object.keys(options) : "No options provided");
   return (
     <EditableAttributeContainer title={title}>
       {showEdit ? (
         <form className={styles.attributeForm} onSubmit={submit}>
-          <select
-            defaultValue={value}
-            onChange={onChange}
-            name={attributeKey}
-            className={styles.attributeSelect}
-          >
-            {Object.keys(options).map((key) => {
-              return (
-                <option key={key} value={key}>
-                  {options[key]}
-                </option>
-              );
-            })}
-          </select>
+          <div className={styles.checkboxContainer}>
+            {Object.entries(options).map(([optionValue, displayLabel]) => (
+              <label key={optionValue} className={styles.checkboxLabel}>
+                <input
+                  type="checkbox"
+                  checked={formValue.includes(optionValue)}
+                  onChange={(e) =>
+                    onCheckboxChange(optionValue, e.target.checked)
+                  }
+                  className={styles.checkbox}
+                />
+                <span className={styles.checkboxText}>{displayLabel}</span>
+              </label>
+            ))}
+          </div>
 
           {loading ? (
             <LoadingButton />
@@ -105,7 +120,7 @@ export default function AdminEditableAttributeStringField({
         </form>
       ) : (
         <span>
-          {options[value]}
+          {displayValue}
           <EditButton startEdit={startEdit} />
         </span>
       )}

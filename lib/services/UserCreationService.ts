@@ -81,6 +81,10 @@ export class UserCreationService {
         }
 
         console.log("✅ Updated existing user with new Cognito ID");
+
+        // Ensure the user has the default role
+        await this.ensureUserHasDefaultRole(updatedUser.id);
+
         return updatedUser;
       }
 
@@ -132,6 +136,10 @@ export class UserCreationService {
 
           if (raceConditionUser && raceConditionUser.length > 0) {
             console.log("✅ Found user created by race condition");
+
+            // Ensure the user has the default role
+            await this.ensureUserHasDefaultRole(raceConditionUser[0].id);
+
             return raceConditionUser[0];
           }
         }
@@ -140,10 +148,83 @@ export class UserCreationService {
       }
 
       console.log("✅ User created successfully:", newUser);
+
+      // Assign default role to the new user
+      await this.assignDefaultRole(newUser.id);
+
       return newUser;
     } catch (error) {
       console.error("❌ Error in ensureUserExists:", error);
       throw error;
+    }
+  }
+
+  /**
+   * Assign the default "user" role to a newly created user
+   */
+  private async assignDefaultRole(userId: string): Promise<void> {
+    try {
+      console.log("🎭 Assigning default 'user' role to new user:", userId);
+
+      // Find the "user" role
+      const { data: userRoles } = await client.models.Role.list({
+        filter: { name: { eq: "user" } },
+      });
+
+      if (!userRoles || userRoles.length === 0) {
+        console.warn(
+          "⚠️ Default 'user' role not found. Make sure roles are seeded."
+        );
+        return;
+      }
+
+      const userRole = userRoles[0];
+
+      // Create the UserRole relationship
+      const { data: userRoleAssignment, errors } =
+        await client.models.UserRole.create({
+          userId: userId,
+          roleId: userRole.id,
+          assignedAt: new Date().toISOString(),
+          assignedBy: "system", // Indicates this was assigned automatically
+        });
+
+      if (errors && errors.length > 0) {
+        console.error("❌ Error assigning default role:", errors);
+        // Don't throw here - user creation should still succeed even if role assignment fails
+        return;
+      }
+
+      console.log("✅ Successfully assigned default 'user' role to new user");
+    } catch (error) {
+      console.error("❌ Error in assignDefaultRole:", error);
+      // Don't throw here - user creation should still succeed even if role assignment fails
+    }
+  }
+
+  /**
+   * Ensure an existing user has the default role (for edge cases)
+   */
+  private async ensureUserHasDefaultRole(userId: string): Promise<void> {
+    try {
+      console.log("🔍 Checking if user has default role:", userId);
+
+      // Check if user already has any roles
+      const { data: existingUserRoles } = await client.models.UserRole.list({
+        filter: { userId: { eq: userId } },
+      });
+
+      if (existingUserRoles && existingUserRoles.length > 0) {
+        console.log("✅ User already has roles assigned");
+        return;
+      }
+
+      // If no roles, assign the default
+      console.log("🎭 User has no roles, assigning default 'user' role");
+      await this.assignDefaultRole(userId);
+    } catch (error) {
+      console.error("❌ Error in ensureUserHasDefaultRole:", error);
+      // Don't throw here - this is a best-effort operation
     }
   }
 
