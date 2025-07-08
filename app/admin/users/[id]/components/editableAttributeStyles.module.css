@@ -1,0 +1,13 @@
+.attributeForm {
+  display: flex;
+  justify-content: space-between;
+  gap: 30px;
+}
+
+input[type="text"].attributeText {
+  width: fit-content;
+}
+
+select.attributeSelect {
+  width: fit-content;
+}

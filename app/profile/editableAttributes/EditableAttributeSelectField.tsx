@@ -4,10 +4,12 @@ import {
   updateUserTypeAttribute,
   UserType,
 } from "@/app/utils/userAttributeUtils";
-import SubmitCancelButtonArray from "./SubmitCancelButtonArray";
-import EditButton from "./EditButton";
-import EditableAttributeContainer from "./EditableAttributeContainer";
+import SubmitCancelButtonArray from "../../components/editableAttributes/SubmitCancelButtonArray";
+import EditButton from "../../components/editableAttributes/EditButton";
+import EditableAttributeContainer from "../../components/editableAttributes/EditableAttributeContainer";
 import styles from "./editableAttributeStyles.module.css";
+import { useAttributeUpdate } from "@/lib/hooks/useAttributeUpdate";
+import LoadingButton from "../../components/editableAttributes/LoadingButton";
 
 export default function EditableAttributeSelectField({
   attributeKey,
@@ -28,7 +30,12 @@ export default function EditableAttributeSelectField({
 }) {
   const [formValue, setFormValue] = useState(value);
   const showEdit = currentlyEditing === attributeKey;
-
+  const [loading, setLoading] = useState(false);
+  const { submitAttributeUpdate } = useAttributeUpdate(
+    setAttributes,
+    setCurrentlyEditing,
+    setLoading
+  );
   function onChange(e: { target: { value: any } }) {
     setFormValue(e.target.value);
   }
@@ -44,28 +51,24 @@ export default function EditableAttributeSelectField({
     setFormValue(value);
   }, [value]);
 
-  async function submit(e: { preventDefault: () => void; target: any }) {
-    e.preventDefault();
-    console.log("Updating", attributeKey, "to", formValue);
+  async function submit(e: { preventDefault: () => void }) {
+    const result = await submitAttributeUpdate(e, attributeKey, formValue);
 
-    const response = await updateUserTypeAttribute(attributeKey, formValue);
-    if (response === "200") {
-      console.log("API success, updating local state");
-      // Call setAttributes with the update data directly
-      await setAttributes({
-        [attributeKey]: formValue,
-      });
-      cancelEdit();
-    } else {
-      console.log("API failed:", response);
-      return response;
+    if (result) {
+      // Handle error case
+      console.error("Update failed:", result);
     }
   }
   return (
     <EditableAttributeContainer title={title}>
       {showEdit ? (
         <form className={styles.attributeForm} onSubmit={submit}>
-          <select defaultValue={value} onChange={onChange}>
+          <select
+            defaultValue={value}
+            onChange={onChange}
+            name={attributeKey}
+            className={styles.attributeSelect}
+          >
             {Object.keys(options).map((key) => {
               return (
                 <option key={key} value={key}>
@@ -75,7 +78,11 @@ export default function EditableAttributeSelectField({
             })}
           </select>
 
-          <SubmitCancelButtonArray cancelEdit={cancelEdit} />
+          {loading ? (
+            <LoadingButton />
+          ) : (
+            <SubmitCancelButtonArray cancelEdit={cancelEdit} />
+          )}
         </form>
       ) : (
         <span>

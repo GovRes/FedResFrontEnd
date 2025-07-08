@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { userManagementService } from "@/lib/services/UserManagementService";
 import { getCurrentUser } from "aws-amplify/auth";
 import { useAuthenticator } from "@aws-amplify/ui-react";
+import { userCreationService } from "../services/UserCreationService";
 
 export function useUserInitialization() {
   const [user, setUser] = useState<any>(null);
@@ -47,7 +48,7 @@ export function useUserInitialization() {
 
         // First, try to sync from Cognito (this will create user if they don't exist)
         console.log("🔄 Syncing from Cognito...");
-        const syncSuccess = await userManagementService.syncFromCognito();
+        const syncSuccess = await userCreationService.ensureUserExists();
 
         if (syncSuccess) {
           console.log("✅ Sync from Cognito complete");
@@ -120,7 +121,7 @@ export function useUserInitializationWithRefresh() {
       console.log("✅ User authenticated:", currentUser.userId);
 
       // Sync from Cognito to ensure user exists and is up to date
-      await userManagementService.syncFromCognito();
+      await userCreationService.ensureUserExists();
 
       // Get the user profile
       const userData = await userManagementService.getCurrentUserProfile();

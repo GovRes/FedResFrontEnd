@@ -6,9 +6,11 @@ import {
   UserType,
 } from "@/app/utils/userAttributeUtils";
 import { Toggle } from "@/app/components/forms/Inputs";
-import SubmitCancelButtonArray from "./SubmitCancelButtonArray";
-import EditButton from "./EditButton";
-import EditableAttributeContainer from "./EditableAttributeContainer";
+import SubmitCancelButtonArray from "@/app/components/editableAttributes/SubmitCancelButtonArray";
+import EditButton from "@/app/components/editableAttributes/EditButton";
+import EditableAttributeContainer from "@/app/components/editableAttributes/EditableAttributeContainer";
+import { useAttributeUpdate } from "@/lib/hooks/useAttributeUpdate";
+import LoadingButton from "@/app/components/editableAttributes/LoadingButton";
 
 export default function EditableAttributeBooleanField({
   attributeKey,
@@ -29,25 +31,29 @@ export default function EditableAttributeBooleanField({
   const boolValue = value === true || value === "true";
   const showEdit = currentlyEditing === attributeKey;
   const [checked, setChecked] = useState(boolValue);
+  const [loading, setLoading] = useState(false);
+  const { submitAttributeUpdate } = useAttributeUpdate(
+    setAttributes,
+    setCurrentlyEditing,
+    setLoading
+  );
 
   useEffect(() => {
     setChecked(value === true || value === "true");
   }, [value]);
 
-  async function submit(e: { preventDefault: () => void; target: any }) {
-    e.preventDefault();
-    const response = await updateUserTypeAttribute(
+  async function submit(e: { preventDefault: () => void }) {
+    // Convert boolean to string for the API call
+    const result = await submitAttributeUpdate(
+      e,
       attributeKey,
-      checked.toString()
+      checked.toString(),
+      () => setChecked(boolValue) // Optional cleanup callback
     );
-    if (response === "200") {
-      // Call setAttributes with the update data directly
-      await setAttributes({
-        [attributeKey]: checked,
-      });
-      cancelEdit();
-    } else {
-      return response;
+
+    if (result) {
+      // Handle error case
+      console.error("Update failed:", result);
     }
   }
 
@@ -63,13 +69,16 @@ export default function EditableAttributeBooleanField({
   function onChange() {
     setChecked(!checked);
   }
-
   return (
     <EditableAttributeContainer title={title}>
       {showEdit ? (
         <form className={styles.attributeForm} onSubmit={submit}>
           <Toggle checked={checked} onChange={onChange} />
-          <SubmitCancelButtonArray cancelEdit={cancelEdit} />
+          {loading ? (
+            <LoadingButton />
+          ) : (
+            <SubmitCancelButtonArray cancelEdit={cancelEdit} />
+          )}
         </form>
       ) : (
         <span>

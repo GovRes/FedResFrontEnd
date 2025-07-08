@@ -22,6 +22,8 @@ const schema = a.schema({
       // System fields
       groups: a.string().array(),
       cognitoUserId: a.string(),
+      roles: a.string().array(), // ["user", "admin", "superadmin"]
+      permissions: a.string().array(), // ["user:read", "application:create", "admin:users"]
       isActive: a.boolean().default(true),
       createdAt: a.datetime(),
       updatedAt: a.datetime(),
@@ -111,7 +113,16 @@ const schema = a.schema({
     .authorization((allow) => [
       allow.authenticated().to(["create", "read", "update", "delete"]),
     ]),
-
+  Permission: a
+    .model({
+      id: a.id().required(),
+      name: a.string().required(), // "user:create", "application:approve"
+      resource: a.string().required(), // "user", "application", "job"
+      action: a.string().required(), // "create", "read", "update", "delete", "approve"
+      description: a.string(),
+      isActive: a.boolean().default(true),
+    })
+    .authorization((allow) => [allow.authenticated().to(["read"])]),
   Resume: a
     .model({
       id: a.id().required(),
@@ -124,6 +135,21 @@ const schema = a.schema({
       allow.authenticated().to(["create", "read", "update", "delete"]),
     ]),
 
+  Role: a
+    .model({
+      id: a.id().required(),
+      name: a.string().required(), // "admin", "recruiter", "hr_manager"
+      displayName: a.string().required(), // "Administrator", "Recruiter", "HR Manager"
+      description: a.string(),
+      permissions: a.string().array().required(), // List of permissions this role grants
+      isActive: a.boolean().default(true),
+      createdAt: a.datetime(),
+      updatedAt: a.datetime(),
+    })
+    .authorization((allow) => [
+      allow.authenticated().to(["read"]),
+      // Only admins can manage roles - handle in app logic
+    ]),
   SpecializedExperience: a
     .model({
       id: a.id().required(),

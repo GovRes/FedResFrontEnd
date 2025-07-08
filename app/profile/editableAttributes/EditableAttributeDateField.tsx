@@ -4,9 +4,11 @@ import {
   updateUserTypeAttribute,
   UserType,
 } from "@/app/utils/userAttributeUtils";
-import EditButton from "./EditButton";
-import SubmitCancelButtonArray from "./SubmitCancelButtonArray";
-import EditableAttributeContainer from "./EditableAttributeContainer";
+import EditButton from "../../components/editableAttributes/EditButton";
+import SubmitCancelButtonArray from "../../components/editableAttributes/SubmitCancelButtonArray";
+import EditableAttributeContainer from "../../components/editableAttributes/EditableAttributeContainer";
+import { useAttributeUpdate } from "@/lib/hooks/useAttributeUpdate";
+import LoadingButton from "../../components/editableAttributes/LoadingButton";
 
 export default function EditableAttributeDateField({
   attributeKey,
@@ -24,7 +26,13 @@ export default function EditableAttributeDateField({
   setCurrentlyEditing: (key: string | null) => void;
 }) {
   const [formValue, setFormValue] = useState(value);
+  const [loading, setLoading] = useState(false);
   const showEdit = currentlyEditing === attributeKey;
+  const { submitAttributeUpdate } = useAttributeUpdate(
+    setAttributes,
+    setCurrentlyEditing,
+    setLoading
+  );
   function startEdit() {
     setCurrentlyEditing(attributeKey);
   }
@@ -40,17 +48,13 @@ export default function EditableAttributeDateField({
     setFormValue(value);
   }, [value]);
 
-  async function submit(e: { preventDefault: () => void; target: any }) {
-    e.preventDefault();
-    const response = await updateUserTypeAttribute(attributeKey, formValue);
-    if (response === "200") {
-      // Call setAttributes with the update data directly
-      await setAttributes({
-        [attributeKey]: formValue,
-      });
-      cancelEdit();
-    } else {
-      return response;
+  async function submit(e: { preventDefault: () => void }) {
+    // Convert boolean to string for the API call
+    const result = await submitAttributeUpdate(e, attributeKey, formValue);
+
+    if (result) {
+      // Handle error case
+      console.error("Update failed:", result);
     }
   }
 
@@ -60,7 +64,11 @@ export default function EditableAttributeDateField({
         <form className={styles.attributeForm} onSubmit={submit}>
           <input type="date" onChange={onChange} value={formValue} />
 
-          <SubmitCancelButtonArray cancelEdit={cancelEdit} />
+          {loading ? (
+            <LoadingButton />
+          ) : (
+            <SubmitCancelButtonArray cancelEdit={cancelEdit} />
+          )}
         </form>
       ) : (
         <span>

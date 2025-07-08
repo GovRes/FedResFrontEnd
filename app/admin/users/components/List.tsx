@@ -1,43 +1,49 @@
-import { useEffect, useState } from "react";
-import ListTable from "./ListTable";
-import { UserType } from "@/app/utils/userAttributeUtils";
-import { listUserRecords } from "@/app/crud/user";
-import { Loader } from "../../../components/loader/Loader";
+import { useUserOperations } from "@/lib/hooks/useUserOperations";
+import { useEffect } from "react";
+import UserItem from "./UserItem";
+import { Loader } from "@/app/components/loader/Loader";
 
-export default function List() {
-  const [users, setUsers] = useState<UserType[]>([]);
-  const [loading, setLoading] = useState(false);
+export default function UserList() {
+  const {
+    allUsers,
+    allUsersLoading,
+    loadAllUsers,
+    deactivateUserWithNotification,
+    reactivateUserWithNotification,
+  } = useUserOperations();
+
+  // Debug: Log when component re-renders and current user count
+  console.log("UserList rendered with", allUsers.length, "users");
 
   useEffect(() => {
-    async function getUserItems() {
-      setLoading(true);
-      try {
-        // Use the explicit type parameter for fetchUserAssociations
-        const usersRes = await listUserRecords();
-        console.log("Fetched users:", usersRes);
-        setUsers(usersRes.data);
-      } catch (error) {
-        console.error("Error fetching user items:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
+    loadAllUsers();
+  }, [loadAllUsers]);
 
-    if (!users.length) {
-      getUserItems();
-    }
-  }, [users.length]);
-
-  if (loading) {
-    return <Loader text="Loading..." />;
+  if (allUsersLoading) {
+    return <Loader text="Loading..." />; // Added missing return statement
   }
 
   return (
     <div>
-      <ListTable users={users} setUsers={setUsers} />
-      {/* <Link href={`/profile/${pascalToDashed(experienceType)}s/new`}>
-        <button>Add New {experienceType}</button>
-      </Link> */}
+      <table role="table">
+        <thead role="rowgroup">
+          <tr>
+            <th className="tableHead">Name</th>
+            <th className="tableHead">ID</th>
+            <th className="tableHead">Delete</th>
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          {allUsers.map((user) => (
+            <UserItem
+              key={user.id}
+              user={user}
+              onDelete={deactivateUserWithNotification}
+              onReactivate={reactivateUserWithNotification}
+            />
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

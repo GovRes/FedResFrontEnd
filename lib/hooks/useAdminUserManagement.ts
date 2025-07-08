@@ -62,29 +62,6 @@ export function useAdminUserManagement() {
       return false;
     }
   };
-
-  const deleteUser = async (userId: string): Promise<boolean> => {
-    try {
-      setError(null);
-      const success = await userManagementService.deleteUser(userId);
-
-      if (success) {
-        await loadUsers(); // Refresh the list
-      }
-
-      return success;
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to delete user";
-      setError(errorMessage);
-      return false;
-    }
-  };
-
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
   return {
     users,
     loading,
@@ -92,6 +69,5 @@ export function useAdminUserManagement() {
     loadUsers,
     updateUser,
     deactivateUser,
-    deleteUser,
   };
 }

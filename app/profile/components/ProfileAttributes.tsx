@@ -1,8 +1,4 @@
-import { fetchUserAttributes } from "aws-amplify/auth";
-import { useEffect, useState } from "react";
-import EditableProfileAttributes from "@/app/components/editableAttributes/EditableProfileAttributes";
-import { toUserTypeFromCognito } from "@/app/utils/userAttributeUtils";
-import { UserType } from "@/app/utils/userAttributeUtils";
+import EditableProfileAttributes from "@/app/profile/editableAttributes/EditableProfileAttributes";
 import { useCurrentUser } from "@/lib/hooks/useCurrentUser";
 
 export default function EditableAttributes() {

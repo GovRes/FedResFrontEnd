@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react";
 import {
   handleUpdateUserAttribute,
-  testDatabaseSync,
-  testSimpleDatabaseUpdate,
   updateUserTypeAttribute,
   UserType,
 } from "@/app/utils/userAttributeUtils";
-import EditableAttributeContainer from "./EditableAttributeContainer";
-import SubmitCancelButtonArray from "./SubmitCancelButtonArray";
-import EditButton from "./EditButton";
+import SubmitCancelButtonArray from "../../components/editableAttributes/SubmitCancelButtonArray";
+import EditButton from "../../components/editableAttributes/EditButton";
 import styles from "./editableAttributeStyles.module.css";
+import EditableAttributeContainer from "../../components/editableAttributes/EditableAttributeContainer";
+import { useAttributeUpdate } from "@/lib/hooks/useAttributeUpdate";
+import LoadingButton from "../../components/editableAttributes/LoadingButton";
 
-export default function EditableAttributeStringField({
+export default function EditableAttributeEmailField({
   attributeKey,
   currentlyEditing,
   title,
@@ -28,7 +28,15 @@ export default function EditableAttributeStringField({
 }) {
   const [formValue, setFormValue] = useState(value);
   const showEdit = currentlyEditing === attributeKey;
-
+  const [loading, setLoading] = useState(false);
+  const { submitAttributeUpdate } = useAttributeUpdate(
+    setAttributes,
+    setCurrentlyEditing,
+    setLoading
+  );
+  function onChange(e: { target: { value: any } }) {
+    setFormValue(e.target.value);
+  }
   function startEdit() {
     setCurrentlyEditing(attributeKey);
   }
@@ -37,42 +45,37 @@ export default function EditableAttributeStringField({
     setCurrentlyEditing(null);
     setFormValue(value); // Reset form value on cancel
   }
-
-  function onChange(e: { target: { value: any } }) {
-    setFormValue(e.target.value);
-  }
   useEffect(() => {
     setFormValue(value);
   }, [value]);
 
-  async function submit(e: { preventDefault: () => void; target: any }) {
-    e.preventDefault();
-    console.log("Updating", attributeKey, "to", formValue);
+  async function submit(e: { preventDefault: () => void }) {
+    // Convert boolean to string for the API call
+    const result = await submitAttributeUpdate(e, attributeKey, formValue);
 
-    const response = await updateUserTypeAttribute(attributeKey, formValue);
-    if (response === "200") {
-      console.log("API success, updating local state");
-      // Call setAttributes with the update data directly
-      await setAttributes({
-        [attributeKey]: formValue,
-      });
-      cancelEdit();
-    } else {
-      console.log("API failed:", response);
-      return response;
+    if (result) {
+      // Handle error case
+      console.error("Update failed:", result);
     }
   }
+
   return (
     <EditableAttributeContainer title={title}>
       {showEdit ? (
         <form className={styles.attributeForm} onSubmit={submit}>
           <input
+            type="email"
             onChange={onChange}
             value={formValue}
             name={title}
-            className={styles.attributeText}
+            className={styles.attributeEmail}
           />
-          <SubmitCancelButtonArray cancelEdit={cancelEdit} />
+
+          {loading ? (
+            <LoadingButton />
+          ) : (
+            <SubmitCancelButtonArray cancelEdit={cancelEdit} />
+          )}
         </form>
       ) : (
         <span>

@@ -1,51 +1,59 @@
 "use client";
 
 import { UserType } from "@/app/utils/userAttributeUtils";
-// import styles from "./resumeStyles.module.css";
-import { GrEdit, GrTrash } from "react-icons/gr";
-import { useRouter } from "next/navigation";
+import { GrStarOutline, GrTrash } from "react-icons/gr";
 import Link from "next/link";
+import styles from "./userTableStyles.module.css"; // Adjust the path as needed
 
 export default function UserItem({
   user,
-  setUsers,
+  onDelete,
+  onReactivate,
 }: {
   user: UserType;
-
-  setUsers: React.Dispatch<React.SetStateAction<Array<UserType>>>;
+  onDelete: (userId: string) => Promise<void>;
+  onReactivate: (userId: string) => Promise<void>;
 }) {
-  const router = useRouter();
   async function deleteItem() {
-    setUsers((prevItems) =>
-      prevItems.filter((prevItem) => prevItem.id !== user.id)
-    );
     try {
-      // await deleteModelRecord(itemType, user.id);
+      console.log("Attempting to delete user:", user.id);
+      await onDelete(user.id);
+      console.log("Delete operation completed for user:", user.id);
     } catch (error) {
-      setUsers((prevItems) => [...prevItems, user]);
       console.error(`Error deleting user with ID ${user.id}:`, error);
     }
   }
 
-  function editItem() {
-    router.push(`/admin/users/${user.id}/edit`);
+  async function reactivateItem() {
+    try {
+      console.log("Attempting to reactivate user:", user.id);
+      await onReactivate(user.id);
+      console.log("Reactivation operation completed for user:", user.id);
+    } catch (error) {
+      console.error(`Error reactivating user with ID ${user.id}:`, error);
+    }
   }
+
   return (
-    <tr>
+    <tr className={user.isActive ? `` : styles.tableRowInactive} role="row">
       <td className="tableData" role="cell">
         <Link href={`/admin/users/${user.id}`}>
           {user.givenName} {user.familyName}
         </Link>
       </td>
       <td className="tableData" role="cell">
-        <span onClick={editItem}>
-          <GrEdit />
-        </span>
+        {user.id}
       </td>
       <td className="tableData" role="cell">
-        <span onClick={deleteItem}>
-          <GrTrash />
-        </span>
+        {user.isActive ? (
+          <span onClick={deleteItem} style={{ cursor: "pointer" }}>
+            <GrTrash />
+          </span>
+        ) : (
+          <span onClick={reactivateItem} style={{ cursor: "pointer" }}>
+            <GrStarOutline />
+          </span>
+        )}
       </td>
     </tr>
   );

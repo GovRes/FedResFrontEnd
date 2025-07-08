@@ -1,13 +1,7 @@
 // src/lib/services/UserManagementService.ts
 
 import { generateClient } from "aws-amplify/data";
-import {
-  getCurrentUser,
-  updateUserAttribute,
-  fetchUserAttributes,
-  deleteUser,
-  type AuthUser,
-} from "aws-amplify/auth";
+import { getCurrentUser, updateUserAttribute } from "aws-amplify/auth";
 import type { Schema } from "@/amplify/data/resource";
 import type {
   UserProfile,
@@ -78,148 +72,42 @@ export class UserManagementService {
       return null;
     }
   }
-
   /**
-   * Sync user data FROM Cognito TO database
-   * Call this when user first logs in or when you want to pull latest Cognito data
+   * Get a specific user by their database ID
    */
-  async syncFromCognito(): Promise<boolean> {
+  async getUserById(userId: string): Promise<UserProfile | null> {
     try {
-      const currentUser = await getCurrentUser();
-      const attributes = await fetchUserAttributes();
+      const { data } = await client.models.User.get({ id: userId });
 
-      console.log("🔄 Syncing user data from Cognito to database...");
-      console.log("👤 Current user:", currentUser.userId);
-      console.log("📋 Attributes:", attributes);
-
-      // Check if user exists in database
-      const existingProfile = await this.getCurrentUserProfile();
-      console.log("🔍 Existing profile:", !!existingProfile);
-
-      const cognitoData = {
-        email: attributes.email || currentUser.username,
-        givenName: attributes.given_name || "",
-        familyName: attributes.family_name || "",
-        gender: attributes.gender || null,
-        birthdate: attributes.birthdate || null,
-        // Custom attributes
-        academicLevel: attributes["custom:academic_level"] || null,
-        currentAgency: attributes["custom:current_agency"] || null,
-        citizen: this.convertToBoolean(attributes["custom:citizen"]),
-        disabled: this.convertToBoolean(attributes["custom:disabled"]),
-        militarySpouse: this.convertToBoolean(
-          attributes["custom:military_spouse"]
-        ),
-        veteran: this.convertToBoolean(attributes["custom:veteran"]),
-        fedEmploymentStatus: attributes["custom:fed_employment_status"] || null,
-        updatedAt: new Date().toISOString(),
+      if (!data) {
+        return null;
+      }
+      // Convert Amplify model to UserProfile interface
+      return {
+        id: data.id,
+        owner: data.cognitoUserId, // Use cognitoUserId as owner for compatibility
+        email: data.email,
+        givenName: data.givenName,
+        familyName: data.familyName,
+        academicLevel: data.academicLevel,
+        birthdate: data.birthdate,
+        citizen: data.citizen,
+        currentAgency: data.currentAgency,
+        disabled: data.disabled,
+        fedEmploymentStatus: data.fedEmploymentStatus,
+        gender: data.gender,
+        militarySpouse: data.militarySpouse,
+        veteran: data.veteran,
+        groups: this.safeStringArray(data.groups),
+        isActive: data.isActive,
+        createdAt: data.createdAt,
+        updatedAt: data.updatedAt,
       };
-
-      if (existingProfile) {
-        // Update existing user with Cognito data
-        console.log("🔄 Updating existing user...");
-        const { errors } = await client.models.User.update({
-          id: existingProfile.id,
-          ...cognitoData,
-        });
-
-        if (errors?.length) {
-          console.error("❌ Update errors:", errors);
-          throw new Error(`Failed to sync from Cognito: ${errors[0].message}`);
-        }
-
-        console.log("✅ User data synced from Cognito to database");
-      } else {
-        // Create new user from Cognito data
-        console.log("🔄 Creating new user...");
-        console.log("📋 User data to create:", {
-          ...cognitoData,
-          cognitoUserId: currentUser.userId,
-        });
-
-        try {
-          const { data, errors } = await client.models.User.create({
-            ...cognitoData,
-            cognitoUserId: currentUser.userId,
-            groups: ["users"],
-            isActive: true,
-            createdAt: new Date().toISOString(),
-          });
-
-          if (errors?.length) {
-            console.error("❌ Create errors:", errors);
-            // Log the specific error details
-            errors.forEach((error, index) => {
-              console.error(`Error ${index + 1}:`, {
-                message: error.message,
-                path: error.path,
-                locations: error.locations,
-                extensions: error.extensions,
-              });
-            });
-            throw new Error(
-              `Failed to create user from Cognito: ${errors[0].message}`
-            );
-          }
-
-          console.log("✅ User created in database:", data);
-        } catch (createError) {
-          console.error("❌ Create user failed:", createError);
-
-          // If creation fails due to permissions, let's try a different approach
-          if (
-            createError instanceof Error &&
-            createError.message.includes("Not Authorized")
-          ) {
-            console.log("🔄 Trying alternative creation method...");
-
-            // Wait a moment for authentication to fully propagate
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-
-            // Try again
-            const { data: retryData, errors: retryErrors } =
-              await client.models.User.create({
-                ...cognitoData,
-                cognitoUserId: currentUser.userId,
-                groups: ["users"],
-                isActive: true,
-                createdAt: new Date().toISOString(),
-              });
-
-            if (retryErrors?.length) {
-              console.error("❌ Retry also failed:", retryErrors);
-              // If still failing, we might need to handle this differently
-              console.warn(
-                "⚠️ Could not create user in database, but user can still use the app"
-              );
-              return false; // Return false but don't throw - user can still function
-            }
-
-            console.log("✅ User created on retry:", retryData);
-          } else {
-            throw createError; // Re-throw if it's a different error
-          }
-        }
-
-        console.log("✅ User created in database from Cognito data");
-      }
-
-      return true;
     } catch (error) {
-      console.error("❌ Error syncing from Cognito:", error);
-
-      // If it's an authorization error, don't throw - the user can still use the app
-      if (error instanceof Error && error.message.includes("Not Authorized")) {
-        console.warn(
-          "⚠️ Authorization error during user creation - user can continue without database profile"
-        );
-        return false;
-      }
-
-      throw error;
+      console.error("Error getting user by ID:", error);
+      return null;
     }
   }
-
   /**
    * Update current user's profile
    * This updates the database and syncs certain fields to Cognito
@@ -296,7 +184,7 @@ export class UserManagementService {
   async getAllUsers(): Promise<UserProfile[]> {
     try {
       const { data } = await client.models.User.list();
-
+      console.log(334, data);
       // Convert Amplify models to UserProfile interfaces
       return data.map((user) => ({
         id: user.id,
@@ -324,11 +212,10 @@ export class UserManagementService {
     }
   }
 
-  /**
-   * Admin function: Update any user
-   */
   async updateUser(userId: string, updates: AdminUserUpdate): Promise<boolean> {
     try {
+      console.log("🔧 Admin updating user:", userId, "with updates:", updates);
+
       // Create properly typed update data
       const updateData = {
         id: userId, // Required field
@@ -370,15 +257,25 @@ export class UserManagementService {
         ...(updates.isActive !== undefined && { isActive: updates.isActive }),
       };
 
+      console.log("📊 Final update data:", updateData);
+
       const { data, errors } = await client.models.User.update(updateData);
 
       if (errors?.length) {
+        console.error("❌ Database update errors:", errors);
         throw new Error(`Update failed: ${errors[0].message}`);
       }
 
+      console.log("✅ User updated successfully:", data);
+
+      // NOTE: We do NOT call syncToCognito here because:
+      // 1. This is an admin function for updating OTHER users
+      // 2. syncToCognito only works for the currently logged-in user
+      // 3. Calling it would incorrectly update the admin's Cognito profile
+
       return true;
     } catch (error) {
-      console.error("Error updating user:", error);
+      console.error("❌ Error updating user:", error);
       throw error;
     }
   }
@@ -395,34 +292,6 @@ export class UserManagementService {
     }
   }
 
-  /**
-   * Admin function: Delete user completely
-   * This removes from database and Cognito
-   */
-  async deleteUser(userId: string): Promise<boolean> {
-    try {
-      // Get user to find Cognito ID
-      const { data: user } = await client.models.User.get({ id: userId });
-      if (!user) {
-        throw new Error("User not found");
-      }
-
-      // Delete from database first
-      await client.models.User.delete({ id: userId });
-
-      // Note: Deleting from Cognito requires admin SDK
-      // You'll need a separate admin API for this
-      console.log(
-        `User ${userId} deleted from database. Cognito deletion requires admin API.`
-      );
-
-      return true;
-    } catch (error) {
-      console.error("Error deleting user:", error);
-      throw error;
-    }
-  }
-
   COGNITO_ATTRIBUTE_MAPPING = {
     academicLevel: "custom:academicLevel", // NOT custom:academic_level
     currentAgency: "custom:currentAgency", // NOT custom:current_agency
@@ -433,7 +302,6 @@ export class UserManagementService {
     veteran: "custom:veteran",
   } as const;
 
-  // Updated sync method using the mapping:
   private async syncToCognito(updates: UserUpdateData): Promise<void> {
     const cognitoFields: Record<string, string> = {};
 
@@ -525,18 +393,6 @@ export class UserManagementService {
       console.warn("⚠️ Error during Cognito sync:", error);
       // Don't throw - database update was successful
     }
-  }
-
-  private convertToBoolean(value: any): boolean | null {
-    if (value === null || value === undefined) return null;
-    if (typeof value === "boolean") return value;
-    if (typeof value === "string") {
-      const lower = value.toLowerCase();
-      if (lower === "true" || lower === "1" || lower === "yes") return true;
-      if (lower === "false" || lower === "0" || lower === "no") return false;
-    }
-    if (typeof value === "number") return value !== 0;
-    return null;
   }
 }
 

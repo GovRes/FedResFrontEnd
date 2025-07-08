@@ -56,7 +56,4 @@ export const auth = defineAuth({
       dataType: "Boolean",
     },
   },
-  // triggers: {
-  //   postConfirmation: postConfirmationFunction,
-  // },
 });
