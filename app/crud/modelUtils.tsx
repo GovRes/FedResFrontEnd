@@ -52,6 +52,31 @@ export const modelFields: Record<string, string[]> = {
     "requiredDocuments",
     "title",
     "usaJobsId",
+    // Nested topics with their qualifications
+    `topics {
+      items {
+        id
+        title
+        keywords
+        description
+        evidence
+        createdAt
+        updatedAt
+        qualifications {
+          items {
+            id
+            title
+            description
+            paragraph
+            question
+            userConfirmed
+            userId
+            createdAt
+            updatedAt
+          }
+        }
+      }
+    }`,
   ],
   Resume: ["fileName", "userId"],
   SpecializedExperience: [

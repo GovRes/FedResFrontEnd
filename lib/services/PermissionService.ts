@@ -8,6 +8,7 @@ const client = generateClient<Schema>();
 
 export class PermissionService {
   private userPermissionsCache: Map<string, string[]> = new Map();
+  private userRolesCache: Map<string, string[]> = new Map();
   private cacheExpiry: Map<string, number> = new Map();
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
@@ -47,8 +48,8 @@ export class PermissionService {
   async hasRole(role: string): Promise<boolean> {
     try {
       const currentUser = await getCurrentUser();
-      const user = await this.getUserProfile(currentUser.userId);
-      return user?.roles?.includes(role) || false;
+      const userRoles = await this.getUserRoles(currentUser.userId);
+      return userRoles.includes(role);
     } catch (error) {
       console.error("Error checking role:", error);
       return false;
@@ -73,17 +74,15 @@ export class PermissionService {
         return [];
       }
 
-      // Combine direct permissions with role-based permissions
-      const directPermissions = (user.permissions || []).filter(
-        Boolean
-      ) as string[];
-      const rolePermissions = await this.getRolePermissions(
-        (user.roles || []).filter(Boolean) as string[]
-      );
+      // Get user's roles through UserRole relationships
+      const userRoles = await this.getUserRoles(cognitoUserId);
 
-      const allPermissions = [
-        ...new Set([...directPermissions, ...rolePermissions]),
-      ];
+      // Get permissions from roles
+      const rolePermissions = await this.getRolePermissions(userRoles);
+
+      // Note: Direct permissions on User are removed since we're using relationship-based roles
+      // If you still want direct permissions on users, you can add them back here
+      const allPermissions = [...new Set([...rolePermissions])];
 
       // Cache the result
       this.userPermissionsCache.set(cognitoUserId, allPermissions);
@@ -92,6 +91,60 @@ export class PermissionService {
       return allPermissions;
     } catch (error) {
       console.error("Error getting user permissions:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Get all roles for a user through UserRole relationships
+   */
+  async getUserRoles(cognitoUserId: string): Promise<string[]> {
+    // Check cache first
+    const cached = this.userRolesCache.get(cognitoUserId);
+    const cacheTime = this.cacheExpiry.get(cognitoUserId);
+
+    if (cached && cacheTime && Date.now() < cacheTime) {
+      return cached;
+    }
+
+    try {
+      const user = await this.getUserProfile(cognitoUserId);
+      if (!user || !user.isActive) {
+        return [];
+      }
+
+      // Get UserRole relationships for this user
+      const { data: userRoles } = await client.models.UserRole.list({
+        filter: { userId: { eq: user.id } },
+      });
+
+      if (!userRoles || userRoles.length === 0) {
+        return [];
+      }
+
+      // Get role names by fetching each role
+      const rolePromises = userRoles.map(async (userRole) => {
+        if (userRole.roleId) {
+          const { data: roleData } = await client.models.Role.get({
+            id: userRole.roleId,
+          });
+          return roleData?.name || null;
+        }
+        return null;
+      });
+
+      const roleNames = await Promise.all(rolePromises);
+      const validRoleNames = roleNames.filter(
+        (name): name is string => name !== null
+      );
+
+      // Cache the result
+      this.userRolesCache.set(cognitoUserId, validRoleNames);
+      this.cacheExpiry.set(cognitoUserId, Date.now() + this.CACHE_DURATION);
+
+      return validRoleNames;
+    } catch (error) {
+      console.error("Error getting user roles:", error);
       return [];
     }
   }
@@ -140,33 +193,50 @@ export class PermissionService {
   }
 
   /**
-   * Admin: Assign role to user
+   * Admin: Assign role to user through UserRole relationship
    */
-  async assignRoleToUser(userId: string, role: string): Promise<boolean> {
+  async assignRoleToUser(userId: string, roleName: string): Promise<boolean> {
     try {
-      const { data: user } = await client.models.User.get({ id: userId });
-      if (!user) throw new Error("User not found");
+      // Find the role by name
+      const { data: roles } = await client.models.Role.list({
+        filter: { name: { eq: roleName } },
+      });
 
-      const currentRoles = user.roles || [];
-      if (currentRoles.includes(role)) {
+      if (!roles || roles.length === 0) {
+        throw new Error(`Role '${roleName}' not found`);
+      }
+
+      const role = roles[0];
+
+      // Check if user already has this role
+      const { data: existingUserRoles } = await client.models.UserRole.list({
+        filter: {
+          and: [{ userId: { eq: userId } }, { roleId: { eq: role.id } }],
+        },
+      });
+
+      if (existingUserRoles && existingUserRoles.length > 0) {
         return true; // Already has role
       }
 
-      const updatedRoles = [...currentRoles, role];
-      const { errors } = await client.models.User.update({
-        id: userId,
-        roles: updatedRoles,
-        updatedAt: new Date().toISOString(),
+      // Create the UserRole relationship
+      const { errors } = await client.models.UserRole.create({
+        userId: userId,
+        roleId: role.id,
+        assignedAt: new Date().toISOString(),
+        assignedBy: "admin",
       });
 
       if (errors?.length) {
         throw new Error(`Failed to assign role: ${errors[0].message}`);
       }
 
-      // Clear cache
-      if (user.cognitoUserId) {
+      // Clear cache for this user
+      const { data: user } = await client.models.User.get({ id: userId });
+      if (user?.cognitoUserId) {
         this.clearUserCache(user.cognitoUserId);
       }
+
       return true;
     } catch (error) {
       console.error("Error assigning role:", error);
@@ -175,30 +245,48 @@ export class PermissionService {
   }
 
   /**
-   * Admin: Remove role from user
+   * Admin: Remove role from user through UserRole relationship
    */
-  async removeRoleFromUser(userId: string, role: string): Promise<boolean> {
+  async removeRoleFromUser(userId: string, roleName: string): Promise<boolean> {
     try {
-      const { data: user } = await client.models.User.get({ id: userId });
-      if (!user) throw new Error("User not found");
-
-      const currentRoles = user.roles || [];
-      const updatedRoles = currentRoles.filter((r) => r !== role);
-
-      const { errors } = await client.models.User.update({
-        id: userId,
-        roles: updatedRoles,
-        updatedAt: new Date().toISOString(),
+      // Find the role by name
+      const { data: roles } = await client.models.Role.list({
+        filter: { name: { eq: roleName } },
       });
 
-      if (errors?.length) {
-        throw new Error(`Failed to remove role: ${errors[0].message}`);
+      if (!roles || roles.length === 0) {
+        throw new Error(`Role '${roleName}' not found`);
       }
 
-      // Clear cache
-      if (user.cognitoUserId) {
+      const role = roles[0];
+
+      // Find the UserRole relationship
+      const { data: userRoles } = await client.models.UserRole.list({
+        filter: {
+          and: [{ userId: { eq: userId } }, { roleId: { eq: role.id } }],
+        },
+      });
+
+      if (!userRoles || userRoles.length === 0) {
+        return true; // Already removed
+      }
+
+      // Delete the UserRole relationship(s)
+      for (const userRole of userRoles) {
+        const { errors } = await client.models.UserRole.delete({
+          id: userRole.id,
+        });
+        if (errors?.length) {
+          throw new Error(`Failed to remove role: ${errors[0].message}`);
+        }
+      }
+
+      // Clear cache for this user
+      const { data: user } = await client.models.User.get({ id: userId });
+      if (user?.cognitoUserId) {
         this.clearUserCache(user.cognitoUserId);
       }
+
       return true;
     } catch (error) {
       console.error("Error removing role:", error);
@@ -207,48 +295,73 @@ export class PermissionService {
   }
 
   /**
-   * Admin: Grant permission directly to user
+   * Admin: Update all roles for a user (used by the admin interface)
    */
-  async grantPermissionToUser(
+  async updateUserRoles(
     userId: string,
-    permission: string
+    newRoleNames: string[]
   ): Promise<boolean> {
     try {
-      const { data: user } = await client.models.User.get({ id: userId });
-      if (!user) throw new Error("User not found");
-
-      const currentPermissions = user.permissions || [];
-      if (currentPermissions.includes(permission)) {
-        return true; // Already has permission
-      }
-
-      const updatedPermissions = [...currentPermissions, permission];
-      const { errors } = await client.models.User.update({
-        id: userId,
-        permissions: updatedPermissions,
-        updatedAt: new Date().toISOString(),
+      // Get current roles
+      const { data: currentUserRoles } = await client.models.UserRole.list({
+        filter: { userId: { eq: userId } },
       });
 
-      if (errors?.length) {
-        throw new Error(`Failed to grant permission: ${errors[0].message}`);
+      // Get all available roles to map names to IDs
+      const { data: allRoles } = await client.models.Role.list();
+      const roleMap = new Map(
+        allRoles?.map((role) => [role.name, role.id]) || []
+      );
+
+      // Convert new role names to role IDs
+      const newRoleIds = newRoleNames
+        .map((roleName) => roleMap.get(roleName))
+        .filter((roleId): roleId is string => roleId !== undefined);
+
+      // Get current role IDs for comparison
+      const currentRoleIds = currentUserRoles?.map((ur) => ur.roleId) || [];
+
+      // Remove roles that are no longer assigned
+      const rolesToRemove =
+        currentUserRoles?.filter((ur) => !newRoleIds.includes(ur.roleId)) || [];
+
+      for (const userRole of rolesToRemove) {
+        await client.models.UserRole.delete({ id: userRole.id });
       }
 
-      // Clear cache
-      if (user.cognitoUserId) {
+      // Add new roles that weren't previously assigned
+      const rolesToAdd = newRoleIds.filter(
+        (roleId) => !currentRoleIds.includes(roleId)
+      );
+
+      for (const roleId of rolesToAdd) {
+        await client.models.UserRole.create({
+          userId: userId,
+          roleId: roleId,
+          assignedAt: new Date().toISOString(),
+          assignedBy: "admin",
+        });
+      }
+
+      // Clear cache for this user
+      const { data: user } = await client.models.User.get({ id: userId });
+      if (user?.cognitoUserId) {
         this.clearUserCache(user.cognitoUserId);
       }
+
       return true;
     } catch (error) {
-      console.error("Error granting permission:", error);
+      console.error("Error updating user roles:", error);
       throw error;
     }
   }
 
   /**
-   * Clear user permission cache
+   * Clear user permission and role cache
    */
   clearUserCache(cognitoUserId: string): void {
     this.userPermissionsCache.delete(cognitoUserId);
+    this.userRolesCache.delete(cognitoUserId);
     this.cacheExpiry.delete(cognitoUserId);
   }
 
@@ -257,6 +370,7 @@ export class PermissionService {
    */
   clearAllCaches(): void {
     this.userPermissionsCache.clear();
+    this.userRolesCache.clear();
     this.cacheExpiry.clear();
   }
 
@@ -286,6 +400,43 @@ export class PermissionService {
       return data;
     } catch (error) {
       console.error("Error getting permissions:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Get user's roles with full role objects (useful for admin interfaces)
+   */
+  async getUserRolesWithDetails(userId: string): Promise<any[]> {
+    try {
+      // Get UserRole relationships for this user
+      const { data: userRoles } = await client.models.UserRole.list({
+        filter: { userId: { eq: userId } },
+      });
+
+      if (!userRoles || userRoles.length === 0) {
+        return [];
+      }
+
+      // Get full role details
+      const rolePromises = userRoles.map(async (userRole) => {
+        if (userRole.roleId) {
+          const { data: roleData } = await client.models.Role.get({
+            id: userRole.roleId,
+          });
+          return {
+            ...roleData,
+            assignedAt: userRole.assignedAt,
+            assignedBy: userRole.assignedBy,
+          };
+        }
+        return null;
+      });
+
+      const roles = await Promise.all(rolePromises);
+      return roles.filter((role): role is any => role !== null);
+    } catch (error) {
+      console.error("Error getting user roles with details:", error);
       return [];
     }
   }

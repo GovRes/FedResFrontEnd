@@ -155,6 +155,7 @@ export function PermissionGuard({
   let loading = false;
 
   if (role) {
+    console.log("Checking role:", role);
     hasAccess = roleCheck.hasRole;
     loading = roleCheck.loading;
   } else if (permission) {

@@ -82,8 +82,10 @@ export class UserCreationService {
 
         console.log("✅ Updated existing user with new Cognito ID");
 
-        // Ensure the user has the default role
-        await this.ensureUserHasDefaultRole(updatedUser.id);
+        if (updatedUser) {
+          // Ensure the user has the default role
+          await this.ensureUserHasDefaultRole(updatedUser.id);
+        }
 
         return updatedUser;
       }
@@ -148,10 +150,10 @@ export class UserCreationService {
       }
 
       console.log("✅ User created successfully:", newUser);
-
-      // Assign default role to the new user
-      await this.assignDefaultRole(newUser.id);
-
+      if (newUser) {
+        // Assign default role to the new user
+        await this.assignDefaultRole(newUser.id);
+      }
       return newUser;
     } catch (error) {
       console.error("❌ Error in ensureUserExists:", error);

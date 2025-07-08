@@ -3,6 +3,7 @@ import { useAuthenticator } from "@aws-amplify/ui-react";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import AdminNavigation from "./components/AdminNavigation";
+import { PermissionGuard } from "@/lib/hooks/usePermissions";
 
 export default function ProfileLayout({
   children,
@@ -19,8 +20,10 @@ export default function ProfileLayout({
 
   return (
     <div className="content-container">
-      <AdminNavigation currentPath={pathname} />
-      <div className="tab-content">{children}</div>
+      <PermissionGuard role="admin" fallback={<div>Access denied</div>}>
+        <AdminNavigation currentPath={pathname} />
+        <div className="tab-content">{children}</div>
+      </PermissionGuard>
     </div>
   );
 }
