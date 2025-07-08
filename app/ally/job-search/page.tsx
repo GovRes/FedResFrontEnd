@@ -16,13 +16,28 @@ export default function JobSearchPage() {
     context.user,
     context.authStatus,
   ]);
-
+  console.log(19, user?.signInDetails?.loginId);
   useEffect(() => {
     async function getUserAttributes() {
       if (authStatus === "authenticated") {
         const attr = await fetchUserAttributes();
         setSearchObject((prev: JobSearchObject | null) =>
-          prev ? { ...prev, user: attr } : { user: attr }
+          prev
+            ? {
+                ...prev,
+                user: {
+                  ...attr,
+                  id: user.userId,
+                  email: user?.signInDetails?.loginId || "no email",
+                },
+              }
+            : {
+                user: {
+                  ...attr,
+                  id: user.userId,
+                  email: user?.signInDetails?.loginId || "no email",
+                },
+              }
         );
       }
     }

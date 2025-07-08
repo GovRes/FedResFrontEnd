@@ -39,7 +39,7 @@ export interface UserUpdateData {
   militarySpouse?: boolean | null;
   veteran?: boolean | null;
   groups?: string[];
-  isActive?: boolean;
+  isActive?: boolean | null;
 }
 
 // Type for admin operations

@@ -190,7 +190,7 @@ export function toUserTypeFromCognito(
 
   return {
     birthdate: anyItem.birthdate || anyItem["custom:birthdate"] || null,
-    email: anyItem.email || null,
+    email: anyItem.email,
     familyName: anyItem.family_name || anyItem["custom:family_name"] || null,
     givenName: anyItem.given_name || anyItem["custom:given_name"] || null,
     gender: anyItem.gender || anyItem["custom:gender"] || null,
