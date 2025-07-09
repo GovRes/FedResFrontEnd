@@ -13,13 +13,6 @@ export async function sendMessages({
   name: string;
   useVision?: boolean;
 }) {
-  console.log(
-    "Sending messages to OpenAI API:",
-    messages,
-    name,
-    "Vision:",
-    useVision
-  );
   const res = await fetch("/api/ai", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -27,13 +20,6 @@ export async function sendMessages({
   });
 
   const text = await res.text();
-
-  // Debug log the raw response
-  console.log("Raw API response:", {
-    status: res.status,
-    statusText: res.statusText,
-    text: text,
-  });
 
   if (!res.ok) {
     try {
@@ -46,8 +32,7 @@ export async function sendMessages({
 
   try {
     const data: Record<string, any> = JSON.parse(text);
-    // Log the parsed data structure
-    console.log("Parsed response data:", data);
+
     return data;
   } catch (error) {
     console.error("JSON parse error:", error);

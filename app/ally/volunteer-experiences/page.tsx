@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import InitialReview from "@/app/components/ally/InitialReview";
 import { PastJobType } from "@/app/utils/responseSchemas";
-import { TextBlinkLoader } from "@/app/components/loader/Loader";
+import { Loader } from "@/app/components/loader/Loader";
 import { listUserModelRecords } from "@/app/crud/genericListForUser";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { useApplication } from "@/app/providers/applicationContext";
@@ -46,7 +46,7 @@ export default function volunteersPage() {
   }, [JSON.stringify(localPastJobs)]);
 
   if (loading) {
-    return <TextBlinkLoader text="fetching your saved volunteer experiences" />;
+    return <Loader text="fetching your saved volunteer experiences" />;
   }
 
   return (

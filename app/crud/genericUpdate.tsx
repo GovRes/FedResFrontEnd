@@ -19,7 +19,7 @@ export async function updateModelRecord(
 
   // Validate the model name
   validateModelName(modelName);
-  console.log(input);
+
   try {
     // Add the ID to the input object
     const updateInput = {

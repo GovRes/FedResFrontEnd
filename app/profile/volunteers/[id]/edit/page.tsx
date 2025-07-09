@@ -1,5 +1,5 @@
 "use client";
-import { TextBlinkLoader } from "@/app/components/loader/Loader";
+import { Loader } from "@/app/components/loader/Loader";
 import { updateModelRecord } from "@/app/crud/genericUpdate";
 import { fetchModelRecord } from "@/app/crud/genericFetch";
 import PastJobForm from "@/app/profile/components/components/PastJobForm";
@@ -73,7 +73,7 @@ export default function EditPastJobPage({
   }, []);
 
   if (loading) {
-    return <TextBlinkLoader text="loading volunteer experience data" />;
+    return <Loader text="loading volunteer experience data" />;
   }
   if (!loading && formData) {
     return (

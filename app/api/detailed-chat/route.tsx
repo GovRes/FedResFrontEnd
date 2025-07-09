@@ -21,18 +21,13 @@ let lastInstructions: string = "";
 // Helper function to check for active runs and cancel if needed
 async function checkAndHandleActiveRuns(threadId: string) {
   try {
-    console.log("Checking for active runs...");
     const runs = await openai.beta.threads.runs.list(threadId);
     const activeRun = runs.data.find((run) =>
       ["queued", "in_progress", "requires_action"].includes(run.status)
     );
 
     if (activeRun) {
-      console.log(
-        `Found active run ${activeRun.id} with status ${activeRun.status}. Cancelling...`
-      );
       await openai.beta.threads.runs.cancel(threadId, activeRun.id);
-      console.log(`Cancelled run ${activeRun.id}`);
 
       // Brief delay to ensure cancellation is processed
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -46,12 +41,9 @@ async function checkAndHandleActiveRuns(threadId: string) {
 }
 
 export async function POST(req: Request) {
-  console.log("=== POST REQUEST RECEIVED ===");
-
   try {
     // Parse the request body
     const body = await req.json();
-    console.log("Request body:", body);
 
     const {
       assistantInstructions,
@@ -63,7 +55,6 @@ export async function POST(req: Request) {
 
     // Create or update the assistant
     if (!assistantInstance) {
-      console.log("Creating new assistant...");
       assistantInstance = await openai.beta.assistants.create({
         name: assistantName,
         instructions: assistantInstructions,
@@ -90,18 +81,8 @@ export async function POST(req: Request) {
         ],
       });
       lastInstructions = assistantInstructions;
-      console.log("Assistant created:", assistantInstance.id);
     } else if (lastInstructions !== assistantInstructions) {
       // Instructions have changed - update the assistant
-      console.log("Instructions changed, updating assistant...");
-      console.log(
-        "Old instructions preview:",
-        lastInstructions.substring(0, 100) + "..."
-      );
-      console.log(
-        "New instructions preview:",
-        assistantInstructions.substring(0, 100) + "..."
-      );
 
       assistantInstance = await openai.beta.assistants.update(
         assistantInstance.id,
@@ -110,7 +91,6 @@ export async function POST(req: Request) {
         }
       );
       lastInstructions = assistantInstructions;
-      console.log("Assistant updated with new instructions");
     } else {
       console.log("Using existing assistant with same instructions");
     }
@@ -120,12 +100,10 @@ export async function POST(req: Request) {
     let isNewThread = false;
 
     if (!threadId) {
-      console.log("Creating new thread...");
       const thread = await openai.beta.threads.create({});
       threadId = thread.id;
       isNewThread = true;
       paragraphStore[threadId] = ""; // Initialize empty paragraph for this thread
-      console.log("New thread created:", threadId);
 
       // Add initial assistant message for new threads
       if (initialMessage) {
@@ -141,7 +119,6 @@ export async function POST(req: Request) {
 
     // Add the user message to the thread if provided
     if (message) {
-      console.log("Adding user message:", message);
       await openai.beta.threads.messages.create(threadId, {
         role: "user",
         content: message, // This should be a string with the user's message
@@ -149,15 +126,12 @@ export async function POST(req: Request) {
     }
 
     // Create a run
-    console.log("Creating run with assistant:", assistantInstance.id);
     const run = await openai.beta.threads.runs.create(threadId, {
       assistant_id: assistantInstance.id,
     });
-    console.log("Run created:", run.id);
 
     // Poll for the run to complete (with timeout)
     let runResult = await openai.beta.threads.runs.retrieve(threadId, run.id);
-    console.log("Initial run status:", runResult.status);
 
     const startTime = Date.now();
     const TIMEOUT_MS = 30000; // 30 seconds timeout
@@ -171,7 +145,6 @@ export async function POST(req: Request) {
         runResult.status === "requires_action" &&
         runResult.required_action?.type === "submit_tool_outputs"
       ) {
-        console.log("Run requires action...");
         const toolCalls =
           runResult.required_action.submit_tool_outputs.tool_calls;
 
@@ -182,7 +155,6 @@ export async function POST(req: Request) {
               const args = JSON.parse(toolCall.function.arguments);
               const paragraphText = args.paragraph;
 
-              console.log("paragraph generated:", paragraphText);
               paragraphStore[threadId] = paragraphText; // Store the paragraph for this specific thread
 
               toolOutputs.push({
@@ -203,7 +175,6 @@ export async function POST(req: Request) {
 
         // Submit tool outputs
         if (toolOutputs.length > 0) {
-          console.log("Submitting tool outputs");
           runResult = await openai.beta.threads.runs.submitToolOutputs(
             threadId,
             run.id,
@@ -215,9 +186,8 @@ export async function POST(req: Request) {
 
       // Wait a bit before checking again
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log("Checking run status...");
+
       runResult = await openai.beta.threads.runs.retrieve(threadId, run.id);
-      console.log("Updated run status:", runResult.status);
     }
 
     // Check if we timed out
@@ -225,7 +195,6 @@ export async function POST(req: Request) {
       Date.now() - startTime >= TIMEOUT_MS &&
       !["completed", "failed"].includes(runResult.status)
     ) {
-      console.log("Run timed out");
       return Response.json({
         threadId,
         timedOut: true,
@@ -235,14 +204,12 @@ export async function POST(req: Request) {
     }
 
     // Get the messages from the thread
-    console.log("Fetching messages...");
     const messages = await openai.beta.threads.messages.list(threadId);
 
     // Get the latest assistant message
     const assistantMessages = messages.data.filter(
       (msg) => msg.role === "assistant"
     );
-    console.log(`Found ${assistantMessages.length} assistant messages`);
 
     let responseText = "";
     if (assistantMessages.length > 0) {
@@ -264,13 +231,6 @@ export async function POST(req: Request) {
       isNewThread,
       runStatus: runResult.status,
     };
-
-    console.log("Sending response:", {
-      threadId: response.threadId,
-      messagePreview: response.message.substring(0, 100) + "...",
-      paragraph: response.paragraph ? "Generated" : "None",
-      runStatus: response.runStatus,
-    });
 
     return Response.json(response);
   } catch (error: unknown) {

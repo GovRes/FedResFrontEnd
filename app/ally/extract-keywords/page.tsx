@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { TextBlinkLoader } from "@/app/components/loader/Loader";
+import { Loader } from "@/app/components/loader/Loader";
 import { useApplication } from "@/app/providers/applicationContext";
 import { jobDescriptionKeywordFinder } from "@/app/components/aiProcessing/jobDescriptionKeywordFinder";
 import { topicsCategorizer } from "@/app/components/aiProcessing/topicCategorizer";
@@ -74,9 +74,7 @@ export default function ExtractKeywords() {
     navigateToNextIncompleteStep("extract-keywords");
   }
   if (loading) {
-    return (
-      <TextBlinkLoader text="finding and sorting keywords from job description" />
-    );
+    return <Loader text="finding and sorting keywords from job description" />;
   }
   //tk make a cool animation where the words are everywhere and then they get sorted.
   if (!topics) {

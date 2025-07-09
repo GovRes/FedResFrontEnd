@@ -30,7 +30,6 @@ export default function PastJobDetailsPage() {
               item,
               item.qualifications
             );
-            console.log("Updated PastJob:", updateRes);
           })
         );
       }

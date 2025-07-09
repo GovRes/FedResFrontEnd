@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { TextBlinkLoader } from "@/app/components/loader/Loader";
+import { Loader } from "@/app/components/loader/Loader";
 import { useApplication } from "@/app/providers/applicationContext";
 import { getApplicationAssociations } from "@/app/crud/application";
 import { PastJobType } from "@/app/utils/responseSchemas";
@@ -26,7 +26,6 @@ export default function ExperiencePage({
   // Check if the past-job-details step is complete
   const isPastJobDetailsStepComplete =
     steps.find((step) => step.id === "past-job-details")?.completed || false;
-  console.log(22);
   useEffect(() => {
     async function fetchJobsAndRedirect() {
       if (!applicationId) {
@@ -42,7 +41,6 @@ export default function ExperiencePage({
           associationType: "PastJob",
         })) as PastJobType[];
         const pastJobs = pastJobsRes.filter((job) => job.type === type);
-        console.log(pastJobsRes, 30, type);
 
         // Store jobs in state for the job list view
         setPastJobs(pastJobs);
@@ -59,7 +57,6 @@ export default function ExperiencePage({
 
         // If no jobs, move to the next step
         if (!pastJobs || pastJobs.length === 0) {
-          console.log("no jobs");
           navigateToNextIncompleteStep(currentStepId);
           return;
         }
@@ -68,15 +65,12 @@ export default function ExperiencePage({
         const jobWithUnconfirmedQuals = pastJobs.find((job) =>
           job.qualifications?.some((qual) => !qual.userConfirmed)
         );
-        console.log(70, jobWithUnconfirmedQuals);
         if (jobWithUnconfirmedQuals) {
-          console.log(63);
           // Redirect to the job with unconfirmed qualifications
           router.push(`/ally/${currentStepId}/${jobWithUnconfirmedQuals.id}`);
         } else {
           // If the step is not complete but all qualifications are confirmed,
           // we can move to the next step
-          console.log(71);
           if (!isPastJobDetailsStepComplete) {
             navigateToNextIncompleteStep(currentStepId);
           } else {
@@ -101,7 +95,7 @@ export default function ExperiencePage({
 
   // If still loading
   if (loading) {
-    return <TextBlinkLoader text="Finding job experience details..." />;
+    return <Loader text="Finding job experience details..." />;
   }
 
   // If there's an error

@@ -87,7 +87,6 @@ export const Email = ({ name }: { name: string }) => {
     <>
       <input
         autoFocus
-        className="invalid:bg-red-200 invalid:text-red-800"
         name={name}
         onChange={handleEmailChange}
         type="email"
@@ -96,7 +95,7 @@ export const Email = ({ name }: { name: string }) => {
       {error && (
         <div>
           {" "}
-          <p className="error">{error}</p>
+          <p>{error}</p>
         </div>
       )}
     </>
@@ -364,7 +363,6 @@ export const Url = ({ name }: { name: string }) => {
     <>
       <input
         autoFocus
-        className="invalid:bg-red-200 invalid:text-red-800"
         name={name}
         onChange={handleUrlChange}
         type="url"

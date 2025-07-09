@@ -48,9 +48,9 @@ export default function UsaJobsNoResults({
           }
         </p>
       )}
-      {(searchObject.user["custom:veteran"] ||
-        searchObject.user["custom:disabled"] ||
-        searchObject.user["custom:militarySpouse"]) && (
+      {(searchObject.user.veteran ||
+        searchObject.user.disabled ||
+        searchObject.user.militarySpouse) && (
         <div>
           <div>
             Additionally, we filtered based on the following information you
@@ -58,13 +58,11 @@ export default function UsaJobsNoResults({
             <Link href="/profile">update your profile</Link> and search again.
           </div>
           <ul>
-            {searchObject.user["custom:veteran"] && <li>You are a veteran</li>}
-            {searchObject.user["custom:militarySpouse"] && (
+            {searchObject.user.veteran && <li>You are a veteran</li>}
+            {searchObject.user.militarySpouse && (
               <li>You are a military spouse</li>
             )}
-            {searchObject.user["custom:disabled"] && (
-              <li>You have a disability</li>
-            )}
+            {searchObject.user.disabled && <li>You have a disability</li>}
           </ul>
         </div>
       )}

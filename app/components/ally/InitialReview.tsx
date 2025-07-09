@@ -9,7 +9,7 @@ import ReviewItemsList from "./ReviewItemsList";
 import { completeSteps } from "@/app/utils/stepUpdater";
 import { associateItemsWithApplication } from "@/app/crud/application";
 import { useApplication } from "@/app/providers/applicationContext";
-import { TextBlinkLoader } from "../loader/Loader";
+import { Loader } from "../loader/Loader";
 import SkipItems from "./SkipItems";
 import { useNextStepNavigation } from "@/app/utils/nextStepNavigation";
 
@@ -71,7 +71,7 @@ export default function InitialReview<
     }
   };
 
-  if (loading) return <TextBlinkLoader text={`Saving ${itemType}s`} />;
+  if (loading) return <Loader text={`Saving ${itemType}s`} />;
   if (items.length === 0) {
     return <SkipItems currentStepId={currentStepId} itemType={itemType} />;
   }

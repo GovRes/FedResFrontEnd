@@ -12,7 +12,7 @@ import EducationExperienceItem from "./components/EducationItem";
 import { fetchUserAttributes } from "aws-amplify/auth";
 import styles from "./resume.module.css";
 import { useAuthenticator } from "@aws-amplify/ui-react";
-import { TextBlinkLoader } from "@/app/components/loader/Loader";
+import { Loader } from "@/app/components/loader/Loader";
 import AwardItem from "./components/AwardItem";
 import { getApplicationAssociations } from "@/app/crud/application";
 import { useApplication } from "@/app/providers/applicationContext";
@@ -97,7 +97,7 @@ export default function ReturnResume() {
   }, [applicationId]);
 
   if (loading || !attr) {
-    return <TextBlinkLoader text="pulling user profile info" />;
+    return <Loader text="pulling user profile info" />;
   }
   return (
     <div>

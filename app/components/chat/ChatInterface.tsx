@@ -106,7 +106,6 @@ export default function ChatInterface() {
 
   // Initialize with welcome message
   useEffect(() => {
-    console.log(currentItem);
     if (currentItem && !isInFeedbackMode) {
       let initialMessage = "";
 

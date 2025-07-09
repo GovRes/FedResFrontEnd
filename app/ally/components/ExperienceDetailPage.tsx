@@ -3,7 +3,7 @@ import React, { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { EditableParagraphProvider } from "@/app/providers/editableParagraphContext";
 import ChatLayout from "@/app/components/chat/ChatLayout";
-import { TextBlinkLoader } from "@/app/components/loader/Loader";
+import { Loader } from "@/app/components/loader/Loader";
 import { useApplication } from "@/app/providers/applicationContext";
 import { getApplicationAssociations } from "@/app/crud/application";
 import { updatePastJobWithQualifications } from "@/app/crud/pastJob";
@@ -71,10 +71,8 @@ export default function ExperienceDetailPage({
           applicationId: applicationId,
           associationType: "PastJob",
         })) as PastJobType[];
-        console.log(pastJobs);
         // 2. Find the specific job by ID
         const job = pastJobs.find((j) => j.id === id);
-        console.log("77", job?.qualifications);
         if (job) {
           // 3. Ensure qualifications is properly formatted
           const formattedJob: PastJobType = {
@@ -182,7 +180,7 @@ export default function ExperienceDetailPage({
 
   // Display loading state
   if (loading) {
-    return <TextBlinkLoader text="Loading job experience details" />;
+    return <Loader text="Loading job experience details" />;
   }
 
   // If no past job found

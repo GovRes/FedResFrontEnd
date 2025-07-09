@@ -14,7 +14,7 @@ import {
   travelPercentage,
 } from "@/app/utils/usaJobsCodes";
 import { JobSearchObject } from "@/app/utils/responseSchemas";
-import { TextBlinkLoader } from "@/app/components/loader/Loader";
+import { Loader } from "@/app/components/loader/Loader";
 
 import { delayAllyChat } from "@/app/utils/allyChat";
 import { usaJobsSearch } from "@/app/utils/usaJobsSearch";
@@ -92,7 +92,7 @@ export default function UsaJobsSearch({
 
   let { allyFormattedGraphs, delay } = delayAllyChat({ allyStatements });
   if (loading) {
-    return <TextBlinkLoader text="Searching USA jobs..." />;
+    return <Loader text="Searching USA jobs..." />;
   }
   return (
     <div>

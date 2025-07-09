@@ -15,7 +15,6 @@ import {
 } from "@/app/utils/responseSchemas";
 
 export async function POST(req: NextRequest) {
-  console.log(18, "POST request received");
   const apiKey = process.env.OPENAI_API_KEY;
   const assistantId = process.env.OPEN_AI_ASSISTANT_ID;
 
@@ -40,14 +39,11 @@ export async function POST(req: NextRequest) {
 
   type SchemaKey = keyof typeof schemas;
   const schemaName = data.name as SchemaKey;
-  console.log(43, schemaName);
   const selectedSchema = schemas[schemaName];
-  console.log(37, selectedSchema, schemaName);
   if (!selectedSchema) {
     console.error(`Invalid schema name: ${data.name}`);
     return new Response(`Invalid schema name: ${data.name}`, { status: 400 });
   }
-  console.log(49, selectedSchema, schemaName);
 
   try {
     // Choose model based on whether we're using vision
@@ -64,7 +60,6 @@ export async function POST(req: NextRequest) {
       return new Response("Invalid response from OpenAI", { status: 500 });
     }
     const message = completion.choices[0]?.message;
-    console.log(62, message);
     if (message?.parsed) {
       return new Response(JSON.stringify(message.parsed), { status: 200 });
     } else {

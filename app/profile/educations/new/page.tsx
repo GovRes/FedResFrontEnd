@@ -2,7 +2,7 @@
 import { useState } from "react";
 import EducationForm from "../components/EducationForm";
 import { EducationType } from "@/app/utils/responseSchemas";
-import { TextBlinkLoader } from "@/app/components/loader/Loader";
+import { Loader } from "@/app/components/loader/Loader";
 import { useRouter } from "next/navigation";
 import { createModelRecord } from "@/app/crud/genericCreate";
 import { useAuthenticator } from "@aws-amplify/ui-react";
@@ -49,7 +49,7 @@ export default function NewAwardPage() {
   };
 
   if (loading) {
-    return <TextBlinkLoader text="loading volunteer data" />;
+    return <Loader text="loading volunteer data" />;
   }
   return (
     <div>
