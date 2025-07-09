@@ -12,6 +12,7 @@ button.negative {
   margin: 0 auto;
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   place-content: flex-start;
   gap: 20px;
   font-family: system-ui, sans-serif;
@@ -47,6 +48,14 @@ button.negative {
   padding: 0 10px;
 }
 
+.chatBox {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 25px;
+  flex: 1; /* <------------------- required */
+  overflow-y: auto; /* <---------- required */
+}
 .formButtons {
   display: flex;
   gap: 10px;
@@ -54,6 +63,20 @@ button.negative {
 }
 .noResultsContainer {
 }
+
+.detailedListEditorContainer {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.detailedListEditorContent {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  align-items: flex-start;
+}
+
 .qualificationEditorContainer {
   display: flex;
   flex-direction: row;
@@ -101,6 +124,11 @@ button.negative {
   list-style-type: disc;
 }
 
+.qualificationEditorMapItemHeader {
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
 .qualificationEditorAllyChat {
   flex: 3;
 }
@@ -118,6 +146,17 @@ button.negative {
   width: 100%;
   border-collapse: collapse;
   margin: 25px 0;
+}
+
+.stepItem {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background-color: var(--blue-dark);
+  border: 1px solid var(--blue-med);
+  color: var(--white);
 }
 
 .tableContainer {

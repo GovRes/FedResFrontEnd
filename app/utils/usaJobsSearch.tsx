@@ -1,13 +1,12 @@
 import axios from "axios";
-import { MatchedObjectDescriptor } from "../components/ally/usaJobsComponents/UsaJobsResults";
-import { JobSearchObject } from "../components/ally/usaJobsComponents/UsaJobsSearch";
-
+import { Result } from "@/app/ally/job-search/results/components/UsaJobsResults";
+import { JobSearchObject } from "./responseSchemas";
 var host = "data.usajobs.gov";
 var userAgent = process.env.USA_JOBS_EMAIL;
 var authKey = process.env.USA_JOBS_API_KEY;
 const instance = axios.create({
   baseURL: "https://data.usajobs.gov/api/",
-  timeout: 10000,
+  timeout: 100000,
   headers: {
     Host: host,
     "User-Agent": userAgent,
@@ -41,7 +40,6 @@ export async function usaJobsSearch({
   travelPercentage,
   user,
 }: JobSearchObject) {
-  console.log(user);
   const hiringPath = constructHiringPath({ user });
   try {
     const response = await instance.get("search", {
@@ -61,21 +59,23 @@ export async function usaJobsSearch({
     });
     return response.data.SearchResult.SearchResultItems;
   } catch (error) {
-    console.log(error);
+    console.error(error);
     throw error;
   }
 }
 
-export function formatJobDescription({
-  job,
-}: {
-  job: MatchedObjectDescriptor;
-}) {
+export function formatJobDescription({ job }: { job: Result }) {
   return {
-    title: job.PositionTitle,
-    department: job.DepartmentName,
-    evaluationCriteria: job.UserArea.Details.Evaluations,
-    duties: job.UserArea.Details.MajorDuties.join("; "),
-    agencyDescription: job.UserArea.Details.AgencyMarketingStatement,
+    agencyDescription:
+      job.MatchedObjectDescriptor.UserArea.Details.AgencyMarketingStatement,
+    department: job.MatchedObjectDescriptor.DepartmentName,
+    duties: job.MatchedObjectDescriptor.UserArea.Details.MajorDuties.join("; "),
+    evaluationCriteria:
+      job.MatchedObjectDescriptor.UserArea.Details.Evaluations,
+    qualificationsSummary: job.MatchedObjectDescriptor.QualificationSummary,
+    requiredDocuments:
+      job.MatchedObjectDescriptor.UserArea.Details.RequiredDocuments,
+    title: job.MatchedObjectDescriptor.PositionTitle,
+    usaJobsId: job.MatchedObjectId,
   };
 }

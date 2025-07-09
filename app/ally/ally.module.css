@@ -1,0 +1,8 @@
+.outlet {
+  padding: 0 0 0 2rem;
+  flex: 1;
+}
+.sidebar {
+  padding: 10px 25px 10px 10px;
+  flex: 0 0 20%;
+}

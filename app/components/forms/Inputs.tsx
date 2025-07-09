@@ -87,7 +87,6 @@ export const Email = ({ name }: { name: string }) => {
     <>
       <input
         autoFocus
-        className="invalid:bg-red-200 invalid:text-red-800"
         name={name}
         onChange={handleEmailChange}
         type="email"
@@ -96,7 +95,7 @@ export const Email = ({ name }: { name: string }) => {
       {error && (
         <div>
           {" "}
-          <p className="error">{error}</p>
+          <p>{error}</p>
         </div>
       )}
     </>
@@ -105,24 +104,28 @@ export const Email = ({ name }: { name: string }) => {
 export const Number = ({
   name,
   onChange,
+  value,
 }: {
   name: string;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  value: number | undefined;
 }) => {
-  return <input name={name} type="number" onChange={onChange} />;
+  return <input name={name} type="number" onChange={onChange} value={value} />;
 };
 export const NumberWithLabel = ({
   label,
   name,
   onChange,
+  value,
 }: {
   label: string;
   name: string;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  value: number | undefined;
 }) => {
   return (
     <span>
-      {label}: <Number name={name} onChange={onChange} />
+      {label}: <Number name={name} onChange={onChange} value={value} />
     </span>
   );
 };
@@ -227,30 +230,71 @@ export const SubmitButton = ({
 export const Text = ({
   name,
   onChange,
+  value,
 }: {
   name: string;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  value: string | undefined;
 }) => {
-  return <input autoFocus name={name} type="text" onChange={onChange} />;
+  return <input name={name} type="text" onChange={onChange} value={value} />;
 };
 export const TextWithLabel = ({
   label,
   name,
   onChange,
+  value,
 }: {
   label: string;
   name: string;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  value: string | undefined;
 }) => {
   return (
     <div>
-      <div>{label}:</div> <Text name={name} onChange={onChange} />
+      <div>{label}:</div> <Text name={name} onChange={onChange} value={value} />
     </div>
   );
 };
 
-export const TextArea = ({ name }: { name: string }) => {
-  return <textarea autoFocus cols={100} name={name} rows={30} />;
+export const TextArea = ({
+  name,
+  value,
+  onChange,
+}: {
+  name: string;
+  value: string | undefined;
+  onChange: (e: ChangeEvent<HTMLTextAreaElement>) => void;
+}) => {
+  return (
+    <textarea
+      autoFocus
+      cols={100}
+      name={name}
+      rows={30}
+      value={value}
+      onChange={onChange}
+    />
+  );
+};
+
+export const TextAreaWithLabel = ({
+  label,
+  name,
+  onChange,
+  value,
+}: {
+  label: string;
+  name: string;
+  onChange: (e: ChangeEvent<HTMLTextAreaElement>) => void;
+  value: string | undefined;
+}) => {
+  return (
+    <div>
+      <div>{label}:</div>
+
+      <TextArea name={name} value={value} onChange={onChange} />
+    </div>
+  );
 };
 export const ToggleWithLabel = ({
   label,
@@ -319,7 +363,6 @@ export const Url = ({ name }: { name: string }) => {
     <>
       <input
         autoFocus
-        className="invalid:bg-red-200 invalid:text-red-800"
         name={name}
         onChange={handleUrlChange}
         type="url"
