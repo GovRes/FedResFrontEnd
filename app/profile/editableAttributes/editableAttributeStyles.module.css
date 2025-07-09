@@ -1,0 +1,56 @@
+input[type="text"].attributeText {
+  width: fit-content;
+}
+input[type="email"].attributeEmail {
+  width: fit-content;
+}
+select.attributeSelect {
+  width: fit-content;
+  background-color: purple;
+}
+.editableContainer {
+  display: flex;
+  margin-top: 20px;
+}
+
+.attributeTitle {
+  font-weight: bold;
+  margin-right: 10px;
+}
+
+.attributeForm {
+  display: flex;
+  justify-content: space-between;
+  gap: 30px;
+}
+
+.attributeIcon {
+  padding: 10px;
+}
+
+button[type="submit"].submitButton {
+  background-color: var(--green-light);
+  border: 1px solid var(--green-dark);
+  border-radius: 4px;
+  color: var(--green-med);
+  display: flex;
+  align-items: center;
+}
+
+button[type="submit"].submitButton:hover {
+  color: var(--green-dark);
+  background-color: var(--white);
+}
+
+.cancelButton {
+  background-color: var(--red-light);
+  border: 1px solid var(--red-dark);
+  border-radius: 4px;
+  color: var(--red-med);
+  display: flex;
+  align-items: center;
+}
+.cancelButton:hover {
+  color: var(--red-dark);
+  background-color: var(--white);
+}

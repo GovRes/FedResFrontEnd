@@ -1,7 +1,7 @@
 .login {
-  @media only screen and (min-width: 768px){
-      margin-top: 700px;
-      margin-left: -300px;
+  @media only screen and (min-width: 768px) {
+    margin-top: 70px;
+    margin-left: -300px;
   }
 }
 .navLink {
