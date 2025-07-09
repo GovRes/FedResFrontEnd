@@ -11,10 +11,6 @@ export default function UserList() {
     deactivateUserWithNotification,
     reactivateUserWithNotification,
   } = useUserOperations();
-
-  // Debug: Log when component re-renders and current user count
-  console.log("UserList rendered with", allUsers.length, "users");
-
   useEffect(() => {
     loadAllUsers();
   }, [loadAllUsers]);

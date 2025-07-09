@@ -191,14 +191,12 @@ export default function ResumeUploader({
 
       try {
         resumeImages = await convertPdfToImages(localResume!);
-        console.log("Converted resume to", resumeImages.length, "images");
       } catch (imageError) {
-        console.log(
+        console.error(
           "Image conversion failed, falling back to text extraction:",
           imageError
         );
         resumeText = await processResumeToString(localResume!);
-        console.log("Extracted text length:", resumeText.length);
       }
 
       const [awardsResult, educationResult, pastJobsResult, volunteersResult] =
@@ -215,10 +213,9 @@ export default function ResumeUploader({
         pastJobsResult &&
         volunteersResult
       ) {
-        console.log("Resume processing complete");
       }
     } catch (error) {
-      console.log("Resume processing error:", error);
+      console.error("Resume processing error:", error);
     } finally {
       setLoading(false);
     }
@@ -231,8 +228,6 @@ export default function ResumeUploader({
         throw new Error("Could not get file URL");
       }
 
-      console.log("Fetching PDF from:", fileUrl.toString());
-
       // Fetch the PDF
       const response = await fetch(fileUrl.toString());
       if (!response.ok) {
@@ -244,8 +239,6 @@ export default function ResumeUploader({
       // Load PDF document
       const pdf = await pdfjsLib.getDocument({ data: pdfArrayBuffer }).promise;
       const images: string[] = [];
-
-      console.log(`PDF has ${pdf.numPages} pages`);
 
       // Convert each page to canvas, then to image
       for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
@@ -271,8 +264,6 @@ export default function ResumeUploader({
         // Convert canvas to base64 image
         const imageDataUrl = canvas.toDataURL("image/png", 0.95);
         images.push(imageDataUrl);
-
-        console.log(`Converted page ${pageNum}/${pdf.numPages}`);
       }
 
       return images;

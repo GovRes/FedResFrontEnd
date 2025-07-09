@@ -10,7 +10,6 @@ export function useCurrentUser() {
   const [error, setError] = useState<string | null>(null);
 
   const updateProfile = async (updates: UserUpdateData): Promise<boolean> => {
-    console.log("Updating profile with data:", updates);
     try {
       setError(null);
       const success = await userManagementService.updateCurrentUserProfile(
@@ -37,7 +36,7 @@ export function useCurrentUser() {
       setLoading(true);
       setError(null);
       const userProfile = await userManagementService.getCurrentUserProfile();
-      console.log(39, userProfile);
+
       setProfile(userProfile);
     } catch (err) {
       const errorMessage =

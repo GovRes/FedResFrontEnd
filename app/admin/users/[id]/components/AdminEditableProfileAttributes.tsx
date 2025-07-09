@@ -24,7 +24,6 @@ export default function AdminEditableProfileAttributes({
 }: AdminEditableProfileAttributesProps) {
   const [currentlyEditing, setCurrentlyEditing] = useState<string | null>(null);
   const { roleOptions, loading: rolesLoading, error: rolesError } = useRoles();
-  console.log(rolesLoading, rolesError, roleOptions);
   if (rolesLoading) {
     return (
       <div>
@@ -43,9 +42,9 @@ export default function AdminEditableProfileAttributes({
   }
 
   return (
-    <div className="admin-profile-editor">
+    <div>
       <h2>Edit User Profile (Admin)</h2>
-      <div className="profile-fields">
+      <div>
         <AdminEditableAttributeStringField
           attributeKey="givenName"
           currentlyEditing={currentlyEditing}
@@ -144,18 +143,6 @@ export default function AdminEditableProfileAttributes({
           setCurrentlyEditing={setCurrentlyEditing}
         />
       </div>
-
-      {/* Debug info in development */}
-      {process.env.NODE_ENV === "development" && (
-        <div className="mt-4 p-2 bg-gray-100 text-xs">
-          <strong>Debug:</strong> Currently editing:{" "}
-          {currentlyEditing || "none"}
-          <br />
-          <strong>Profile ID:</strong> {profile.id}
-          <br />
-          <strong>Cognito ID:</strong> {profile.owner}
-        </div>
-      )}
     </div>
   );
 }

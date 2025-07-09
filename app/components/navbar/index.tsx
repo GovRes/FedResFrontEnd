@@ -60,15 +60,6 @@ export const Navbar = () => {
     }
   };
 
-  console.log(
-    "🔍 Navbar render - authStatus:",
-    authStatus,
-    "user:",
-    !!user,
-    "showLogin:",
-    showLogin
-  );
-
   return (
     <header>
       <nav>

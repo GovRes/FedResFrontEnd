@@ -44,8 +44,6 @@ export const useUserOperations = () => {
       setAllUsers((prevUsers) =>
         prevUsers.filter((user) => user.id !== userId)
       );
-
-      console.log("User deleted successfully:", deletedUser);
     } catch (error) {
       console.error("Error deleting user:", error);
       throw error;
@@ -73,8 +71,6 @@ export const useUserOperations = () => {
             : user
         )
       );
-
-      console.log("User deactivated successfully:", updatedUser);
     } catch (error) {
       console.error("Error deactivating user:", error);
       throw error;
@@ -101,8 +97,6 @@ export const useUserOperations = () => {
             : user
         )
       );
-
-      console.log("User reactivated successfully:", updatedUser);
     } catch (error) {
       console.error("Error reactivating user:", error);
       throw error;

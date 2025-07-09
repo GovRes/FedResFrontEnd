@@ -14,7 +14,7 @@ const client = generateClient<Schema>();
 // Helper type for safe string arrays
 type SafeStringArray = string[] | null | undefined;
 
-export class UserManagementService {
+class UserManagementService {
   // Helper method to safely convert nullable arrays
   private safeStringArray(nullableArray: any): SafeStringArray {
     if (!nullableArray) return null;
@@ -33,13 +33,11 @@ export class UserManagementService {
   async getCurrentUserProfile(): Promise<UserProfile | null> {
     try {
       const currentUser = await getCurrentUser();
-      console.log(41, currentUser);
 
       // Filter by cognitoUserId to find the current user
       const { data } = await client.models.User.list({
         filter: { cognitoUserId: { eq: currentUser.userId } },
       });
-      console.log(44, data);
 
       if (!data || data.length === 0) {
         return null;
@@ -62,7 +60,6 @@ export class UserManagementService {
         gender: user.gender,
         militarySpouse: user.militarySpouse,
         veteran: user.veteran,
-        groups: this.safeStringArray(user.groups),
         isActive: user.isActive,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
@@ -95,7 +92,6 @@ export class UserManagementService {
             "gender",
             "militarySpouse",
             "veteran",
-            "groups",
             "isActive",
             "createdAt",
             "updatedAt",
@@ -127,7 +123,6 @@ export class UserManagementService {
         gender: userData.gender,
         militarySpouse: userData.militarySpouse,
         veteran: userData.veteran,
-        groups: this.safeStringArray(userData.groups),
         roles: userRoles,
         isActive: userData.isActive,
         createdAt: userData.createdAt,
@@ -182,13 +177,6 @@ export class UserManagementService {
           militarySpouse: updates.militarySpouse,
         }),
         ...(updates.veteran !== undefined && { veteran: updates.veteran }),
-        ...(updates.groups !== undefined && {
-          groups: Array.isArray(updates.groups)
-            ? updates.groups.filter(
-                (item): item is string => typeof item === "string"
-              )
-            : updates.groups,
-        }),
         ...(updates.isActive !== undefined && { isActive: updates.isActive }),
       };
 
@@ -210,19 +198,10 @@ export class UserManagementService {
   }
   async updateUserRoles(userId: string, newRoles: string[]): Promise<void> {
     try {
-      console.log(
-        "🔄 Starting role update for user:",
-        userId,
-        "new roles:",
-        newRoles
-      );
-
       // Get current UserRole relationships for this user
       const { data: currentUserRoles } = await client.models.UserRole.list({
         filter: { userId: { eq: userId } },
       });
-
-      console.log("📋 Current user roles:", currentUserRoles);
 
       // Get all available roles to map names to IDs
       const { data: allRoles } = await client.models.Role.list();
@@ -230,26 +209,19 @@ export class UserManagementService {
         allRoles?.map((role) => [role.name, role.id]) || []
       );
 
-      console.log("🗺️ Role name to ID mapping:", Object.fromEntries(roleMap));
-
       // Convert new role names to role IDs
       const newRoleIds = newRoles
         .map((roleName) => roleMap.get(roleName))
         .filter((roleId): roleId is string => roleId !== undefined);
 
-      console.log("🆔 New role IDs:", newRoleIds);
-
       // Get current role IDs for comparison
       const currentRoleIds = currentUserRoles?.map((ur) => ur.roleId) || [];
-
-      console.log("📊 Current role IDs:", currentRoleIds);
 
       // Remove roles that are no longer assigned
       const rolesToRemove =
         currentUserRoles?.filter((ur) => !newRoleIds.includes(ur.roleId)) || [];
 
       for (const userRole of rolesToRemove) {
-        console.log("🗑️ Removing role relationship:", userRole.id);
         await client.models.UserRole.delete({ id: userRole.id });
       }
 
@@ -259,7 +231,6 @@ export class UserManagementService {
       );
 
       for (const roleId of rolesToAdd) {
-        console.log("➕ Adding role relationship for role ID:", roleId);
         await client.models.UserRole.create({
           userId: userId,
           roleId: roleId,
@@ -267,8 +238,6 @@ export class UserManagementService {
           assignedBy: "admin", // You might want to pass the current admin's ID here
         });
       }
-
-      console.log("✅ Role update completed successfully");
     } catch (error) {
       console.error("❌ Error updating user roles:", error);
       throw new Error(
@@ -300,7 +269,6 @@ export class UserManagementService {
       });
 
       if (existingUserRoles && existingUserRoles.length > 0) {
-        console.log(`User already has role '${roleName}'`);
         return true; // Already assigned
       }
 
@@ -341,7 +309,6 @@ export class UserManagementService {
       });
 
       if (!userRoles || userRoles.length === 0) {
-        console.log(`User doesn't have role '${roleName}'`);
         return true; // Already removed
       }
 
@@ -362,7 +329,6 @@ export class UserManagementService {
   async getAllUsers(): Promise<UserProfile[]> {
     try {
       const { data } = await client.models.User.list();
-      console.log(334, data);
       // Convert Amplify models to UserProfile interfaces
       return data.map((user) => ({
         id: user.id,
@@ -379,7 +345,6 @@ export class UserManagementService {
         gender: user.gender,
         militarySpouse: user.militarySpouse,
         veteran: user.veteran,
-        groups: this.safeStringArray(user.groups),
         isActive: user.isActive,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
@@ -392,8 +357,6 @@ export class UserManagementService {
 
   async updateUser(userId: string, updates: AdminUserUpdate): Promise<boolean> {
     try {
-      console.log("🔧 Admin updating user:", userId, "with updates:", updates);
-
       // Separate roles from other user attributes
       const { roles, ...userUpdates } = updates;
 
@@ -438,19 +401,10 @@ export class UserManagementService {
           ...(userUpdates.veteran !== undefined && {
             veteran: userUpdates.veteran,
           }),
-          ...(userUpdates.groups !== undefined && {
-            groups: Array.isArray(userUpdates.groups)
-              ? userUpdates.groups.filter(
-                  (item): item is string => typeof item === "string"
-                )
-              : userUpdates.groups,
-          }),
           ...(userUpdates.isActive !== undefined && {
             isActive: userUpdates.isActive,
           }),
         };
-
-        console.log("📊 Final update data:", updateData);
 
         const { data, errors } = await client.models.User.update(updateData);
 
@@ -458,13 +412,10 @@ export class UserManagementService {
           console.error("❌ Database update errors:", errors);
           throw new Error(`Update failed: ${errors[0].message}`);
         }
-
-        console.log("✅ User updated successfully:", data);
       }
 
       // Handle role updates if provided
       if (roles !== undefined) {
-        console.log("🎭 Updating user roles:", roles);
         await this.updateUserRoles(userId, roles || []);
       }
 
@@ -552,11 +503,8 @@ export class UserManagementService {
     }
     // Only proceed if there are fields to update
     if (Object.keys(cognitoFields).length === 0) {
-      console.log("No Cognito fields to update");
       return;
     }
-
-    console.log("🔄 Syncing to Cognito:", cognitoFields);
 
     // Update each field in Cognito
     const updatePromises = Object.entries(cognitoFields).map(
@@ -565,7 +513,7 @@ export class UserManagementService {
           await updateUserAttribute({
             userAttribute: { attributeKey: key, value },
           });
-          console.log(`✅ Updated Cognito attribute ${key}`);
+
           return { key, success: true };
         } catch (error) {
           console.warn(`❌ Failed to update Cognito attribute ${key}:`, error);
@@ -578,10 +526,6 @@ export class UserManagementService {
       const results = await Promise.all(updatePromises);
       const successful = results.filter((r) => r.success);
       const failed = results.filter((r) => !r.success);
-
-      console.log(
-        `✅ Cognito sync completed: ${successful.length} successful, ${failed.length} failed`
-      );
 
       if (failed.length > 0) {
         console.warn(

@@ -16,7 +16,6 @@ export default function JobSearchPage() {
     context.user,
     context.authStatus,
   ]);
-  console.log(19, user?.signInDetails?.loginId);
   useEffect(() => {
     async function getUserAttributes() {
       if (authStatus === "authenticated") {

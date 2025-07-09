@@ -347,7 +347,6 @@ export const ApplicationProvider = ({
             }
           }
         } else {
-          console.log("Provider: No completed steps found in application");
         }
 
         // Mark data as loaded
@@ -387,7 +386,6 @@ export const ApplicationProvider = ({
     if (storedAppId) {
       setApplicationId(storedAppId);
     } else {
-      console.log("Provider: No applicationId found in sessionStorage");
     }
   }, []); // Empty dependency array - only run once on mount
 

@@ -71,10 +71,8 @@ export default function ExperienceDetailPage({
           applicationId: applicationId,
           associationType: "PastJob",
         })) as PastJobType[];
-        console.log(pastJobs);
         // 2. Find the specific job by ID
         const job = pastJobs.find((j) => j.id === id);
-        console.log("77", job?.qualifications);
         if (job) {
           // 3. Ensure qualifications is properly formatted
           const formattedJob: PastJobType = {

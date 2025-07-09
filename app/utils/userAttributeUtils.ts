@@ -1,7 +1,6 @@
 import {
   updateUserAttribute,
   getCurrentUser,
-  fetchUserAttributes,
   type FetchUserAttributesOutput,
   type UpdateUserAttributeOutput,
 } from "aws-amplify/auth";
@@ -15,7 +14,6 @@ export async function handleUpdateUserAttribute(
   attributeKey: string,
   value: string
 ) {
-  console.log(17, attributeKey, value);
   try {
     const output = await updateUserAttribute({
       userAttribute: {
@@ -39,7 +37,6 @@ export async function updateUserTypeAttribute(
   field: keyof UserType,
   value: any
 ) {
-  console.log(34, field, value);
   try {
     // Create a partial UserType with just the field we're updating
     const partialUser: Partial<UserType> = { [field]: value };
@@ -89,7 +86,6 @@ async function handleUpdateUserAttributeNextSteps(
   const { nextStep } = output;
 
   if (nextStep.updateAttributeStep === "DONE") {
-    console.log(`Attribute ${attributeKey} was successfully updated.`);
     // Sync to database since update is complete
     await syncUserAttributeToDatabase(attributeKey, value);
   } else {
@@ -131,11 +127,9 @@ async function syncUserAttributeToDatabase(
     if (existingUser.data) {
       // Update existing user with all current data
       await client.models.User.update(userTypeData);
-      console.log(`Updated user ${userId} with ${attributeKey}: ${value}`);
     } else {
       // Create new user record
       await client.models.User.create(userTypeData);
-      console.log(`Created new user ${userId} with ${attributeKey}: ${value}`);
     }
   } catch (error) {
     console.error("Error syncing to database:", error);
@@ -167,10 +161,8 @@ export async function syncAllUserAttributesToDatabase() {
 
     if (existingUser.data) {
       await client.models.User.update(userTypeData);
-      console.log(`Synced all attributes for user ${userId}`);
     } else {
       await client.models.User.create(userTypeData);
-      console.log(`Created user ${userId} with all attributes`);
     }
 
     return "200";
@@ -310,7 +302,6 @@ export function toCognitoUserFormat(
   if (userType.fedEmploymentStatus) {
     result["custom:fedEmploymentStatus"] = userType.fedEmploymentStatus;
   }
-  console.log(result);
   return result;
 }
 

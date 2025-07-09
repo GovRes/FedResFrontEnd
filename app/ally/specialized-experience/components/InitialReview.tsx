@@ -74,7 +74,6 @@ export default function InitialReview({}: // setReviewing,
       !specializedExperiences ||
       (specializedExperiences.length === 0 && applicationId)
     ) {
-      console.log("No specialized experiences found, fetching...");
       completeAndMoveOn();
     }
   }, [applicationId]);

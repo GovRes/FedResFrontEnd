@@ -19,7 +19,6 @@ export default function EditableProfileAttributes({
   attributes: UserType;
   updateProfile: (updates: Partial<UserType>) => Promise<boolean>;
 }) {
-  console.log("Current attributes:", attributes);
   const [currentlyEditing, setCurrentlyEditing] = useState<string | null>(null);
   return (
     <div>

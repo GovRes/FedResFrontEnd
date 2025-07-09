@@ -19,7 +19,6 @@ export interface UserProfile {
   militarySpouse?: boolean | null;
   roles?: string[] | null; // Array of role names
   veteran?: boolean | null;
-  groups?: SafeStringArray;
   isActive?: boolean | null;
   createdAt?: string | null;
   updatedAt?: string | null;
@@ -38,7 +37,6 @@ export interface UserUpdateData {
   gender?: string | null;
   militarySpouse?: boolean | null;
   veteran?: boolean | null;
-  groups?: string[];
   isActive?: boolean | null;
 }
 

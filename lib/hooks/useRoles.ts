@@ -5,7 +5,7 @@ import { useRole } from "./usePermissions";
 
 const client = generateClient<Schema>();
 
-export interface Role {
+interface Role {
   id: string;
   name: string;
   displayName: string;
@@ -26,8 +26,6 @@ export function useRoles() {
         const response = await client.models.Role.list({
           filter: { isActive: { eq: true } },
         });
-        console.log("Fetched roles:", response.data);
-
         if (response.data) {
           let roleData = response.data.map((role) => ({
             id: role.id,
@@ -42,13 +40,6 @@ export function useRoles() {
           if (!roleCheckLoading) {
             if (!hasRole) {
               roleData = roleData.filter((role) => role.name !== "super_admin");
-              console.log(
-                "Filtered out super_admin role - user doesn't have super_admin permissions"
-              );
-            } else {
-              console.log(
-                "User has super_admin role - showing all roles including super_admin"
-              );
             }
           }
 

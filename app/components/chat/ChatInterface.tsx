@@ -106,7 +106,6 @@ export default function ChatInterface() {
 
   // Initialize with welcome message
   useEffect(() => {
-    console.log(currentItem);
     if (currentItem && !isInFeedbackMode) {
       let initialMessage = "";
 
@@ -419,7 +418,7 @@ export default function ChatInterface() {
                 <button
                   type="submit"
                   disabled={isLoading || !input.trim()}
-                  className="submit-button"
+                  className={styles.submitButton}
                 >
                   {isLoading ? "Sending..." : "Send"}
                 </button>
@@ -452,7 +451,7 @@ export default function ChatInterface() {
           <div className={styles.manualEditActions}>
             <button
               onClick={() => setEditMode("chat")}
-              className="cancel-button"
+              className={styles.cancelButton}
             >
               {isEditingExistingParagraph ? "Cancel" : "Back to Chat"}
             </button>

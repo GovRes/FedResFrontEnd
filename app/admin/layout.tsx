@@ -14,8 +14,7 @@ export default function ProfileLayout({
   const pathname = usePathname();
   const router = useRouter();
 
-  if (authStatus === "configuring")
-    return <div className="content">Loading...</div>;
+  if (authStatus === "configuring") return <div>Loading...</div>;
   if (authStatus !== "authenticated") router.push("/?login=true");
 
   return (

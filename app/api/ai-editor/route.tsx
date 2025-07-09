@@ -16,18 +16,14 @@ let assistantInstance:
   | null = null;
 
 export async function POST(req: Request) {
-  console.log("=== POST REQUEST RECEIVED ===");
-
   try {
     // Parse the request body
     const body = await req.json();
-    console.log("Request body:", body);
 
     const { initialMessage, message, threadId: existingThreadId } = body;
 
     // Create or get the assistant
     if (!assistantInstance) {
-      console.log("Creating new assistant...");
       assistantInstance = await openai.beta.assistants.create({
         name: "Federal Resume Editor",
         instructions: `You helped the user write a paragraph. They have some requested changes. Edit the paragraph based on their changes. You can ask follow up questions if you need to. When you are ready to edit the paragraph, you MUST call the function "provideEditedParagraph" and pass an edited version of the original paragraph, using only details provided by the user, as a parameter
@@ -58,7 +54,6 @@ export async function POST(req: Request) {
           },
         ],
       });
-      console.log("Assistant created:", assistantInstance.id);
     }
 
     // Create or use an existing thread
@@ -66,11 +61,9 @@ export async function POST(req: Request) {
     let isNewThread = false;
 
     if (!threadId) {
-      console.log("Creating new thread...");
       const thread = await openai.beta.threads.create({});
       threadId = thread.id;
       isNewThread = true;
-      console.log("New thread created:", threadId);
 
       // Add initial assistant message for new threads
       await openai.beta.threads.messages.create(threadId, {
@@ -81,7 +74,6 @@ export async function POST(req: Request) {
 
     // Add the user message to the thread if provided
     if (message) {
-      console.log("Adding user message:", message);
       await openai.beta.threads.messages.create(threadId, {
         role: "user",
         content: message,
@@ -89,15 +81,12 @@ export async function POST(req: Request) {
     }
 
     // Create a run
-    console.log("Creating run with assistant:", assistantInstance.id);
     const run = await openai.beta.threads.runs.create(threadId, {
       assistant_id: assistantInstance.id,
     });
-    console.log("Run created:", run.id);
 
     // Poll for the run to complete (with timeout)
     let runResult = await openai.beta.threads.runs.retrieve(threadId, run.id);
-    console.log("Initial run status:", runResult.status);
 
     const startTime = Date.now();
     const TIMEOUT_MS = 30000; // 30 seconds timeout
@@ -111,7 +100,6 @@ export async function POST(req: Request) {
         runResult.status === "requires_action" &&
         runResult.required_action?.type === "submit_tool_outputs"
       ) {
-        console.log("Run requires action...");
         const toolCalls =
           runResult.required_action.submit_tool_outputs.tool_calls;
 
@@ -122,7 +110,6 @@ export async function POST(req: Request) {
               const args = JSON.parse(toolCall.function.arguments);
               const paragraphText = args.paragraph;
 
-              console.log("paragraph generated:", paragraphText);
               paragraphStore = paragraphText; // Store the paragraph
 
               toolOutputs.push({
@@ -143,7 +130,6 @@ export async function POST(req: Request) {
 
         // Submit tool outputs
         if (toolOutputs.length > 0) {
-          console.log("Submitting tool outputs");
           runResult = await openai.beta.threads.runs.submitToolOutputs(
             threadId,
             run.id,
@@ -155,9 +141,7 @@ export async function POST(req: Request) {
 
       // Wait a bit before checking again
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log("Checking run status...");
       runResult = await openai.beta.threads.runs.retrieve(threadId, run.id);
-      console.log("Updated run status:", runResult.status);
     }
 
     // Check if we timed out
@@ -165,7 +149,6 @@ export async function POST(req: Request) {
       Date.now() - startTime >= TIMEOUT_MS &&
       !["completed", "failed"].includes(runResult.status)
     ) {
-      console.log("Run timed out");
       return Response.json({
         threadId,
         timedOut: true,
@@ -175,14 +158,12 @@ export async function POST(req: Request) {
     }
 
     // Get the messages from the thread
-    console.log("Fetching messages...");
     const messages = await openai.beta.threads.messages.list(threadId);
 
     // Get the latest assistant message
     const assistantMessages = messages.data.filter(
       (msg) => msg.role === "assistant"
     );
-    console.log(`Found ${assistantMessages.length} assistant messages`);
 
     let responseText = "";
     if (assistantMessages.length > 0) {
@@ -204,13 +185,6 @@ export async function POST(req: Request) {
       isNewThread,
       runStatus: runResult.status,
     };
-
-    console.log("Sending response:", {
-      threadId: response.threadId,
-      messagePreview: response.message.substring(0, 100) + "...",
-      paragraph: response.paragraph ? "Generated" : "None",
-      runStatus: response.runStatus,
-    });
 
     return Response.json(response);
   } catch (error: unknown) {

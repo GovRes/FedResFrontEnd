@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  permissionService,
-  PERMISSIONS,
-} from "@/lib/services/PermissionService";
+import { permissionService } from "@/lib/services/PermissionService";
 
 /**
  * Hook to check if user has specific permission
@@ -113,20 +110,6 @@ export function useUserPermissions() {
 }
 
 /**
- * Predefined permission hooks for common use cases
- */
-export const useIsAdmin = () => useRole("admin");
-export const useIsModerator = () => useRole("moderator");
-export const useIsRecruiter = () => useRole("recruiter");
-
-export const useCanManageUsers = () => usePermission(PERMISSIONS.USER_ADMIN);
-export const useCanCreateJobs = () => usePermission(PERMISSIONS.JOB_CREATE);
-export const useCanApproveApplications = () =>
-  usePermission(PERMISSIONS.APPLICATION_APPROVE);
-export const useCanAccessAdminPanel = () =>
-  usePermission(PERMISSIONS.ADMIN_PANEL);
-
-/**
  * Component wrapper for permission-based rendering
  */
 interface PermissionGuardProps {
@@ -155,7 +138,6 @@ export function PermissionGuard({
   let loading = false;
 
   if (role) {
-    console.log("Checking role:", role);
     hasAccess = roleCheck.hasRole;
     loading = roleCheck.loading;
   } else if (permission) {
@@ -182,38 +164,3 @@ export function PermissionGuard({
 
   return <>{children}</>;
 }
-
-// Usage examples:
-/*
-// Check single permission
-const { hasPermission, loading } = usePermission(PERMISSIONS.USER_CREATE);
-
-// Check multiple permissions (any)
-const { hasPermission } = useAnyPermission([
-  PERMISSIONS.USER_CREATE, 
-  PERMISSIONS.USER_UPDATE
-]);
-
-// Check role
-const { hasRole } = useRole('admin');
-
-// Predefined hooks
-const { hasRole: isAdmin } = useIsAdmin();
-const { hasPermission: canManageUsers } = useCanManageUsers();
-
-// Component usage
-<PermissionGuard permission={PERMISSIONS.USER_CREATE}>
-  <CreateUserButton />
-</PermissionGuard>
-
-<PermissionGuard role="admin" fallback={<div>Access denied</div>}>
-  <AdminPanel />
-</PermissionGuard>
-
-<PermissionGuard 
-  permissions={[PERMISSIONS.USER_CREATE, PERMISSIONS.USER_UPDATE]}
-  fallback={<div>You need user management permissions</div>}
->
-  <UserManagementPanel />
-</PermissionGuard>
-*/

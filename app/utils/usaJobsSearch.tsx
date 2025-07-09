@@ -59,7 +59,7 @@ export async function usaJobsSearch({
     });
     return response.data.SearchResult.SearchResultItems;
   } catch (error) {
-    console.log(error);
+    console.error(error);
     throw error;
   }
 }

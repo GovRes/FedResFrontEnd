@@ -4,7 +4,7 @@ import type { Schema } from "@/amplify/data/resource";
 
 const client = generateClient<Schema>();
 
-export class UserCreationService {
+class UserCreationService {
   /**
    * Check if current user exists in database, create if not
    * Call this when user first logs in to your app
@@ -15,10 +15,6 @@ export class UserCreationService {
       const currentUser = await getCurrentUser();
       const attributes = await fetchUserAttributes();
 
-      console.log("🔍 Checking if user exists in database...");
-      console.log("👤 Cognito User ID:", currentUser.userId);
-      console.log("📧 Email:", attributes.email || currentUser.username);
-
       // Check BOTH by Cognito ID AND by email to prevent any duplicates
       const userEmail = attributes.email || currentUser.username;
 
@@ -28,7 +24,6 @@ export class UserCreationService {
       });
 
       if (existingUsersByCognito && existingUsersByCognito.length > 0) {
-        console.log("✅ User already exists in database (by Cognito ID)");
         return existingUsersByCognito[0];
       }
 
@@ -38,9 +33,6 @@ export class UserCreationService {
       });
 
       if (existingUsersByEmail && existingUsersByEmail.length > 0) {
-        console.log("⚠️ Found user with same email but different Cognito ID");
-        console.log("🔄 Updating existing user's Cognito ID...");
-
         const existingUser = existingUsersByEmail[0];
 
         // Update the existing user's Cognito ID
@@ -80,8 +72,6 @@ export class UserCreationService {
           throw new Error(`Failed to update user: ${errors[0].message}`);
         }
 
-        console.log("✅ Updated existing user with new Cognito ID");
-
         if (updatedUser) {
           // Ensure the user has the default role
           await this.ensureUserHasDefaultRole(updatedUser.id);
@@ -89,9 +79,6 @@ export class UserCreationService {
 
         return updatedUser;
       }
-
-      // User doesn't exist, create them
-      console.log("🔧 Creating new user in database...");
 
       const userData = {
         email: userEmail,
@@ -109,14 +96,11 @@ export class UserCreationService {
         ),
         veteran: this.convertToBoolean(attributes["custom:veteran"]),
         fedEmploymentStatus: attributes["custom:fed_employment_status"] || null,
-        groups: ["users"],
         cognitoUserId: currentUser.userId,
         isActive: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-
-      console.log("📋 Creating user with data:", userData);
 
       const { data: newUser, errors } = await client.models.User.create(
         userData
@@ -130,15 +114,12 @@ export class UserCreationService {
           errors[0].message.includes("duplicate") ||
           errors[0].message.includes("already exists")
         ) {
-          console.log("🔄 Race condition detected, fetching existing user...");
           // Try to fetch the user that was just created
           const { data: raceConditionUser } = await client.models.User.list({
             filter: { cognitoUserId: { eq: currentUser.userId } },
           });
 
           if (raceConditionUser && raceConditionUser.length > 0) {
-            console.log("✅ Found user created by race condition");
-
             // Ensure the user has the default role
             await this.ensureUserHasDefaultRole(raceConditionUser[0].id);
 
@@ -149,7 +130,6 @@ export class UserCreationService {
         throw new Error(`Failed to create user: ${errors[0].message}`);
       }
 
-      console.log("✅ User created successfully:", newUser);
       if (newUser) {
         // Assign default role to the new user
         await this.assignDefaultRole(newUser.id);
@@ -166,8 +146,6 @@ export class UserCreationService {
    */
   private async assignDefaultRole(userId: string): Promise<void> {
     try {
-      console.log("🎭 Assigning default 'user' role to new user:", userId);
-
       // Find the "user" role
       const { data: userRoles } = await client.models.Role.list({
         filter: { name: { eq: "user" } },
@@ -196,8 +174,6 @@ export class UserCreationService {
         // Don't throw here - user creation should still succeed even if role assignment fails
         return;
       }
-
-      console.log("✅ Successfully assigned default 'user' role to new user");
     } catch (error) {
       console.error("❌ Error in assignDefaultRole:", error);
       // Don't throw here - user creation should still succeed even if role assignment fails
@@ -209,20 +185,17 @@ export class UserCreationService {
    */
   private async ensureUserHasDefaultRole(userId: string): Promise<void> {
     try {
-      console.log("🔍 Checking if user has default role:", userId);
-
       // Check if user already has any roles
       const { data: existingUserRoles } = await client.models.UserRole.list({
         filter: { userId: { eq: userId } },
       });
 
       if (existingUserRoles && existingUserRoles.length > 0) {
-        console.log("✅ User already has roles assigned");
         return;
       }
 
       // If no roles, assign the default
-      console.log("🎭 User has no roles, assigning default 'user' role");
+
       await this.assignDefaultRole(userId);
     } catch (error) {
       console.error("❌ Error in ensureUserHasDefaultRole:", error);

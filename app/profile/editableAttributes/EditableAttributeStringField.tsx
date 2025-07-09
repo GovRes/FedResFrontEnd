@@ -48,10 +48,8 @@ export default function EditableAttributeStringField({
   }, [value]);
 
   async function submit(e: { preventDefault: () => void }) {
-    console.log("🚀 Starting update process");
-    console.log("📝 Updates to apply:", attributeKey, formValue);
     const result = await submitAttributeUpdate(e, attributeKey, formValue);
-    console.log("✅ Update result:", result);
+
     if (result) {
       // Handle error case
       console.error("Update failed:", result);

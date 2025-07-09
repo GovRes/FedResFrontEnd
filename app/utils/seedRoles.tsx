@@ -102,13 +102,11 @@ export async function seedRoles(): Promise<SeedResult> {
             role: roleData.name,
             action: "created",
           });
-          console.log(`✅ Created role: ${roleData.name}`);
         } else {
           result.details.push({
             role: roleData.name,
             action: "existed",
           });
-          console.log(`ℹ️ Role already exists: ${roleData.name}`);
         }
       } catch (error) {
         console.error(`❌ Error processing role ${roleData.name}:`, error);

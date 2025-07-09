@@ -20,7 +20,6 @@ const schema = a.schema({
       veteran: a.boolean(),
 
       // System fields
-      groups: a.string().array(),
       cognitoUserId: a.string(),
       isActive: a.boolean().default(true),
       createdAt: a.datetime(),

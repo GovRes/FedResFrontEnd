@@ -58,9 +58,6 @@ export default function AdminEditableAttributeCheckboxField({
 
   async function submit(e: { preventDefault: () => void }) {
     e.preventDefault();
-
-    console.log("🔧 Admin updating attribute:", attributeKey, "to:", formValue);
-
     setLoading(true);
 
     try {
@@ -68,13 +65,9 @@ export default function AdminEditableAttributeCheckboxField({
       const updates: AdminUserUpdate = {
         [attributeKey]: formValue.length > 0 ? formValue : null,
       };
-
-      console.log("📝 Admin update object:", updates);
-
       const success = await updateUser(updates);
 
       if (success) {
-        console.log("✅ Admin update successful");
         setCurrentlyEditing(null); // Exit edit mode
       } else {
         console.error("❌ Admin update failed");
@@ -91,7 +84,6 @@ export default function AdminEditableAttributeCheckboxField({
     value && value.length > 0
       ? value.map((key: string | number) => options[key] || key).join(", ")
       : "No roles assigned";
-  console.log("keys", options ? Object.keys(options) : "No options provided");
   return (
     <EditableAttributeContainer title={title}>
       {showEdit ? (

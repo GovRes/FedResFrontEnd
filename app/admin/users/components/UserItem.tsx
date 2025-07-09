@@ -16,9 +16,7 @@ export default function UserItem({
 }) {
   async function deleteItem() {
     try {
-      console.log("Attempting to delete user:", user.id);
       await onDelete(user.id);
-      console.log("Delete operation completed for user:", user.id);
     } catch (error) {
       console.error(`Error deleting user with ID ${user.id}:`, error);
     }
@@ -26,9 +24,7 @@ export default function UserItem({
 
   async function reactivateItem() {
     try {
-      console.log("Attempting to reactivate user:", user.id);
       await onReactivate(user.id);
-      console.log("Reactivation operation completed for user:", user.id);
     } catch (error) {
       console.error(`Error reactivating user with ID ${user.id}:`, error);
     }

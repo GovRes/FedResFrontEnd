@@ -70,7 +70,6 @@ export function useUserManagement({
   // Load a specific user by database ID
   const loadUserById = useCallback(
     async (databaseUserId: string): Promise<void> => {
-      console.log("Loading user with database ID:", databaseUserId);
       try {
         setLoading(true);
         setError(null);
@@ -81,7 +80,6 @@ export function useUserManagement({
         const userProfile = await userManagementService.getUserById(
           databaseUserId
         );
-        console.log("Loaded user profile:", userProfile);
         setProfile(userProfile);
       } catch (err) {
         const errorMessage =
@@ -99,7 +97,6 @@ export function useUserManagement({
   // Load a specific user by Cognito ID
   const loadUser = useCallback(
     async (cognitoId: string): Promise<void> => {
-      console.log("Loading user with Cognito ID:", cognitoId);
       try {
         setLoading(true);
         setError(null);
@@ -107,7 +104,6 @@ export function useUserManagement({
         setCurrentDatabaseUserId(undefined); // Clear DB ID since we're using Cognito ID
 
         const userProfile = await findUserByCognitoId(cognitoId);
-        console.log("Loaded user profile:", userProfile);
         setProfile(userProfile);
       } catch (err) {
         const errorMessage =
@@ -130,7 +126,6 @@ export function useUserManagement({
         return false;
       }
 
-      console.log("Updating user with data:", updates);
       try {
         setError(null);
         const success = await userManagementService.updateUser(
@@ -162,7 +157,6 @@ export function useUserManagement({
       return false;
     }
 
-    console.log("Deactivating user:", profile.id);
     try {
       setError(null);
       const success = await userManagementService.deactivateUser(profile.id);
@@ -216,13 +210,11 @@ export function useUserManagement({
 
   // Load all users
   const loadAllUsers = useCallback(async (): Promise<void> => {
-    console.log("Loading all users");
     try {
       setAllUsersLoading(true);
       setAllUsersError(null);
 
       const users = await userManagementService.getAllUsers();
-      console.log("Loaded all users:", users.length);
       setAllUsers(users);
     } catch (err) {
       const errorMessage =
@@ -243,7 +235,6 @@ export function useUserManagement({
   // Update any user by their database ID
   const updateAnyUser = useCallback(
     async (userId: string, updates: AdminUserUpdate): Promise<boolean> => {
-      console.log("Updating user:", userId, "with data:", updates);
       try {
         setAllUsersError(null);
         const success = await userManagementService.updateUser(userId, updates);
@@ -273,7 +264,6 @@ export function useUserManagement({
   // Deactivate any user by their database ID
   const deactivateAnyUser = useCallback(
     async (userId: string): Promise<boolean> => {
-      console.log("Deactivating user:", userId);
       try {
         setAllUsersError(null);
         const success = await userManagementService.deactivateUser(userId);

@@ -46,9 +46,6 @@ export default function AdminEditableAttributeStringField({
 
   async function submit(e: { preventDefault: () => void }) {
     e.preventDefault();
-
-    console.log("🔧 Admin updating attribute:", attributeKey, "to:", formValue);
-
     setLoading(true);
 
     try {
@@ -56,13 +53,9 @@ export default function AdminEditableAttributeStringField({
       const updates: AdminUserUpdate = {
         [attributeKey]: formValue || null,
       };
-
-      console.log("📝 Admin update object:", updates);
-
       const success = await updateUser(updates);
 
       if (success) {
-        console.log("✅ Admin update successful");
         setCurrentlyEditing(null); // Exit edit mode
       } else {
         console.error("❌ Admin update failed");

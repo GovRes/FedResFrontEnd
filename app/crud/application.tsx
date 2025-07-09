@@ -724,10 +724,6 @@ export const deleteApplication = async ({
               });
             })
           );
-
-          console.log(
-            `Deleted ${joinItems.length} ${joinTable} entries for application ${applicationId}`
-          );
         }
       })
     );
@@ -754,7 +750,6 @@ export const deleteApplication = async ({
     });
 
     if ("data" in deleteResponse) {
-      console.log(`Successfully deleted application ${applicationId}`);
       return deleteResponse.data.deleteApplication;
     }
 
