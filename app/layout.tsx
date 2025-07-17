@@ -1,7 +1,6 @@
 import { Roboto, Special_Elite } from "next/font/google";
-import App from './app'
+import App from "./app";
 import "./globals.css";
-
 
 const roboto = Roboto({
   weight: ["400", "700"],
@@ -15,8 +14,6 @@ const specialElite = Special_Elite({
   subsets: ["latin"],
   display: "swap",
 });
-
-
 
 export default function RootLayout(props: React.PropsWithChildren) {
   return (
@@ -32,7 +29,6 @@ export default function RootLayout(props: React.PropsWithChildren) {
       </head>
       <body className={`${roboto.className} ${specialElite.className}`}>
         <App children={props.children} />
-        
       </body>
     </html>
   );
