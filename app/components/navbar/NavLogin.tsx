@@ -94,7 +94,6 @@ export default function Login({
     <>
       {showAuth && (
         <div>
-          <h2>Login Component Rendered</h2>
           <Authenticator
             signUpAttributes={["email", "given_name", "family_name"]}
             components={{

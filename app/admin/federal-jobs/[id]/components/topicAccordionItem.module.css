@@ -1,0 +1,25 @@
+.accordionContent {
+  padding: 5px 5px 5px 10px;
+}
+.accordionContent ul {
+  list-style-type: circle;
+  padding-left: 20px;
+}
+.accordionItem {
+  border: 1px solid var(--blue-light);
+  padding: 5px;
+}
+.accordionTitle {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  background-color: var(--blue-light);
+  color: var(--white);
+  font-size: var(--font-size-med);
+}
+
+.active {
+  background-color: var(--grey-very-light);
+}
