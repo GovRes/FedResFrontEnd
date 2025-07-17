@@ -9,9 +9,22 @@ export default function EditableAttributes() {
   }
 
   return (
-    <EditableProfileAttributes
-      attributes={profile}
-      updateProfile={updateProfile}
-    />
+    <div>
+      <div className="info-box">
+        <div>
+          <strong>Why We Ask for This Information</strong>
+        </div>{" "}
+        <div>
+          Filling out your profile helps us show you jobs you may be eligible
+          for. If you leave out key information or don’t meet the listed
+          requirements, you won’t be considered for certain jobs—even if you
+          apply.
+        </div>
+      </div>
+      <EditableProfileAttributes
+        attributes={profile}
+        updateProfile={updateProfile}
+      />
+    </div>
   );
 }
