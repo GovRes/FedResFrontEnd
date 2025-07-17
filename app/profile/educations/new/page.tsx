@@ -17,6 +17,7 @@ export default function NewAwardPage() {
     gpa: "",
     id: "",
     major: "",
+    minor: "",
     school: "",
     schoolCity: "",
     schoolState: "",
