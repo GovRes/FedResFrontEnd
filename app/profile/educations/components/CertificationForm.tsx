@@ -14,21 +14,9 @@ export default function EducationForm({
   return (
     <>
       <TextWithLabel
-        label="Degree"
+        label="Certificate Title"
         name="degree"
         value={item?.degree || ""}
-        onChange={onChange}
-      />
-      <TextWithLabel
-        label="Major"
-        name="major"
-        value={item?.major || ""}
-        onChange={onChange}
-      />
-      <TextWithLabel
-        label="Minor"
-        name="minor"
-        value={item?.minor || ""}
         onChange={onChange}
       />
       <TextWithLabel
@@ -50,15 +38,9 @@ export default function EducationForm({
         onChange={onChange}
       />
       <TextWithLabel
-        label="Graduation Date"
+        label="Date Received"
         name="date"
         value={item?.date || ""}
-        onChange={onChange}
-      />
-      <TextWithLabel
-        label="GPA"
-        name="gpa"
-        value={item?.gpa || ""}
         onChange={onChange}
       />
     </>

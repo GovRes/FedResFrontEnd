@@ -268,6 +268,7 @@ function getFieldsForType(associationType: AssociationType): string {
       "school",
       "date",
       "title",
+      "type",
       "gpa",
       "userConfirmed",
     ],

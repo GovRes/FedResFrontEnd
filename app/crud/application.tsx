@@ -226,13 +226,14 @@ export const getApplicationAssociations = async <T extends AssociationType>({
         case "Education":
           return `
             degree
+            date
+            gpa
             major
             school
             schoolCity
             schoolState
-            date
             title
-            gpa
+            type
             userConfirmed
             userId
           `;
