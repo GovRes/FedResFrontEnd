@@ -4,7 +4,6 @@ import ExperiencesTable from "./experienceComponents/ExperiencesTable";
 import {
   AwardType,
   EducationType,
-  SpecializedExperienceType,
   QualificationType,
   PastJobType,
 } from "@/app/utils/responseSchemas";
@@ -20,7 +19,6 @@ import { pascalToDashed } from "@/app/utils/stringBuilders";
 type ExperienceItemType =
   | AwardType
   | EducationType
-  | SpecializedExperienceType
   | PastJobType
   | QualificationType;
 
