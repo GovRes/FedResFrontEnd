@@ -2,19 +2,12 @@ import {
   AwardType,
   EducationType,
   ResumeType,
-  SpecializedExperienceType,
   QualificationType,
   PastJobType,
 } from "./responseSchemas";
 
 export function generateHeadingText(
-  item:
-    | AwardType
-    | EducationType
-    | ResumeType
-    | SpecializedExperienceType
-    | PastJobType
-    | QualificationType
+  item: AwardType | EducationType | ResumeType | PastJobType | QualificationType
 ) {
   let headingText = "";
   if ("degree" in item && "school" in item) {

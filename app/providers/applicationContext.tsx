@@ -42,14 +42,6 @@ export const defaultSteps: StepsType[] = [
     path: "/job-search",
   },
   {
-    id: "specialized-experience",
-    title: "Specialized Experience",
-    description: "Add specialized experience",
-    completed: false,
-    disabled: true,
-    path: "/specialized-experience",
-  },
-  {
     id: "extract-keywords",
     title: "Extract Keywords",
     description: "Extract keywords from the job description",
@@ -104,14 +96,6 @@ export const defaultSteps: StepsType[] = [
     completed: false,
     disabled: true,
     path: "/volunteer-details",
-  },
-  {
-    id: "specialized-experience-details",
-    title: "Specialized Experience",
-    description: "get details on specialized experience",
-    completed: false,
-    disabled: true,
-    path: "/specialized-experience-details",
   },
   {
     id: "return-resume",

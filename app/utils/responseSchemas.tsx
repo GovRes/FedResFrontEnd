@@ -9,7 +9,6 @@ export type ApplicationType = {
   jobId: string;
   job: JobType;
   resumes?: ResumeType[];
-  specializedExperiences?: SpecializedExperienceType[];
   status: string;
   userId: string;
   pastJobs?: PastJobType[];
@@ -58,27 +57,6 @@ export interface JobSearchObject {
   travelPercentage?: string;
   user: UserType;
 }
-
-export const SpecializedExperience = z.object({
-  id: z.string(),
-  title: z.string(),
-  description: z.string(),
-  userConfirmed: z.boolean().optional(),
-  paragraph: z.string().optional(),
-  initialMessage: z.string(),
-  typeOfExperience: z.enum([
-    "degree",
-    "certification",
-    "license",
-    "experience",
-    "other",
-  ]),
-  userId: z.string(),
-});
-
-export const SpecializedExperienceArraySchema = z.object({
-  specializedExperiences: z.array(SpecializedExperience),
-});
 export const Topic = z.object({
   id: z.string(),
   title: z.string(),
@@ -88,8 +66,6 @@ export const Topic = z.object({
   //maybe are not needed
   evidence: z.string().optional(),
 });
-
-export type SpecializedExperienceType = z.infer<typeof SpecializedExperience>;
 
 export const TopicsArraySchema = z.object({
   topics: z.array(Topic),

@@ -8,7 +8,6 @@ import {
   Keywords,
   EducationArraySchema,
   Qualification,
-  SpecializedExperienceArraySchema,
   Topic,
   TopicsArraySchema,
   PastJobsArraySchema,
@@ -32,7 +31,6 @@ export async function POST(req: NextRequest) {
     keywords: Keywords,
     qualification: Topic,
     qualifications: Qualification,
-    specializedExperiences: SpecializedExperienceArraySchema,
     topics: TopicsArraySchema,
     pastJobs: PastJobsArraySchema,
   };
