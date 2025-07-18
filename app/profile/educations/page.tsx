@@ -8,7 +8,7 @@ export default function EducationPage() {
         <div>
           <strong>
             List any schools where you earned a diploma or degree—like high
-            school, college, or trade school.
+            school, college, or trade school. Certifications also are helpful!
           </strong>
         </div>{" "}
         <div>
