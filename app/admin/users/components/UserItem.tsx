@@ -2,7 +2,7 @@
 
 import { UserType } from "@/app/utils/userAttributeUtils";
 import { GrStarOutline, GrTrash } from "react-icons/gr";
-import Link from "next/link";
+import NavigationLink from "@/app/components/loader/NavigationLink";
 import styles from "./userTableStyles.module.css"; // Adjust the path as needed
 
 export default function UserItem({
@@ -33,9 +33,9 @@ export default function UserItem({
   return (
     <tr className={user.isActive ? `` : styles.tableRowInactive} role="row">
       <td className="tableData" role="cell">
-        <Link href={`/admin/users/${user.id}`}>
+        <NavigationLink href={`/admin/users/${user.id}`}>
           {user.givenName} {user.familyName}
-        </Link>
+        </NavigationLink>
       </td>
       <td className="tableData" role="cell">
         {user.id}

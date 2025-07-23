@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import NavigationLink from "@/app/components/loader/NavigationLink";
 import ExperiencesTable from "./experienceComponents/ExperiencesTable";
 import {
   AwardType,
@@ -94,9 +94,9 @@ export default function ExperienceDashboard({
         experienceType={experienceType}
         setItems={setItems}
       />
-      <Link href={`/profile/${pascalToDashed(experienceType)}s/new`}>
+      <NavigationLink href={`/profile/${pascalToDashed(experienceType)}s/new`}>
         <button>{buttonTextMapping[experienceType]}</button>
-      </Link>
+      </NavigationLink>
     </div>
   );
 }

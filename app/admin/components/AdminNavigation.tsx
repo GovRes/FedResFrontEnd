@@ -1,4 +1,4 @@
-import Link from "next/link";
+import NavigationLink from "@/app/components/loader/NavigationLink";
 import { useRole } from "@/lib/hooks/usePermissions";
 type NavItem = {
   id: string;
@@ -36,9 +36,9 @@ export default function AdminNavigation({
             checked={currentPath === item.path}
             readOnly
           />
-          <Link href={item.path}>
+          <NavigationLink href={item.path}>
             <label htmlFor={item.id}>{item.label}</label>
-          </Link>
+          </NavigationLink>
         </div>
       ))}
     </div>

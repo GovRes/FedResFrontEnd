@@ -10,6 +10,7 @@ import { updatePastJobWithQualifications } from "@/app/crud/pastJob";
 import { PastJobType, QualificationType } from "@/app/utils/responseSchemas";
 import { BaseItem } from "../../providers/chatContext";
 import { usePastJobDetailsStep } from "@/app/providers/useApplicationStep";
+import { useLoading } from "@/app/providers/loadingContext";
 
 export default function ExperienceDetailPage({
   assistantName,
@@ -43,6 +44,7 @@ export default function ExperienceDetailPage({
     const match = path.match(/\/past-job-details\/([^\/]+)$/);
     return match && match[1];
   };
+  const { setIsLoading } = useLoading();
 
   // Calculate if all qualifications are confirmed
   const allQualificationsConfirmed =
@@ -61,6 +63,7 @@ export default function ExperienceDetailPage({
 
       if (!id) {
         // No job ID in URL, redirect to the main page to find the next job
+        setIsLoading(true);
         router.push(`/ally/${currentStepId}`);
         return;
       }
@@ -90,6 +93,7 @@ export default function ExperienceDetailPage({
         } else {
           // Job not found - redirect to find the next job
           console.log("Job not found, redirecting");
+          setIsLoading(true);
           router.push(`/ally/${currentStepId}`);
         }
       } catch (error) {
@@ -160,6 +164,7 @@ export default function ExperienceDetailPage({
     // If we're in edit mode, we need to remove the edit=true param when navigating
     if (isEditingMode) {
       // Just go back to the past-jobs page without the edit param
+      setIsLoading(true);
       router.push(`/ally/${currentStepId}`);
       return;
     }
@@ -169,9 +174,11 @@ export default function ExperienceDetailPage({
 
     if (nextJob) {
       // Navigate to the next job that needs work
+      setIsLoading(true);
       router.push(`/ally/${currentStepId}/${nextJob.id}`);
     } else {
       // All jobs are complete, move to the next step
+      setIsLoading(true);
       router.push(`/ally/${currentStepId}`);
     }
   };

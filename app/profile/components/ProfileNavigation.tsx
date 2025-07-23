@@ -1,5 +1,4 @@
-import Link from "next/link";
-import styles from "../profileStyles.module.css";
+import NavigationLink from "@/app/components/loader/NavigationLink";
 
 type NavItem = {
   id: string;
@@ -33,9 +32,9 @@ export default function ProfileNavigation({
             checked={currentPath === item.path}
             readOnly
           />
-          <Link href={item.path}>
+          <NavigationLink href={item.path}>
             <label htmlFor={item.id}>{item.label}</label>
-          </Link>
+          </NavigationLink>
         </div>
       ))}
     </div>

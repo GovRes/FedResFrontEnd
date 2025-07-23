@@ -12,15 +12,16 @@ import { getApplicationWithJob } from "@/app/crud/application";
 import { StepsType } from "@/app/utils/responseSchemas";
 import { defaultSteps } from "@/app/providers/applicationContext";
 import { Loader } from "../components/loader/Loader";
+import { useLoading } from "../providers/loadingContext";
 
 // This component will be inside the ApplicationProvider
 function ApplicationLoader({ children }: { children: ReactNode }) {
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+  const { setIsLoading } = useLoading();
   const {
     applicationId,
-    initialRedirectComplete,
     setApplicationId,
     setInitialRedirectComplete,
     setSteps,
@@ -67,7 +68,7 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     async function loadApplicationData() {
-      setIsLoading(true);
+      setLoading(true);
 
       if (applicationId) {
         try {
@@ -92,6 +93,7 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
               );
               if (nextIncompleteStep) {
                 setInitialRedirectComplete(true);
+                setIsLoading(true);
                 router.push(`/ally${nextIncompleteStep.path}`);
                 return; // Keep loading until redirect
               }
@@ -106,19 +108,20 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
       } else if (pathname === "/ally") {
         // No application ID but on root path, redirect to first step
         setInitialRedirectComplete(true);
+        setIsLoading(true);
         router.push("/ally/job-search");
         return; // Keep loading until redirect
       }
 
       // Finished loading
-      setIsLoading(false);
+      setLoading(false);
     }
 
     loadApplicationData();
   }, [applicationId, pathname, router, setSteps, setInitialRedirectComplete]);
 
   // Loading state UI
-  if (isLoading && pathname === "/ally") {
+  if (loading && pathname === "/ally") {
     return <Loader text="Loading your application progress..." />;
   }
 
