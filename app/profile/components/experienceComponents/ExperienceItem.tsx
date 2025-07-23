@@ -6,16 +6,15 @@ import {
   QualificationType,
   PastJobType,
 } from "@/app/utils/responseSchemas";
-import styles from "./resumeStyles.module.css";
 import { GrEdit, GrTrash } from "react-icons/gr";
-import { useEffect, useState } from "react";
 import {
   generateHeadingText,
   pascalToDashed,
 } from "@/app/utils/stringBuilders";
 import { deleteModelRecord } from "@/app/crud/genericDelete";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import NavigationLink from "@/app/components/loader/NavigationLink";
+import { useLoading } from "@/app/providers/loadingContext";
 
 export default function ResumeItem({
   item,
@@ -32,6 +31,7 @@ export default function ResumeItem({
   >;
 }) {
   const router = useRouter();
+  const { setIsLoading } = useLoading();
   async function deleteItem() {
     setItems((prevItems) =>
       prevItems.filter((prevItem) => prevItem.id !== item.id)
@@ -45,15 +45,18 @@ export default function ResumeItem({
   }
 
   function editItem() {
+    setIsLoading(true);
     router.push(`/profile/${pascalToDashed(itemType)}s/${item.id}/edit`);
   }
 
   return (
     <tr>
       <td className="tableData" role="cell">
-        <Link href={`/profile/${pascalToDashed(itemType)}s/${item.id}`}>
+        <NavigationLink
+          href={`/profile/${pascalToDashed(itemType)}s/${item.id}`}
+        >
           {generateHeadingText(item)}
-        </Link>
+        </NavigationLink>
       </td>
       <td className="tableData" role="cell">
         <span onClick={editItem}>

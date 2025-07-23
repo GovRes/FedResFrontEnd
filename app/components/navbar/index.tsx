@@ -1,7 +1,7 @@
 "use client";
 import styles from "./navbarStyles.module.css";
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
+import NavigationLink from "@/app/components/loader/NavigationLink";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 
 import { IoClose, IoMenu } from "react-icons/io5";
@@ -63,66 +63,66 @@ export const Navbar = () => {
   return (
     <header>
       <nav>
-        <Link href="/" className={styles.navLogo}>
+        <NavigationLink href="/" className={styles.navLogo}>
           GovRes
-        </Link>
+        </NavigationLink>
 
         <div className={`${styles.navMenu} ${showMenu ? styles.showMenu : ""}`}>
           <ul className={styles.navList}>
             <li>
-              <Link
+              <NavigationLink
                 className={styles.navLink}
                 href="/"
                 onClick={closeMenuOnMobile}
               >
                 Home
-              </Link>
+              </NavigationLink>
             </li>
             <li>
-              <Link
+              <NavigationLink
                 className={styles.navLink}
                 href="/pricing"
                 onClick={closeMenuOnMobile}
               >
                 Pricing
-              </Link>
+              </NavigationLink>
             </li>
             <li>
-              <Link
+              <NavigationLink
                 className={styles.navLink}
                 href="/learn-more"
                 onClick={closeMenuOnMobile}
               >
                 Learn More
-              </Link>
+              </NavigationLink>
             </li>
             <li>
-              <Link
+              <NavigationLink
                 className={styles.navLink}
                 href="/about"
                 onClick={closeMenuOnMobile}
               >
                 About
-              </Link>
+              </NavigationLink>
             </li>
             <li>
-              <Link
+              <NavigationLink
                 className={styles.navLink}
                 href="/ally"
                 onClick={closeMenuOnMobile}
               >
                 Ally
-              </Link>
+              </NavigationLink>
             </li>
             {authStatus !== "configuring" && user && (
               <li>
-                <Link
+                <NavigationLink
                   className={styles.navLink}
                   href="/profile"
                   onClick={closeMenuOnMobile}
                 >
                   Profile
-                </Link>
+                </NavigationLink>
               </li>
             )}
             <li>

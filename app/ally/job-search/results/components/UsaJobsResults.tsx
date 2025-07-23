@@ -11,6 +11,7 @@ import { useApplication } from "@/app/providers/applicationContext";
 import { useNextStepNavigation } from "@/app/utils/nextStepNavigation";
 import { createOrGetJob } from "@/app/crud/job";
 import { useRouter } from "next/navigation";
+import { useLoading } from "@/app/providers/loadingContext";
 
 export interface MatchedObjectDescriptor {
   PositionTitle: string;
@@ -47,6 +48,7 @@ export default function UsaJobsResults({
 }) {
   const { setJob, setApplicationId, completeStep } = useApplication();
   const { navigateToNextIncompleteStep } = useNextStepNavigation();
+  const { setIsLoading } = useLoading();
   const { user } = useAuthenticator();
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState<boolean>(false);
@@ -59,6 +61,7 @@ export default function UsaJobsResults({
   }
 
   function returnToSearch() {
+    setIsLoading(true);
     router.push("/ally/job-search/");
   }
 

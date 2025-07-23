@@ -2,13 +2,15 @@
 import ApplicationDashboard from "../profile/applications/applicationComponents/ApplicationsDashboard";
 import { useApplication } from "../providers/applicationContext";
 import { useRouter } from "next/navigation";
+import { useLoading } from "../providers/loadingContext";
 
 export default function AllyPage() {
   const { resetApplication } = useApplication();
   const router = useRouter();
-
+  const { setIsLoading } = useLoading();
   const handleNewApplication = () => {
     resetApplication();
+    setIsLoading(true);
     router.push("/ally/job-search");
   };
 

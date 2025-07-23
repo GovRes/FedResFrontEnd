@@ -1,7 +1,6 @@
 "use client";
 import { fetchModelRecord } from "@/app/crud/genericFetch";
-import { GrEdit } from "react-icons/gr";
-import Link from "next/link";
+import NavigationLink from "@/app/components/loader/NavigationLink";
 import { use, useEffect, useState } from "react";
 import { PastJobType } from "@/app/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
@@ -31,9 +30,9 @@ export default function AwardPage({
     return (
       <div>
         <PastJobItem pastJob={volunteer} />
-        <Link href={`/profile/volunteers/${id}/edit`}>
+        <NavigationLink href={`/profile/volunteers/${id}/edit`}>
           <button>Edit Item</button>
-        </Link>
+        </NavigationLink>
       </div>
     );
   }

@@ -2,6 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useApplication } from "../providers/applicationContext";
 import { StepsType } from "../utils/responseSchemas";
+import { useLoading } from "../providers/loadingContext";
 
 /**
  * Finds the next incomplete step after the current step
@@ -54,9 +55,11 @@ export function useNextStepNavigation() {
    * @returns True if navigation was successful, false otherwise
    */
   const navigateToNextIncompleteStep = (currentStepId: string): boolean => {
+    const { setIsLoading } = useLoading();
     const nextStep = findNextIncompleteStep(steps, currentStepId);
 
     if (nextStep) {
+      setIsLoading(true);
       router.push(`/ally${nextStep.path}`);
       return true;
     } else {
