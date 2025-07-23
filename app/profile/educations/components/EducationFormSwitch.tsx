@@ -1,43 +1,56 @@
-import { EducationType } from "@/app/utils/responseSchemas";
+import { educationZodSchema } from "@/app/utils/responseSchemas";
 import BaseForm from "@/app/components/forms/BaseForm";
-import { SelectWithLabel, SubmitButton } from "@/app/components/forms/Inputs";
-import { useState } from "react";
+import {
+  SubmitButton,
+  GenericFieldWithLabel,
+} from "@/app/components/forms/Inputs";
+import { useWatch } from "react-hook-form";
 import EducationForm from "./EducationForm";
 import CertificationForm from "./CertificationForm";
 
 export default function EducationFormSwitch({
-  item,
-  onChange,
+  methods,
   onSubmit,
 }: {
-  item?: EducationType;
-  onChange: (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => void;
+  methods: any; // React Hook Form methods
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
 }) {
-  const [formType, setFormType] = useState<string | null>(item?.type || null);
-  function updateFormType(e: React.ChangeEvent<HTMLSelectElement>) {
-    setFormType(e.target.value);
-  }
+  const formType = useWatch({
+    control: methods.control,
+    name: "type",
+  });
+
   return (
     <BaseForm onSubmit={onSubmit}>
-      <SelectWithLabel
-        allowNull={true}
-        label="Type of education"
-        name="type"
-        options={{ education: "Education", certification: "Certification" }}
-        onChange={updateFormType}
-        value={item?.type || ""}
+      <GenericFieldWithLabel
+        errors={methods.formState.errors}
+        label="Degree"
+        name="degree"
+        register={methods.register}
+        schema={educationZodSchema}
       />
       {formType &&
         (formType === "education" ? (
-          <EducationForm item={item} onChange={onChange} />
+          <>
+            <EducationForm
+              errors={methods.formState.errors}
+              register={methods.register}
+            />
+            <SubmitButton disabled={!methods.formState.isValid}>
+              Submit
+            </SubmitButton>
+          </>
         ) : (
-          <CertificationForm item={item} onChange={onChange} />
+          <>
+            <CertificationForm
+              errors={methods.formState.errors}
+              register={methods.register}
+            />
+            <SubmitButton disabled={!methods.formState.isValid}>
+              Submit
+            </SubmitButton>
+          </>
         ))}
-
-      <SubmitButton type="submit">Submit</SubmitButton>
     </BaseForm>
   );
 }

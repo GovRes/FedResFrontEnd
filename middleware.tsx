@@ -15,7 +15,7 @@ export async function middleware(request: NextRequest) {
         const session = await fetchAuthSession(contextSpec, {});
         return session.tokens !== undefined;
       } catch (error) {
-        console.log(error);
+        console.error(error);
         return false;
       }
     },

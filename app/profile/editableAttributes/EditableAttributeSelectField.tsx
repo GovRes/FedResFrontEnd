@@ -1,16 +1,26 @@
 import { useEffect, useState } from "react";
-import {
-  handleUpdateUserAttribute,
-  updateUserTypeAttribute,
-  UserType,
-} from "@/app/utils/userAttributeUtils";
-import SubmitCancelButtonArray from "../../components/editableAttributes/SubmitCancelButtonArray";
-import EditButton from "../../components/editableAttributes/EditButton";
-import EditableAttributeContainer from "../../components/editableAttributes/EditableAttributeContainer";
 import styles from "./editableAttributeStyles.module.css";
+import { UserType } from "@/app/utils/userAttributeUtils";
+import EditButton from "../../components/editableAttributes/EditButton";
+import SubmitCancelButtonArray from "../../components/editableAttributes/SubmitCancelButtonArray";
+import EditableAttributeContainer from "../../components/editableAttributes/EditableAttributeContainer";
 import { useAttributeUpdate } from "@/lib/hooks/useAttributeUpdate";
 import LoadingButton from "../../components/editableAttributes/LoadingButton";
-
+import z from "zod";
+import { useForm } from "react-hook-form";
+import { GenericFieldWithLabel } from "@/app/components/forms/Inputs";
+interface EditableAttributeSelectFieldProps {
+  attributeKey: keyof UserType;
+  currentlyEditing: string | null;
+  options: Record<string, string>;
+  title: string;
+  value: string;
+  setAttributes: (updates: Partial<UserType>) => Promise<boolean>;
+  setCurrentlyEditing: (key: string | null) => void;
+}
+const selectFieldSchema = z.object({
+  value: z.string(),
+});
 export default function EditableAttributeSelectField({
   attributeKey,
   currentlyEditing,
@@ -19,26 +29,25 @@ export default function EditableAttributeSelectField({
   value,
   setAttributes,
   setCurrentlyEditing,
-}: {
-  attributeKey: keyof UserType;
-  currentlyEditing: string | null;
-  options: Record<string, string>;
-  title: string;
-  value: string;
-  setAttributes: Function;
-  setCurrentlyEditing: (key: string | null) => void;
-}) {
+}: EditableAttributeSelectFieldProps) {
   const [formValue, setFormValue] = useState(value);
-  const showEdit = currentlyEditing === attributeKey;
   const [loading, setLoading] = useState(false);
+  const showEdit = currentlyEditing === attributeKey;
   const { submitAttributeUpdate } = useAttributeUpdate(
     setAttributes,
     setCurrentlyEditing,
     setLoading
   );
-  function onChange(e: { target: { value: any } }) {
-    setFormValue(e.target.value);
-  }
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      value,
+    },
+  });
   function startEdit() {
     setCurrentlyEditing(attributeKey);
   }
@@ -47,12 +56,18 @@ export default function EditableAttributeSelectField({
     setCurrentlyEditing(null);
     setFormValue(value); // Reset form value on cancel
   }
+
   useEffect(() => {
-    setFormValue(value);
+    reset({ value });
   }, [value]);
 
-  async function submit(e: { preventDefault: () => void }) {
-    const result = await submitAttributeUpdate(e, attributeKey, formValue);
+  async function onSubmit(data: { value: string }) {
+    setLoading(true);
+    const result = await submitAttributeUpdate(
+      { preventDefault: () => {} },
+      attributeKey,
+      data.value.toString()
+    );
 
     if (result) {
       // Handle error case
@@ -60,23 +75,21 @@ export default function EditableAttributeSelectField({
     }
   }
   return (
-    <EditableAttributeContainer title={title}>
+    <EditableAttributeContainer>
+      <span className={styles.attributeTitle}>{title}: </span>
       {showEdit ? (
-        <form className={styles.attributeForm} onSubmit={submit}>
-          <select
-            defaultValue={value}
-            onChange={onChange}
-            name={attributeKey}
-            className={styles.attributeSelect}
-          >
-            {Object.keys(options).map((key) => {
-              return (
-                <option key={key} value={key}>
-                  {options[key]}
-                </option>
-              );
-            })}
-          </select>
+        <form
+          className={styles.attributeForm}
+          onSubmit={handleSubmit(onSubmit)}
+        >
+          <GenericFieldWithLabel
+            errors={errors}
+            label={title}
+            options={options}
+            name="value"
+            register={register}
+            schema={selectFieldSchema}
+          />
 
           {loading ? (
             <LoadingButton />

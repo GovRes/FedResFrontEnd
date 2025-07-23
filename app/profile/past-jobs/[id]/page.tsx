@@ -6,7 +6,7 @@ import { use, useEffect, useState } from "react";
 import { PastJobType } from "@/app/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
 import PastJobItem from "@/app/ally/return-resume/components/PastJobItem";
-export default function AwardPage({
+export default function PastJobPage({
   params,
 }: {
   params: Promise<{ id: string }>;

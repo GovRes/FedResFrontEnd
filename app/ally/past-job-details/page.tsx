@@ -26,7 +26,7 @@ export default function PastJobDetailsPage() {
         await Promise.all(
           topicRes.map(async (item: PastJobType) => {
             let updateRes = await updatePastJobWithQualifications(
-              item.id,
+              item.id!,
               item,
               item.qualifications
             );

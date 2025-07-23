@@ -1,19 +1,25 @@
 import { useEffect, useState } from "react";
 import { UserProfile, AdminUserUpdate } from "@/lib/types/user";
+import { GenericFieldWithLabel } from "@/app/components/forms/Inputs";
 import EditableAttributeContainer from "@/app/components/editableAttributes/EditableAttributeContainer";
 import SubmitCancelButtonArray from "@/app/components/editableAttributes/SubmitCancelButtonArray";
 import EditButton from "@/app/components/editableAttributes/EditButton";
 import styles from "./editableAttributeStyles.module.css";
 import LoadingButton from "@/app/components/editableAttributes/LoadingButton";
+import { useForm } from "react-hook-form";
+import z from "zod";
 
 interface AdminEditableAttributeStringFieldProps {
   attributeKey: keyof UserProfile;
   currentlyEditing: string | null;
   title: string;
-  value: string | null | undefined;
+  value?: string | null | undefined;
   updateUser: (updates: AdminUserUpdate) => Promise<boolean>;
   setCurrentlyEditing: (key: string | null) => void;
 }
+const stringFieldSchema = z.object({
+  value: z.string(),
+});
 
 export default function AdminEditableAttributeStringField({
   attributeKey,
@@ -26,33 +32,43 @@ export default function AdminEditableAttributeStringField({
   const [formValue, setFormValue] = useState(value || "");
   const [loading, setLoading] = useState(false);
   const showEdit = currentlyEditing === attributeKey;
-
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      value: formValue,
+    },
+  });
   function startEdit() {
     setCurrentlyEditing(attributeKey);
+    reset({ value: formValue });
   }
 
   function cancelEdit() {
     setCurrentlyEditing(null);
-    setFormValue(value || ""); // Reset form value on cancel
-  }
-
-  function onChange(e: { target: { value: string } }) {
-    setFormValue(e.target.value);
+    if (value) {
+      setFormValue(value); // Reset form value on cancel
+    }
   }
 
   useEffect(() => {
-    setFormValue(value || "");
+    if (value) {
+      setFormValue(value);
+    }
   }, [value]);
 
-  async function submit(e: { preventDefault: () => void }) {
-    e.preventDefault();
+  async function onSubmit(data: { value: string }) {
     setLoading(true);
 
     try {
       // Create the update object with only the field being changed
       const updates: AdminUserUpdate = {
-        [attributeKey]: formValue || null,
+        [attributeKey]: data.value.toString(),
       };
+
       const success = await updateUser(updates);
 
       if (success) {
@@ -70,16 +86,21 @@ export default function AdminEditableAttributeStringField({
   }
 
   return (
-    <EditableAttributeContainer title={title}>
+    <EditableAttributeContainer>
+      <span className={styles.attributeTitle}>{title}: </span>
       {showEdit ? (
-        <form className={styles.attributeForm} onSubmit={submit}>
-          <input
-            onChange={onChange}
-            value={formValue}
-            name={title}
-            className={styles.attributeText}
-            disabled={loading}
+        <form
+          className={styles.attributeForm}
+          onSubmit={handleSubmit(onSubmit)}
+        >
+          <GenericFieldWithLabel
+            errors={errors}
+            label={title}
+            name="value"
+            register={register}
+            schema={stringFieldSchema}
           />
+
           {loading ? (
             <LoadingButton />
           ) : (
@@ -88,7 +109,7 @@ export default function AdminEditableAttributeStringField({
         </form>
       ) : (
         <span>
-          {value || <em>Not set</em>}
+          {value}
           <EditButton startEdit={startEdit} />
         </span>
       )}

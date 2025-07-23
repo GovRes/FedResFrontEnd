@@ -1,43 +1,36 @@
 "use client";
 import { useState } from "react";
 import AwardForm from "../components/AwardForm";
-import { AwardType } from "@/app/utils/responseSchemas";
+import { AwardType, awardZodSchema } from "@/app/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
 import { useRouter } from "next/navigation";
 import { createModelRecord } from "@/app/crud/genericCreate";
 import { useAuthenticator } from "@aws-amplify/ui-react";
+import { useSmartForm } from "@/lib/hooks/useFormDataCleaner";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 export default function NewAwardPage() {
   const router = useRouter();
   const { user } = useAuthenticator();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState<AwardType>({
-    id: "",
-    title: "",
-    date: "",
+  const { defaultValues, cleanData } = useSmartForm(awardZodSchema, {
     userId: user.userId,
   });
-  const onChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
-  ) => {
-    if (formData) {
-      setFormData({ ...formData, [e.target.name]: e.target.value });
-    }
-  };
-
-  const onSubmit = async (
-    e: React.FormEvent<HTMLFormElement>
-  ): Promise<void> => {
-    e.preventDefault();
+  const methods = useForm({
+    resolver: zodResolver(awardZodSchema),
+    defaultValues,
+  });
+  const onSubmit = async (data: AwardType): Promise<void> => {
     setLoading(true);
+    const cleaned = cleanData(data);
     try {
-      let res = await createModelRecord("Award", formData);
+      let res = await createModelRecord("Award", cleaned);
       setLoading(false);
       router.push(`/profile/awards/${res.id}`);
     } catch (error) {
-      console.error("Error updating past job:", error);
+      console.error("Error updating award:", error);
+      setLoading(false);
     }
   };
 
@@ -47,7 +40,11 @@ export default function NewAwardPage() {
   return (
     <div>
       <h1>New Award</h1>
-      <AwardForm item={formData} onChange={onChange} onSubmit={onSubmit} />
+      <AwardForm
+        loading={loading}
+        methods={methods}
+        onSubmit={methods.handleSubmit(onSubmit)}
+      />
     </div>
   );
 }

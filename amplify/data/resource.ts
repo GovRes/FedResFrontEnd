@@ -80,10 +80,8 @@ const schema = a.schema({
       schoolCity: a.string(),
       schoolState: a.string(),
       date: a.string().required(),
-      title: a.string().required(),
       type: a.string().required(), // "education" or "certification"
       gpa: a.string(),
-      userConfirmed: a.boolean(),
       userId: a.id().required(),
       user: a.belongsTo("User", "userId"),
       applications: a.hasMany("EducationApplication", "educationId"),
