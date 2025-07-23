@@ -1,24 +1,27 @@
 import styles from "../../ally.module.css";
-import BaseForm from "@/app/components/forms/BaseForm";
 import {
   SubmitButton,
-  SelectWithLabel,
-  TextWithLabel,
-  NumberWithLabel,
+  GenericFieldWithLabel,
   ToggleWithLabel,
 } from "../../../components/forms/Inputs";
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   agencies,
   positionScheduleType,
   travelPercentage,
 } from "@/app/utils/usaJobsCodes";
-import { JobSearchObject } from "@/app/utils/responseSchemas";
+import {
+  JobSearchObject,
+  jobSearchZodSchema,
+} from "@/app/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
 
 import { delayAllyChat } from "@/app/utils/allyChat";
 import { usaJobsSearch } from "@/app/utils/usaJobsSearch";
 import { useRouter } from "next/navigation";
+import { useSmartForm } from "@/lib/hooks/useFormDataCleaner";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 export default function UsaJobsSearch({
   searchObject,
@@ -31,6 +34,17 @@ export default function UsaJobsSearch({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const { defaultValues, cleanData } = useSmartForm(jobSearchZodSchema);
+  const {
+    formState: { errors },
+    handleSubmit,
+    register,
+  } = useForm({
+    resolver: zodResolver(jobSearchZodSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
+    criteriaMode: "all",
+  });
   useEffect(() => {
     setSearchObject({
       ...searchObject,
@@ -45,20 +59,8 @@ export default function UsaJobsSearch({
     });
   }, []);
 
-  const onChange = (
-    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value, type, checked } = event.target as HTMLInputElement;
-    const newValue = type === "checkbox" ? checked : value;
-    setSearchObject({
-      ...searchObject,
-      [name]: newValue,
-    });
-  };
-
   async function search() {
     setLoading(true);
-
     let res = await usaJobsSearch({
       ...searchObject,
       keyword: searchObject.keyword,
@@ -74,17 +76,21 @@ export default function UsaJobsSearch({
     return res;
   }
 
-  async function onSubmitUsaJobsSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const onSubmit = async (data: JobSearchObject): Promise<void> => {
     window.scrollTo(0, 0);
+    setLoading(true);
     let results = await search();
+    setLoading(false);
     if (results.length > 0) {
       router.push("/ally/job-search/results");
     } else {
       router.push("/ally/job-search/no-results");
     }
     setSearchResults(results);
-  }
+  };
+  const onError = (errors: any) => {
+    console.error("Form validation errors:", errors);
+  };
 
   let allyStatements = [
     "Let's search for the job you want. Put in as much or as little information as you wish.",
@@ -101,63 +107,72 @@ export default function UsaJobsSearch({
         className={`${styles.userChatContainer} ${styles.fade}`}
         style={{ animationDelay: `${delay}s` }}
       >
-        <BaseForm onSubmit={onSubmitUsaJobsSearch}>
-          <TextWithLabel
+        <form onSubmit={handleSubmit(onSubmit, onError)}>
+          <GenericFieldWithLabel
+            errors={errors}
             label="Keywords (separate multiple keywords with a semicolon)"
             name="keyword"
-            onChange={onChange}
-            value={searchObject.keyword || ""}
+            register={register}
+            schema={jobSearchZodSchema}
           />
-          <TextWithLabel
+          <GenericFieldWithLabel
+            errors={errors}
             label="Position Title"
             name="positionTitle"
-            onChange={onChange}
-            value={searchObject.positionTitle || ""}
+            register={register}
+            schema={jobSearchZodSchema}
           />
-          <TextWithLabel
+          <GenericFieldWithLabel
+            errors={errors}
             label="Location"
             name="locationName"
-            onChange={onChange}
-            value={searchObject.locationName || ""}
+            register={register}
+            schema={jobSearchZodSchema}
           />
-          <NumberWithLabel
+          <GenericFieldWithLabel
+            errors={errors}
             label="Max distance from location (miles)"
             name="radius"
-            onChange={onChange}
-            value={searchObject.radius || undefined}
+            register={register}
+            schema={jobSearchZodSchema}
+            type="number"
           />
-          <SelectWithLabel
+          <GenericFieldWithLabel
             allowNull={true}
+            errors={errors}
             label="Organization"
             name="organization"
             options={agencies}
-            onChange={onChange}
-            value={searchObject.organization}
+            register={register}
+            schema={jobSearchZodSchema}
           />
-          <SelectWithLabel
+          <GenericFieldWithLabel
             allowNull={true}
+            errors={errors}
             label="Desired Schedule"
             name="positionScheduleType"
             options={positionScheduleType}
-            onChange={onChange}
-            value={searchObject.positionScheduleType}
+            register={register}
+            schema={jobSearchZodSchema}
           />
           <ToggleWithLabel
+            errors={errors}
             label="Remote Only?"
-            checked={searchObject.remote === true}
-            onChange={onChange}
-            name={"remote"}
+            name="remote"
+            register={register}
+            schema={jobSearchZodSchema}
           />
-          <SelectWithLabel
+          <GenericFieldWithLabel
+            errors={errors}
             allowNull={true}
             label="How much travel?"
             name="travelPercentage"
             options={travelPercentage}
-            onChange={onChange}
-            value={searchObject.travelPercentage}
+            register={register}
+            schema={jobSearchZodSchema}
           />
-          <SubmitButton type="submit">Submit</SubmitButton>
-        </BaseForm>
+          <SubmitButton>Submit</SubmitButton>
+        </form>
       </div>
     </div>
   );

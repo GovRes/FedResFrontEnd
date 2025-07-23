@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { UserProfile, AdminUserUpdate } from "@/lib/types/user";
-import { Toggle } from "@/app/components/forms/Inputs";
+import { ToggleWithLabel } from "@/app/components/forms/Inputs";
 import EditableAttributeContainer from "@/app/components/editableAttributes/EditableAttributeContainer";
 import SubmitCancelButtonArray from "@/app/components/editableAttributes/SubmitCancelButtonArray";
 import EditButton from "@/app/components/editableAttributes/EditButton";
 import styles from "./editableAttributeStyles.module.css";
 import LoadingButton from "@/app/components/editableAttributes/LoadingButton";
+import z from "zod";
+import { useForm } from "react-hook-form";
 
 interface AdminEditableAttributeBooleanFieldProps {
   attributeKey: keyof UserProfile;
@@ -15,7 +17,9 @@ interface AdminEditableAttributeBooleanFieldProps {
   updateUser: (updates: AdminUserUpdate) => Promise<boolean>;
   setCurrentlyEditing: (key: string | null) => void;
 }
-
+const booleanFieldSchema = z.object({
+  value: z.boolean(),
+});
 export default function AdminEditableAttributeBooleanField({
   attributeKey,
   currentlyEditing,
@@ -24,37 +28,44 @@ export default function AdminEditableAttributeBooleanField({
   updateUser,
   setCurrentlyEditing,
 }: AdminEditableAttributeBooleanFieldProps) {
-  const [formValue, setFormValue] = useState(value || "");
   const boolValue = value === true || value === "true";
-  const [checked, setChecked] = useState(boolValue);
   const [loading, setLoading] = useState(false);
   const showEdit = currentlyEditing === attributeKey;
 
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      value: boolValue,
+    },
+  });
+
   function startEdit() {
     setCurrentlyEditing(attributeKey);
+    // Reset form with current value when starting edit
+    reset({ value: boolValue });
   }
 
   function cancelEdit() {
     setCurrentlyEditing(null);
-    setChecked(boolValue);
-  }
-
-  function onChange() {
-    setChecked(!checked);
+    reset({ value: boolValue });
   }
 
   useEffect(() => {
-    setChecked(value === true || value === "true");
-  }, [value]);
+    // Update form when external value changes
+    reset({ value: value === true || value === "true" });
+  }, [value, reset]);
 
-  async function submit(e: { preventDefault: () => void }) {
-    e.preventDefault();
+  async function onSubmit(data: { value: boolean }) {
     setLoading(true);
 
     try {
       // Create the update object with only the field being changed
       const updates: AdminUserUpdate = {
-        [attributeKey]: checked.toString(),
+        [attributeKey]: data.value.toString(),
       };
 
       const success = await updateUser(updates);
@@ -74,10 +85,20 @@ export default function AdminEditableAttributeBooleanField({
   }
 
   return (
-    <EditableAttributeContainer title={title}>
+    <EditableAttributeContainer>
+      <span className={styles.attributeTitle}>{title}: </span>
       {showEdit ? (
-        <form className={styles.attributeForm} onSubmit={submit}>
-          <Toggle checked={checked} onChange={onChange} />
+        <form
+          className={styles.attributeForm}
+          onSubmit={handleSubmit(onSubmit)}
+        >
+          <ToggleWithLabel
+            errors={errors}
+            label={title}
+            name="value"
+            register={register}
+            schema={booleanFieldSchema}
+          />
           {loading ? (
             <LoadingButton />
           ) : (

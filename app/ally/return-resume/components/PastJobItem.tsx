@@ -56,9 +56,9 @@ export default function PastJobItem({ pastJob }: { pastJob: PastJobType }) {
         </div>
         <div></div>
       </div>
-      {pastJob.qualifications?.length > 0 && (
+      {pastJob.qualifications && pastJob.qualifications.length > 0 && (
         <div>
-          {pastJob.qualifications.map((qualification: QualificationType) => (
+          {pastJob.qualifications?.map((qualification: QualificationType) => (
             <QualificationItem
               key={qualification.id}
               qualification={qualification}

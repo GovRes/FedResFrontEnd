@@ -37,7 +37,7 @@ export default function ResumeItem({
       prevItems.filter((prevItem) => prevItem.id !== item.id)
     );
     try {
-      await deleteModelRecord(itemType, item.id);
+      await deleteModelRecord(itemType, item.id!);
     } catch (error) {
       setItems((prevItems) => [...prevItems, item]);
       console.error(`Error deleting ${itemType} with ID ${item.id}:`, error);

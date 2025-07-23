@@ -21,33 +21,35 @@ export async function batchUpdatePastJobsWithQualifications(
 
   // Process each update in sequence to avoid overwhelming the API
   for (const update of pastJobUpdates) {
-    try {
-      // Use the existing single-job update function for each job
-      const updatedPastJob = await updatePastJobWithQualifications(
-        update.id,
-        update,
-        update.qualifications
-      );
+    if (update.id) {
+      try {
+        // Use the existing single-job update function for each job
+        const updatedPastJob = await updatePastJobWithQualifications(
+          update.id,
+          update,
+          update.qualifications
+        );
 
-      results.push({
-        pastJobId: update.id,
-        success: true,
-        data: updatedPastJob,
-      });
-    } catch (error) {
-      console.error(`Error updating PastJob ${update.id}:`, error);
-      errors.push({
-        pastJobId: update.id,
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      });
+        results.push({
+          pastJobId: update.id,
+          success: true,
+          data: updatedPastJob,
+        });
+      } catch (error) {
+        console.error(`Error updating PastJob ${update.id}:`, error);
+        errors.push({
+          pastJobId: update.id,
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        });
 
-      // Add to results array with error information
-      results.push({
-        pastJobId: update.id,
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      });
+        // Add to results array with error information
+        results.push({
+          pastJobId: update.id,
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
   }
 

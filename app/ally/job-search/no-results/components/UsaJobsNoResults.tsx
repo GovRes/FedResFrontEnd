@@ -48,9 +48,9 @@ export default function UsaJobsNoResults({
           }
         </p>
       )}
-      {(searchObject.user.veteran ||
-        searchObject.user.disabled ||
-        searchObject.user.militarySpouse) && (
+      {(searchObject.user?.veteran ||
+        searchObject.user?.disabled ||
+        searchObject.user?.militarySpouse) && (
         <div>
           <div>
             Additionally, we filtered based on the following information you
