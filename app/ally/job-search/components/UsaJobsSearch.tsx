@@ -57,14 +57,22 @@ export default function UsaJobsSearch({
     window.scrollTo(0, 0);
     setLoading(true);
 
-    // Update the searchObject with the final form data
-    setSearchObject({
-      ...searchObject,
-      ...data,
-    });
-
     console.log("Form data:", data);
-    let results = await usaJobsSearch(searchObject);
+    console.log("Original searchObject.user:", searchObject.user);
+
+    // Create the complete search data with user info from props
+    const completeSearchData = {
+      ...data,
+      user: searchObject.user, // Preserve the user data from props
+    };
+
+    console.log("Complete search data being sent:", completeSearchData);
+
+    // Update the searchObject state for future use
+    setSearchObject(completeSearchData);
+
+    // Use the complete search data directly
+    let results = await usaJobsSearch(completeSearchData);
 
     setLoading(false);
     if (results.length > 0) {
