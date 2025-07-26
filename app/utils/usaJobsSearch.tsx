@@ -15,15 +15,16 @@ const instance = axios.create({
 });
 
 function constructHiringPath({ user }: { user: any }) {
+  console.log(user);
   //may want to add profile attributes and hiring paths for national guard, native Americans, students, peace corps, family of overseas, recent grads, fed competitive, fed excepted, etc.
   let hiringPath = "public";
-  if (user["custom:disabled"] === "true") {
+  if (user.disabled === "true") {
     hiringPath += ";disability";
   }
-  if (user["custom:veteran"] === "true") {
+  if (user.veteran === "true") {
     hiringPath += ";vet";
   }
-  if (user["custom:militarySpouse"] === "true") {
+  if (user.militarySpouse === "true") {
     hiringPath += ";mspouse";
   }
   return hiringPath;
@@ -40,8 +41,7 @@ export async function usaJobsSearch({
   travelPercentage,
   user,
 }: JobSearchObject) {
-  const hiringPath = constructHiringPath({ user });
-  console.log(
+  console.log("usaJobsSearch called with:", {
     keyword,
     locationName,
     organization,
@@ -49,8 +49,10 @@ export async function usaJobsSearch({
     positionTitle,
     radius,
     remote,
-    travelPercentage
-  );
+    travelPercentage,
+    user,
+  });
+  const hiringPath = constructHiringPath({ user });
   try {
     const response = await instance.get("search", {
       params: {

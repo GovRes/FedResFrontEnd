@@ -46,6 +46,7 @@ export default function JobSearchPage() {
   }, [user, authStatus]);
 
   const handleSearchComplete = (results: JobSearchObject[]) => {
+    console.log("search complete", results);
     if (results.length === 0) {
       setIsLoading(true);
       router.push("/ally/job-search/no-results");
