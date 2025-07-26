@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import AllyContainer from "./components/AllyContainer";
 import styles from "./ally.module.css";
@@ -27,17 +27,18 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
     setSteps,
   } = useApplication();
 
-  // Effect to check for sessionStorage changes
-  useEffect(() => {
-    const checkSessionStorage = () => {
-      const storedApplicationId = sessionStorage.getItem("applicationId");
-      // Only update if different from current applicationId
-      if (storedApplicationId && storedApplicationId !== applicationId) {
-        setApplicationId(storedApplicationId);
-      }
-    };
+  // Memoize the sessionStorage check function to prevent recreation
+  const checkSessionStorage = useCallback(() => {
+    const storedApplicationId = sessionStorage.getItem("applicationId");
+    // Only update if different from current applicationId
+    if (storedApplicationId && storedApplicationId !== applicationId) {
+      setApplicationId(storedApplicationId);
+    }
+  }, [applicationId, setApplicationId]);
 
-    // Check immediately and set up listener
+  // Effect to check for sessionStorage changes - removed applicationId from deps
+  useEffect(() => {
+    // Check immediately
     checkSessionStorage();
 
     // Create a storage event listener to detect changes
@@ -45,13 +46,12 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
       checkSessionStorage();
     };
 
-    window.addEventListener("storage", handleStorageChange);
-
     // Custom event for direct communication
     const handleCustomEvent = (e: CustomEvent) => {
       checkSessionStorage();
     };
 
+    window.addEventListener("storage", handleStorageChange);
     window.addEventListener(
       "applicationIdChanged",
       handleCustomEvent as EventListener
@@ -64,7 +64,7 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
         handleCustomEvent as EventListener
       );
     };
-  }, [applicationId, setApplicationId]);
+  }, [checkSessionStorage]); // Only depend on the memoized function
 
   useEffect(() => {
     async function loadApplicationData() {
@@ -118,7 +118,9 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
     }
 
     loadApplicationData();
-  }, [applicationId, pathname, router, setSteps, setInitialRedirectComplete]);
+    // Removed setSteps and setInitialRedirectComplete from dependencies
+    // as they are stable functions from context and don't need to trigger re-runs
+  }, [applicationId, pathname, router, setIsLoading]);
 
   // Loading state UI
   if (loading && pathname === "/ally") {
@@ -141,7 +143,7 @@ export default function AllyLayout({ children }: { children: ReactNode }) {
         setInitialAppId(storedApplicationId);
       }
     }
-  }, []);
+  }, []); // Empty dependency array since this should only run once on mount
 
   return (
     <div className="layout">

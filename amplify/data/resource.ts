@@ -98,6 +98,7 @@ const schema = a.schema({
       duties: a.string().required(),
       evaluationCriteria: a.string().required(),
       qualificationsSummary: a.string().required(),
+      questionnaire: a.string(),
       requiredDocuments: a.string().required(),
       title: a.string().required(),
       topics: a.hasMany("Topic", "jobId"),

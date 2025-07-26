@@ -19,7 +19,6 @@ import { Loader } from "@/app/components/loader/Loader";
 import { delayAllyChat } from "@/app/utils/allyChat";
 import { usaJobsSearch } from "@/app/utils/usaJobsSearch";
 import { useRouter } from "next/navigation";
-import { useSmartForm } from "@/lib/hooks/useFormDataCleaner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLoading } from "@/app/providers/loadingContext";
@@ -48,25 +47,15 @@ export default function UsaJobsSearch({
     criteriaMode: "all",
   });
 
-  // Debug logging
-  console.log("Form errors:", errors);
-  console.log("Form is valid:", isValid);
-
   const onSubmit = async (data: JobSearchObject): Promise<void> => {
-    console.log("onSubmit triggered!"); // Debug log
     window.scrollTo(0, 0);
     setLoading(true);
-
-    console.log("Form data:", data);
-    console.log("Original searchObject.user:", searchObject.user);
 
     // Create the complete search data with user info from props
     const completeSearchData = {
       ...data,
       user: searchObject.user, // Preserve the user data from props
     };
-
-    console.log("Complete search data being sent:", completeSearchData);
 
     // Update the searchObject state for future use
     setSearchObject(completeSearchData);
@@ -86,7 +75,6 @@ export default function UsaJobsSearch({
   };
 
   const onError = (errors: any) => {
-    console.log("onError triggered!"); // Debug log
     console.error("Form validation errors:", errors);
   };
 
@@ -176,16 +164,7 @@ export default function UsaJobsSearch({
             register={register}
             schema={jobSearchZodSchema}
           />
-          <button
-            type="submit"
-            onClick={(e) => {
-              console.log("Button clicked!");
-              console.log("Event:", e);
-            }}
-          >
-            Submit
-          </button>
-          {/* <SubmitButton>Submit</SubmitButton> */}
+          <SubmitButton>Submit</SubmitButton>
         </form>
       </div>
     </div>

@@ -347,3 +347,42 @@ export function ToggleWithLabel<T extends z.ZodRawShape>({
     </>
   );
 }
+
+export const Url = ({ name }: { name: string }) => {
+  const [url, setUrl] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const handleUrlChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setUrl(event.target.value);
+  };
+  const validateUrl = () => {
+    const urlRegex =
+      /((([A-Za-z]{3,9}:(?:\/\/)?)(?:[\-;:&=\+\$,\w]+@)?[A-Za-z0-9\.\-]+|(?:www\.|[\-;:&=\+\$,\w]+@)[A-Za-z0-9\.\-]+)((?:\/[\+~%\/\.\w\-_]*)?\??(?:[\-\+=&;%@\.\w_]*)#?(?:[\.\!\/\\\w]*))?)/;
+    if (!urlRegex.test(url)) {
+      setError("Please enter a valid url");
+    } else {
+      setError("");
+    }
+  };
+
+  useEffect(() => {
+    validateUrl();
+  }, [url]);
+
+  return (
+    <>
+      <input
+        autoFocus
+        name={name}
+        onChange={handleUrlChange}
+        type="url"
+        value={url}
+      ></input>
+      {error && (
+        <div>
+          {" "}
+          <p className="error">{error}</p>
+        </div>
+      )}
+    </>
+  );
+};

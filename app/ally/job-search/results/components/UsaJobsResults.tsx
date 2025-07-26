@@ -76,12 +76,12 @@ export default function UsaJobsResults({
         let jobRes = await createOrGetJob({
           ...formattedJobDescription,
         });
-        console.log(jobRes);
         const wasJustCreated: boolean =
           new Date().getTime() - new Date(jobRes.createdAt).getTime() < 1000;
         if (wasJustCreated || !jobRes.questionnaire) {
           setIsLoading(true);
           let usaJobsId = jobRes.usaJobsId;
+          console.log(84, usaJobsId);
           try {
             const response = await fetch("/api/ai-questionnaire-extractor", {
               method: "POST",
@@ -98,7 +98,31 @@ export default function UsaJobsResults({
             }
 
             const result = await response.json();
-            return result;
+            console.log("AI Questionnaire Extractor Result:", result);
+            if (result.found) {
+              try {
+                const response = await fetch(`${result.questionnaireUrl}`, {
+                  headers: {
+                    "User-Agent":
+                      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    Accept:
+                      "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                    "Accept-Language": "en-US,en;q=0.5",
+                    "Accept-Encoding": "gzip, deflate, br",
+                    DNT: "1",
+                    Connection: "keep-alive",
+                    "Upgrade-Insecure-Requests": "1",
+                    "Sec-Fetch-Dest": "document",
+                    "Sec-Fetch-Mode": "navigate",
+                    "Sec-Fetch-Site": "none",
+                  },
+                });
+                //tk add this to the job object in the questionnaire attribute.
+                console.log(119, response);
+              } catch (error) {
+                console.error("Error pulling questionnaire:", error);
+              }
+            }
           } catch (error) {
             console.error("Error getting questionnaire URL:", error);
             return {

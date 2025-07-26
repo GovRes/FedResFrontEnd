@@ -41,17 +41,6 @@ export async function usaJobsSearch({
   travelPercentage,
   user,
 }: JobSearchObject) {
-  console.log("usaJobsSearch called with:", {
-    keyword,
-    locationName,
-    organization,
-    positionScheduleType,
-    positionTitle,
-    radius,
-    remote,
-    travelPercentage,
-    user,
-  });
   const hiringPath = constructHiringPath({ user });
   try {
     const response = await instance.get("search", {
