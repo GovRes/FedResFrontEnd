@@ -61,7 +61,11 @@ export default function UsaJobsSearch({
     setSearchObject(completeSearchData);
 
     // Use the complete search data directly
-    let results = await usaJobsSearch(completeSearchData);
+    let results = await fetch("/api/jobs/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(completeSearchData),
+    }).then((res) => res.json());
 
     setLoading(false);
     if (results.length > 0) {
