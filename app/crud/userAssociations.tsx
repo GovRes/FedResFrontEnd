@@ -6,6 +6,7 @@ import { generateClient } from "aws-amplify/api";
 export type AssociationType =
   | "Award"
   | "Education"
+  | "SpecializedExperience"
   | "PastJob"
   | "Qualification";
 
@@ -272,6 +273,13 @@ function getFieldsForType(associationType: AssociationType): string {
       "userConfirmed",
     ],
     // Resume: ["fileName"],
+    SpecializedExperience: [
+      "title",
+      "description",
+      "userConfirmed",
+      "paragraph",
+      "initialMessage",
+    ],
     PastJob: [
       "title",
       "organization",

@@ -25,6 +25,7 @@ export default function InitialReview<
   itemType:
     | "Award"
     | "Education"
+    | "SpecializedExperience"
     | "PastJob"
     | "VolunteerExperience"
     | "Resume";

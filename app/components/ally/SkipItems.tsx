@@ -12,6 +12,7 @@ export default function SkipItems({
   itemType:
     | "Award"
     | "Education"
+    | "SpecializedExperience"
     | "PastJob"
     | "VolunteerExperience"
     | "Resume";

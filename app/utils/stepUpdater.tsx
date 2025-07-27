@@ -23,6 +23,7 @@ export function applyStepDisablingLogic(
     } else {
       // Check dependencies for each step
       switch (step.id) {
+        case "specialized-experience":
         case "extract-keywords":
           const usaJobsCompleted = steps.find(
             (s) => s.id === "usa-jobs"
@@ -34,11 +35,22 @@ export function applyStepDisablingLogic(
         case "awards":
         case "education":
         case "volunteer-experiences":
+          const specializedExpCompleted = steps.find(
+            (s) => s.id === "specialized-experience"
+          )?.completed;
           const keywordsCompleted = steps.find(
             (s) => s.id === "extract-keywords"
           )?.completed;
-          shouldBeDisabled = !keywordsCompleted;
+          shouldBeDisabled = !(specializedExpCompleted && keywordsCompleted);
           break;
+
+        case "specialized-experience-details":
+          const specializedExpCompletedForDetails = steps.find(
+            (s) => s.id === "specialized-experience"
+          )?.completed;
+          shouldBeDisabled = !specializedExpCompletedForDetails;
+          break;
+
         case "past-job-details":
           const pastJobsCompleted = steps.find(
             (s) => s.id === "past-jobs"

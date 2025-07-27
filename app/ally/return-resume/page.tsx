@@ -2,8 +2,10 @@
 import {
   AwardType,
   EducationType,
+  SpecializedExperienceType,
   PastJobType,
 } from "@/app/utils/responseSchemas";
+import SpecializedExperienceItem from "./components/SpecializedExperienceItem";
 import { useContext, useEffect, useState } from "react";
 import PastJobItem from "./components/PastJobItem";
 import EducationExperienceItem from "./components/EducationItem";
@@ -29,6 +31,9 @@ export default function ReturnResume() {
   const [loading, setLoading] = useState(false);
   const [awards, setAwards] = useState<AwardType[]>([]);
   const [educations, setEducations] = useState<EducationType[]>([]);
+  const [specializedExperiences, setSpecializedExperiences] = useState<
+    SpecializedExperienceType[]
+  >([]);
   const [pastJobs, setPastJobs] = useState<PastJobType[]>([]);
   const [volunteers, setVolunteers] = useState<PastJobType[]>([]);
   const { applicationId } = useApplication();
@@ -52,24 +57,30 @@ export default function ReturnResume() {
     async function loadApplicationAssociations() {
       setLoading(true);
       try {
-        const [awardRes, educationRes, pastJobRes] = await Promise.all([
-          getApplicationAssociations({
-            applicationId,
-            associationType: "Award",
-          }),
-          getApplicationAssociations({
-            applicationId,
-            associationType: "Education",
-          }),
-
-          getApplicationAssociations({
-            applicationId,
-            associationType: "PastJob",
-          }),
-        ]);
+        const [awardRes, educationRes, specializedExperienceRes, pastJobRes] =
+          await Promise.all([
+            getApplicationAssociations({
+              applicationId,
+              associationType: "Award",
+            }),
+            getApplicationAssociations({
+              applicationId,
+              associationType: "Education",
+            }),
+            getApplicationAssociations({
+              applicationId,
+              associationType: "SpecializedExperience",
+            }),
+            getApplicationAssociations({
+              applicationId,
+              associationType: "PastJob",
+            }),
+          ]);
         setAwards(awardRes as AwardType[]);
         setEducations(educationRes as EducationType[]);
-
+        setSpecializedExperiences(
+          specializedExperienceRes as SpecializedExperienceType[]
+        );
         let pastJobs = pastJobRes?.filter((job) => job.type !== "volunteer");
         setPastJobs(pastJobs as PastJobType[]);
         let volunteers = pastJobRes?.filter((job) => job.type === "volunteer");
@@ -104,6 +115,19 @@ export default function ReturnResume() {
           {attr["custom:disabled"] && <div>Disabled</div>}
           {attr["custom:veteran"] && <div>Veteran</div>}
           {attr["custom:militarySpouse"] && <div>Military Spouse</div>}
+        </div>
+        <div className={styles.resumeSection}>
+          <h3 className={styles.specializedExperience}>
+            Specialized Experience
+          </h3>
+          {specializedExperiences.map(
+            (experience: SpecializedExperienceType) => (
+              <SpecializedExperienceItem
+                key={experience.id}
+                specializedExperience={experience}
+              />
+            )
+          )}
         </div>
 
         <div className={styles.resumeSection}>

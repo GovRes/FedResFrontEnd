@@ -3,6 +3,7 @@
 import {
   AwardType,
   EducationType,
+  SpecializedExperienceType,
   QualificationType,
   PastJobType,
 } from "@/app/utils/responseSchemas";
@@ -22,12 +23,23 @@ export default function ResumeItem({
   itemType,
   setItems,
 }: {
-  item: AwardType | EducationType | PastJobType | QualificationType;
+  item:
+    | AwardType
+    | EducationType
+    | SpecializedExperienceType
+    | PastJobType
+    | QualificationType;
 
   itemType: "Award" | "Education" | "PastJob" | "Volunteer";
   setItems: React.Dispatch<
     React.SetStateAction<
-      Array<AwardType | EducationType | PastJobType | QualificationType>
+      Array<
+        | AwardType
+        | EducationType
+        | SpecializedExperienceType
+        | PastJobType
+        | QualificationType
+      >
     >
   >;
 }) {
