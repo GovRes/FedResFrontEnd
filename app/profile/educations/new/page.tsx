@@ -1,11 +1,11 @@
 "use client";
 import { useState } from "react";
+import EducationForm from "../components/EducationForm";
 import { EducationType } from "@/app/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
 import { useRouter } from "next/navigation";
 import { createModelRecord } from "@/app/crud/genericCreate";
 import { useAuthenticator } from "@aws-amplify/ui-react";
-import EducationFormSwitch from "../components/EducationFormSwitch";
 
 export default function NewAwardPage() {
   const router = useRouter();
@@ -22,7 +22,6 @@ export default function NewAwardPage() {
     schoolCity: "",
     schoolState: "",
     title: "",
-    type: "",
     userConfirmed: false,
     userId: user.userId,
   });
@@ -51,16 +50,12 @@ export default function NewAwardPage() {
   };
 
   if (loading) {
-    return <Loader text="loading education data" />;
+    return <Loader text="loading volunteer data" />;
   }
   return (
     <div>
       <h1>New Educational Experience</h1>
-      <EducationFormSwitch
-        item={formData}
-        onChange={onChange}
-        onSubmit={onSubmit}
-      />
+      <EducationForm item={formData} onChange={onChange} onSubmit={onSubmit} />
     </div>
   );
 }

@@ -5,14 +5,16 @@ import { SubmitButton, TextWithLabel } from "@/app/components/forms/Inputs";
 export default function EducationForm({
   item,
   onChange,
+  onSubmit,
 }: {
   item?: EducationType;
   onChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => void;
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
 }) {
   return (
-    <>
+    <BaseForm onSubmit={onSubmit}>
       <TextWithLabel
         label="Degree"
         name="degree"
@@ -61,6 +63,7 @@ export default function EducationForm({
         value={item?.gpa || ""}
         onChange={onChange}
       />
-    </>
+      <SubmitButton type="submit">Submit</SubmitButton>
+    </BaseForm>
   );
 }

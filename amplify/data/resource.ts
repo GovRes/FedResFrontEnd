@@ -73,15 +73,14 @@ const schema = a.schema({
   Education: a
     .model({
       id: a.id().required(),
-      degree: a.string(),
-      major: a.string(),
+      degree: a.string().required(),
+      major: a.string().required(),
       minor: a.string(),
       school: a.string().required(),
       schoolCity: a.string(),
       schoolState: a.string(),
       date: a.string().required(),
       title: a.string().required(),
-      type: a.string().required(), // "education" or "certification"
       gpa: a.string(),
       userConfirmed: a.boolean(),
       userId: a.id().required(),

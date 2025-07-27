@@ -38,7 +38,6 @@ export const modelFields: Record<string, string[]> = {
     "schoolCity",
     "schoolState",
     "title",
-    "type",
     "userConfirmed",
     "userId",
   ],

@@ -19,16 +19,15 @@ export const Keywords = z.object({
 });
 export const Education = z.object({
   date: z.string(),
-  degree: z.string().optional(),
+  degree: z.string(),
   gpa: z.string().optional(),
   id: z.string(),
-  major: z.string().optional(),
+  major: z.string(),
   minor: z.string().optional(),
   school: z.string(),
   schoolCity: z.string().optional(),
   schoolState: z.string().optional(),
   title: z.string(),
-  type: z.string(), // "education" or "certification"
   userConfirmed: z.boolean().optional(),
   userId: z.string(),
 });
