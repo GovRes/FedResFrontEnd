@@ -56,17 +56,15 @@ export async function usaJobsSearch({
   try {
     const response = await instance.get("search", {
       params: {
-        ...(hiringPath && { HiringPath: hiringPath }),
-        ...(keyword && { Keyword: keyword }),
-        ...(locationName && { LocationName: locationName }),
-        ...(organization && { Organization: organization }),
-        ...(positionScheduleType && {
-          PositionScheduleType: positionScheduleType,
-        }),
-        ...(positionTitle && { PositionTitle: positionTitle }),
-        ...(radius && { Radius: radius }),
-        ...(remote && { Remote: remote }),
-        ...(travelPercentage && { TravelPercentage: travelPercentage }),
+        HiringPath: hiringPath,
+        Keyword: keyword,
+        LocationName: locationName,
+        Organization: organization,
+        PositionScheduleType: positionScheduleType,
+        PositionTitle: positionTitle,
+        Radius: radius,
+        Remote: remote,
+        TravelPercentage: travelPercentage,
         SortField: "salarymin",
         SortDirection: "Desc",
       },
