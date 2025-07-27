@@ -22,7 +22,6 @@ import { useRouter } from "next/navigation";
 import { useSmartForm } from "@/lib/hooks/useFormDataCleaner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useLoading } from "@/app/providers/loadingContext";
 
 export default function UsaJobsSearch({
   searchObject,
@@ -35,7 +34,6 @@ export default function UsaJobsSearch({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const { setIsLoading } = useLoading();
   const { defaultValues, cleanData } = useSmartForm(jobSearchZodSchema);
   const {
     formState: { errors },
@@ -84,10 +82,8 @@ export default function UsaJobsSearch({
     let results = await search();
     setLoading(false);
     if (results.length > 0) {
-      setIsLoading(true);
       router.push("/ally/job-search/results");
     } else {
-      setIsLoading(true);
       router.push("/ally/job-search/no-results");
     }
     setSearchResults(results);

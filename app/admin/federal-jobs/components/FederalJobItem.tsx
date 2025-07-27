@@ -1,6 +1,9 @@
 "use client";
-import { GrTrash } from "react-icons/gr";
-import NavigationLink from "@/app/components/loader/NavigationLink";
+
+import { UserType } from "@/app/utils/userAttributeUtils";
+import { GrStarOutline, GrTrash } from "react-icons/gr";
+import Link from "next/link";
+import styles from "./userTableStyles.module.css"; // Adjust the path as needed
 import { JobType } from "@/app/utils/responseSchemas";
 
 export default function FederalJobItem({
@@ -23,9 +26,9 @@ export default function FederalJobItem({
   return (
     <tr role="row">
       <td className="tableData" role="cell">
-        <NavigationLink href={`/admin/federal-jobs/${job.id}`}>
+        <Link href={`/admin/federal-jobs/${job.id}`}>
           {job.title} at {job.department}
-        </NavigationLink>
+        </Link>
       </td>
       <td className="tableData" role="cell">
         <span onClick={deleteItem} style={{ cursor: "pointer" }}>

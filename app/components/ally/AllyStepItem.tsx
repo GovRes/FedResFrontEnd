@@ -6,7 +6,7 @@ import {
   IoEllipse,
   IoEllipseOutline,
 } from "react-icons/io5";
-import NavigationLink from "@/app/components/loader/NavigationLink";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import styles from "./ally.module.css";
 
@@ -40,7 +40,7 @@ export default function AllyStepItem({ step }: { step: StepsType }) {
     );
   }
   return (
-    <NavigationLink
+    <Link
       href={`/ally${step.path}`}
       className={styles.stepItem}
       data-step-id={step.id}
@@ -61,6 +61,6 @@ export default function AllyStepItem({ step }: { step: StepsType }) {
           <IoEllipseOutline />
         )}
       </div>
-    </NavigationLink>
+    </Link>
   );
 }

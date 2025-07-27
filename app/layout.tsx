@@ -1,7 +1,6 @@
 import { Roboto, Special_Elite } from "next/font/google";
 import App from "./app";
 import "./globals.css";
-import { LoadingProvider } from "./providers/loadingContext";
 
 const roboto = Roboto({
   weight: ["400", "700"],
@@ -29,9 +28,7 @@ export default function RootLayout(props: React.PropsWithChildren) {
         <title>GovRez</title>
       </head>
       <body className={`${roboto.className} ${specialElite.className}`}>
-        <LoadingProvider>
-          <App children={props.children} />
-        </LoadingProvider>
+        <App children={props.children} />
       </body>
     </html>
   );

@@ -9,13 +9,11 @@ import { useAuthenticator } from "@aws-amplify/ui-react";
 import { useSmartForm } from "@/lib/hooks/useFormDataCleaner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useLoading } from "@/app/providers/loadingContext";
 
 export default function NewAwardPage() {
   const router = useRouter();
   const { user } = useAuthenticator();
   const [loading, setLoading] = useState(false);
-  const { setIsLoading } = useLoading();
   const { defaultValues, cleanData } = useSmartForm(awardZodSchema, {
     userId: user.userId,
   });
@@ -29,7 +27,6 @@ export default function NewAwardPage() {
     try {
       let res = await createModelRecord("Award", cleaned);
       setLoading(false);
-      setIsLoading(true);
       router.push(`/profile/awards/${res.id}`);
     } catch (error) {
       console.error("Error updating award:", error);

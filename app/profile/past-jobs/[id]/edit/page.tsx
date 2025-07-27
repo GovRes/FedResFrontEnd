@@ -11,7 +11,6 @@ import { useSmartForm } from "@/lib/hooks/useFormDataCleaner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { transformApiDataForForm } from "@/app/utils/formUtils";
-import { useLoading } from "@/app/providers/loadingContext";
 
 export default function EditPastJobPage({
   params,
@@ -20,7 +19,6 @@ export default function EditPastJobPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
-  const { setIsLoading } = useLoading();
   const [loading, setLoading] = useState(true);
   const { defaultValues, cleanData } = useSmartForm(pastJobZodSchema);
   const methods = useForm({
@@ -56,7 +54,6 @@ export default function EditPastJobPage({
     const cleaned = cleanData(data);
     try {
       await updateModelRecord("PastJob", id, cleaned);
-      setIsLoading(true);
       router.push(`/profile/past-jobs/${id}`);
     } catch (error) {
       console.error("Error updating past job:", error);

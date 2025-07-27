@@ -15,7 +15,6 @@ import { completeSteps, applyStepDisablingLogic } from "../utils/stepUpdater";
 import { findNextIncompleteStep } from "../utils/nextStepNavigation";
 import { useRouter } from "next/navigation";
 import { getJobByApplicationId } from "../crud/job";
-import { useLoading } from "./loadingContext";
 
 // Combined interface for state + methods
 interface ApplicationContextType {
@@ -146,7 +145,6 @@ export const ApplicationProvider = ({
   const [initialRedirectComplete, setInitialRedirectComplete] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const router = useRouter();
-  const { setIsLoading } = useLoading();
 
   // Refs to prevent infinite loops
   const dataLoadedRef = useRef(false);
@@ -398,7 +396,6 @@ export const ApplicationProvider = ({
                 "usa-jobs"
               );
               if (next) {
-                setIsLoading(true);
                 router.push(`/ally${next.path}`);
               }
             } catch (error) {

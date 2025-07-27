@@ -5,7 +5,6 @@ import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { AwardType } from "@/app/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
-import NavigationLink from "@/app/components/loader/NavigationLink";
 export default function AwardPage({
   params,
 }: {
@@ -30,9 +29,9 @@ export default function AwardPage({
     return (
       <div>
         <strong>{award.title}</strong> ({award.date})
-        <NavigationLink href={`/profile/awards/${id}/edit`}>
+        <Link href={`/profile/awards/${id}/edit`}>
           <GrEdit />
-        </NavigationLink>
+        </Link>
       </div>
     );
   }

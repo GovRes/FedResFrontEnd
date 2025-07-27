@@ -5,7 +5,6 @@ import { GrTrash } from "react-icons/gr";
 import { useRouter } from "next/navigation";
 import { deleteApplication } from "@/app/crud/application";
 import { broadcastApplicationReset } from "@/app/providers/applicationContext";
-import { useLoading } from "@/app/providers/loadingContext";
 
 export default function ApplicationItem({
   application,
@@ -17,7 +16,6 @@ export default function ApplicationItem({
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const router = useRouter();
-  const { setIsLoading } = useLoading();
   async function deleteApp() {
     try {
       setLoading(true);
@@ -44,7 +42,7 @@ export default function ApplicationItem({
     // Trigger the custom event to notify layout that sessionStorage has changed
     const event = new CustomEvent("applicationIdChanged");
     window.dispatchEvent(event);
-    setIsLoading(true);
+
     // Navigate to the ally page
     router.push("/ally");
   };

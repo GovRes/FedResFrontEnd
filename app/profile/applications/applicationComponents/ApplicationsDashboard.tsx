@@ -4,19 +4,16 @@ import { ApplicationType } from "@/app/utils/responseSchemas";
 import { Loader } from "../../../components/loader/Loader";
 import { listUserApplications } from "@/app/crud/application";
 import { useAuthenticator } from "@aws-amplify/ui-react";
-import NavigationLink from "@/app/components/loader/NavigationLink";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useLoading } from "@/app/providers/loadingContext";
 
 export default function ApplicationDashboard() {
   const [applications, setApplications] = useState<ApplicationType[]>([]);
   const [loading, setLoading] = useState(false);
-  const { setIsLoading } = useLoading();
   const { user } = useAuthenticator();
   const router = useRouter();
   function startNewApplication() {
     sessionStorage.removeItem("applicationId");
-    setIsLoading(true);
     router.push(`/ally`);
   }
   useEffect(() => {
@@ -46,7 +43,7 @@ export default function ApplicationDashboard() {
     return (
       <div>
         Looks like you don't have any applications.{" "}
-        <NavigationLink href="/ally">Start one?</NavigationLink>
+        <Link href="/ally">Start one?</Link>
       </div>
     );
   }

@@ -12,7 +12,6 @@ import { useSmartForm } from "@/lib/hooks/useFormDataCleaner";
 import EducationForm from "../../components/EducationForm";
 import CertificationForm from "../../components/CertificationForm";
 import { transformApiDataForForm } from "@/app/utils/formUtils";
-import { useLoading } from "@/app/providers/loadingContext";
 
 export default function EditPastEducationPage({
   params,
@@ -24,7 +23,6 @@ export default function EditPastEducationPage({
   const [loading, setLoading] = useState(true);
 
   const { defaultValues, cleanData } = useSmartForm(educationZodSchema);
-  const { setIsLoading } = useLoading();
   const methods = useForm({
     resolver: zodResolver(educationZodSchema),
     defaultValues,
@@ -63,7 +61,6 @@ export default function EditPastEducationPage({
     const cleaned = cleanData(data);
     try {
       await updateModelRecord("Education", id, cleaned);
-      setIsLoading(true);
       router.push(`/profile/educations/${id}`);
     } catch (error) {
       console.error("Error updating education:", error);

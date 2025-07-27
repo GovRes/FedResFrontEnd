@@ -9,12 +9,10 @@ import { useAuthenticator } from "@aws-amplify/ui-react";
 import { useSmartForm } from "@/lib/hooks/useFormDataCleaner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useLoading } from "@/app/providers/loadingContext";
 
 export default function NewVolunteerPage() {
   const router = useRouter();
   const { user } = useAuthenticator();
-  const { setIsLoading } = useLoading();
   const [loading, setLoading] = useState(false);
   const { defaultValues, cleanData } = useSmartForm(pastJobZodSchema, {
     userId: user.userId,
@@ -29,7 +27,6 @@ export default function NewVolunteerPage() {
     try {
       let res = await createModelRecord("PastJob", cleaned);
       setLoading(false);
-      setIsLoading(true);
       router.push(`/profile/volunteers/${res.id}`);
     } catch (error) {
       console.error("Error updating award:", error);

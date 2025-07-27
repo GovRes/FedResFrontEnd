@@ -9,11 +9,9 @@ import EducationFormSwitch from "../components/EducationFormSwitch";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSmartForm } from "@/lib/hooks/useFormDataCleaner";
-import { useLoading } from "@/app/providers/loadingContext";
 
 export default function NewEducationPage() {
   const router = useRouter();
-  const { setIsLoading } = useLoading();
   const { user } = useAuthenticator();
   const [loading, setLoading] = useState(false);
   const { defaultValues, cleanData } = useSmartForm(educationZodSchema, {
@@ -30,7 +28,6 @@ export default function NewEducationPage() {
     try {
       let res = await createModelRecord("Education", cleaned);
       setLoading(false);
-      setIsLoading(true);
       router.push(`/profile/educations/${res.id}`);
     } catch (error) {
       console.error("Error updating education:", error);

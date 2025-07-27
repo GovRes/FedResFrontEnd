@@ -1,6 +1,7 @@
 "use client";
 import { fetchModelRecord } from "@/app/crud/genericFetch";
-import NavigationLink from "@/app/components/loader/NavigationLink";
+import { GrEdit } from "react-icons/gr";
+import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { EducationType } from "@/app/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
@@ -30,9 +31,9 @@ export default function AwardPage({
     return (
       <div>
         <EducationItem education={education} />
-        <NavigationLink href={`/profile/educations/${id}/edit`}>
+        <Link href={`/profile/educations/${id}/edit`}>
           <button>Edit Item</button>
-        </NavigationLink>
+        </Link>
       </div>
     );
   }

@@ -11,7 +11,6 @@ import { useSmartForm } from "@/lib/hooks/useFormDataCleaner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { transformApiDataForForm } from "@/app/utils/formUtils";
-import { useLoading } from "@/app/providers/loadingContext";
 
 export default function EditAwardPage({
   params,
@@ -21,7 +20,6 @@ export default function EditAwardPage({
   const { id } = use(params);
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const { setIsLoading } = useLoading();
   const { defaultValues, cleanData } = useSmartForm(awardZodSchema);
   const methods = useForm({
     resolver: zodResolver(awardZodSchema),
@@ -53,7 +51,6 @@ export default function EditAwardPage({
     const cleaned = cleanData(data);
     try {
       await updateModelRecord("Award", id, cleaned);
-      setIsLoading(true);
       router.push(`/profile/awards/${id}`);
     } catch (error) {
       console.error("Error updating award:", error);
