@@ -4,7 +4,7 @@ import {
   GenericFieldWithLabel,
   ToggleWithLabel,
 } from "../../../components/forms/Inputs";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   agencies,
   positionScheduleType,
@@ -36,36 +36,62 @@ export default function UsaJobsSearch({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const { setIsLoading } = useLoading();
-
+  const { defaultValues, cleanData } = useSmartForm(jobSearchZodSchema);
   const {
-    formState: { errors, isValid },
+    formState: { errors },
     handleSubmit,
     register,
+    watch,
   } = useForm({
     resolver: zodResolver(jobSearchZodSchema),
     mode: "onChange",
     reValidateMode: "onChange",
     criteriaMode: "all",
   });
-
-  // Debug logging
-  console.log("Form errors:", errors);
-  console.log("Form is valid:", isValid);
-
-  const onSubmit = async (data: JobSearchObject): Promise<void> => {
-    console.log("onSubmit triggered!"); // Debug log
-    window.scrollTo(0, 0);
-    setLoading(true);
-
-    // Update the searchObject with the final form data
+  useEffect(() => {
     setSearchObject({
       ...searchObject,
-      ...data,
+      keyword: null,
+      locationName: null,
+      organization: null,
+      positionTitle: null,
+      positionScheduleType: null,
+      radius: null,
+      remote: null,
+      travelPercentage: null,
     });
+  }, []);
+  const watchedFields = watch();
+  useEffect(() => {
+    if (watchedFields && Object.keys(watchedFields).length > 0) {
+      setSearchObject((prev: JobSearchObject) => ({
+        ...prev,
+        ...watchedFields,
+      }));
+    }
+  }, [watchedFields]);
+  async function search() {
+    setLoading(true);
+    console.log("searchObject", searchObject);
+    let res = await usaJobsSearch({
+      ...searchObject,
+      keyword: searchObject.keyword,
+      locationName: searchObject.locationName,
+      organization: searchObject.organization,
+      positionTitle: searchObject.positionTitle,
+      positionScheduleType: searchObject.positionScheduleType,
+      radius: searchObject.radius,
+      remote: searchObject.remote,
+      travelPercentage: searchObject.travelPercentage,
+    });
+    setLoading(false);
+    return res;
+  }
 
-    console.log("Form data:", data);
-    let results = await usaJobsSearch(searchObject);
-
+  const onSubmit = async (data: JobSearchObject): Promise<void> => {
+    window.scrollTo(0, 0);
+    setLoading(true);
+    let results = await search();
     setLoading(false);
     if (results.length > 0) {
       setIsLoading(true);
@@ -76,9 +102,7 @@ export default function UsaJobsSearch({
     }
     setSearchResults(results);
   };
-
   const onError = (errors: any) => {
-    console.log("onError triggered!"); // Debug log
     console.error("Form validation errors:", errors);
   };
 
@@ -87,11 +111,9 @@ export default function UsaJobsSearch({
   ];
 
   let { allyFormattedGraphs, delay } = delayAllyChat({ allyStatements });
-
   if (loading) {
     return <Loader text="Searching USA jobs..." />;
   }
-
   return (
     <div>
       <div className={`${styles.allyChatContainer}`}>{allyFormattedGraphs}</div>
@@ -99,12 +121,7 @@ export default function UsaJobsSearch({
         className={`${styles.userChatContainer} ${styles.fade}`}
         style={{ animationDelay: `${delay}s` }}
       >
-        <form
-          onSubmit={(e) => {
-            console.log("Form onSubmit triggered directly!");
-            handleSubmit(onSubmit, onError)(e);
-          }}
-        >
+        <form onSubmit={handleSubmit(onSubmit, onError)}>
           <GenericFieldWithLabel
             errors={errors}
             label="Keywords (separate multiple keywords with a semicolon)"
@@ -168,16 +185,7 @@ export default function UsaJobsSearch({
             register={register}
             schema={jobSearchZodSchema}
           />
-          <button
-            type="submit"
-            onClick={(e) => {
-              console.log("Button clicked!");
-              console.log("Event:", e);
-            }}
-          >
-            Submit
-          </button>
-          {/* <SubmitButton>Submit</SubmitButton> */}
+          <SubmitButton>Submit</SubmitButton>
         </form>
       </div>
     </div>
