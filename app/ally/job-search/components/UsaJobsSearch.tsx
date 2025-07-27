@@ -41,7 +41,6 @@ export default function UsaJobsSearch({
     formState: { errors },
     handleSubmit,
     register,
-    watch,
   } = useForm({
     resolver: zodResolver(jobSearchZodSchema),
     mode: "onChange",
@@ -61,18 +60,9 @@ export default function UsaJobsSearch({
       travelPercentage: null,
     });
   }, []);
-  const watchedFields = watch();
-  useEffect(() => {
-    if (watchedFields && Object.keys(watchedFields).length > 0) {
-      setSearchObject((prev: JobSearchObject) => ({
-        ...prev,
-        ...watchedFields,
-      }));
-    }
-  }, [watchedFields]);
+
   async function search() {
     setLoading(true);
-    console.log("searchObject", searchObject);
     let res = await usaJobsSearch({
       ...searchObject,
       keyword: searchObject.keyword,

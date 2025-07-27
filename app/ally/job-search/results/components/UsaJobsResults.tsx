@@ -76,39 +76,7 @@ export default function UsaJobsResults({
         let jobRes = await createOrGetJob({
           ...formattedJobDescription,
         });
-        console.log(jobRes);
-        const wasJustCreated: boolean =
-          new Date().getTime() - new Date(jobRes.createdAt).getTime() < 1000;
-        if (wasJustCreated || !jobRes.questionnaire) {
-          setIsLoading(true);
-          let usaJobsId = jobRes.usaJobsId;
-          try {
-            const response = await fetch("/api/ai-questionnaire-extractor", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                jobId: usaJobsId, // Only send jobId, server will fetch HTML
-              }),
-            });
 
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const result = await response.json();
-            return result;
-          } catch (error) {
-            console.error("Error getting questionnaire URL:", error);
-            return {
-              found: false,
-              questionnaireUrl: null,
-              reasoning: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
-              usaJobsId,
-            };
-          }
-        }
         // Create the application
         let applicationRes = await createAndSaveApplication({
           jobId: jobRes.id,
