@@ -6,13 +6,14 @@ import { jobDescriptionKeywordFinder } from "@/app/components/aiProcessing/jobDe
 import { topicsCategorizer } from "@/app/components/aiProcessing/topicCategorizer";
 import { TopicType } from "@/app/utils/responseSchemas";
 import { createOrFindSimilarTopics } from "@/app/crud/topic";
+import { completeSteps } from "@/app/utils/stepUpdater";
 import { useNextStepNavigation } from "@/app/utils/nextStepNavigation";
 import TopicLI from "./components/TopicLI";
 
 export default function ExtractKeywords() {
   const { job, setJob } = useApplication();
   const { navigateToNextIncompleteStep } = useNextStepNavigation();
-  const { completeStep } = useApplication();
+  const { steps, applicationId, setSteps } = useApplication();
   const [keywords, setKeywords] = useState<string[]>([]);
   const [topics, setTopics] = useState<TopicType[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -64,7 +65,12 @@ export default function ExtractKeywords() {
   }, []);
 
   async function setNext() {
-    await completeStep("extract-keywords");
+    const updatedSteps = await completeSteps({
+      steps,
+      stepId: "extract-keywords",
+      applicationId,
+    });
+    setSteps(updatedSteps);
     navigateToNextIncompleteStep("extract-keywords");
   }
   if (loading) {
@@ -75,21 +81,6 @@ export default function ExtractKeywords() {
     return (
       <div>
         <h3>Job description keywords extracted!</h3>
-        <div className="info-box">
-          <div>
-            <strong>What This List Shows</strong>
-          </div>
-          <div>
-            We pulled the most important skills and duties from the job posting.
-            These are the things the hiring team will expect you to show in your
-            resume.
-          </div>
-          <div>
-            Soon, you'll work with the AI to describe your experience with these
-            topics. For now, just take a look—this gives you a preview of what
-            you'll be asked about.
-          </div>
-        </div>
         <ul>
           {keywords.map((keyword, index) => (
             <li key={index}>{keyword}</li>
@@ -102,21 +93,6 @@ export default function ExtractKeywords() {
   return (
     <div>
       <h3>Keywords sorted into Topics</h3>
-      <div className="info-box">
-        <div>
-          <strong>How Your Resume Will Be Structured</strong>
-        </div>
-        <div>
-          We grouped the keywords into topics. Each group will become a
-          paragraph in your federal resume.
-        </div>
-        <div>
-          In the next steps, you’ll work with the AI to describe your experience
-          for each keyword—so your resume matches what this job is looking for.
-          Once you’ve provided that experience, the AI will draft your resume
-          for your review
-        </div>
-      </div>
       <ul>{topics.map((topic) => TopicLI(topic))}</ul>
       <button onClick={setNext}>
         Help me build a federal resume that focuses on these topics.

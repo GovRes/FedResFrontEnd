@@ -19,6 +19,7 @@ export default function EditableFederalJobRecord({
       setLoading(true);
       try {
         const jobData = await fetchModelRecord("Job", id);
+        console.log(jobData);
         const topics = jobData.topics.items;
         setJob({ ...jobData, topics });
       } catch (err) {

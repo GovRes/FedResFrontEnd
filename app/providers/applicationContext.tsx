@@ -7,11 +7,10 @@ import React, {
   useContext,
   useEffect,
   useRef,
-  useMemo,
 } from "react";
 import { JobType, StepsType } from "../utils/responseSchemas";
 import { getApplicationWithJob } from "../crud/application";
-import { completeSteps, applyStepDisablingLogic } from "../utils/stepUpdater";
+import { completeSteps } from "../utils/stepUpdater";
 import { findNextIncompleteStep } from "../utils/nextStepNavigation";
 import { useRouter } from "next/navigation";
 import { getJobByApplicationId } from "../crud/job";
@@ -28,7 +27,6 @@ interface ApplicationContextType {
   setSteps: (value: StepsType[]) => void;
   setApplicationId: (value: string) => void;
   setInitialRedirectComplete: (value: boolean) => void;
-  completeStep: (stepId: string, appId?: string) => Promise<void>;
 }
 
 // Default steps array
@@ -38,7 +36,6 @@ export const defaultSteps: StepsType[] = [
     title: "USAJobs",
     description: "Select a federal job",
     completed: false,
-    disabled: false,
     path: "/job-search",
   },
   {
@@ -46,7 +43,6 @@ export const defaultSteps: StepsType[] = [
     title: "Specialized Experience",
     description: "Add specialized experience",
     completed: false,
-    disabled: true,
     path: "/specialized-experience",
   },
   {
@@ -54,7 +50,6 @@ export const defaultSteps: StepsType[] = [
     title: "Extract Keywords",
     description: "Extract keywords from the job description",
     completed: false,
-    disabled: true,
     path: "/extract-keywords",
   },
   {
@@ -62,7 +57,6 @@ export const defaultSteps: StepsType[] = [
     title: "Past Jobs",
     description: "Add and edit past jobs",
     completed: false,
-    disabled: true,
     path: "/past-jobs",
   },
   {
@@ -70,7 +64,6 @@ export const defaultSteps: StepsType[] = [
     title: "Awards",
     description: "Add and edit awards",
     completed: false,
-    disabled: true,
     path: "/awards",
   },
   {
@@ -78,7 +71,6 @@ export const defaultSteps: StepsType[] = [
     title: "Education",
     description: "Add and edit educational experiences",
     completed: false,
-    disabled: true,
     path: "/education",
   },
   {
@@ -86,7 +78,6 @@ export const defaultSteps: StepsType[] = [
     title: "Volunteer Experience",
     description: "Add and edit volunteer experiences",
     completed: false,
-    disabled: true,
     path: "/volunteer-experiences",
   },
   {
@@ -94,7 +85,6 @@ export const defaultSteps: StepsType[] = [
     title: "Past Job Details",
     description: "Write a description of past jobs",
     completed: false,
-    disabled: true,
     path: "/past-job-details",
   },
   {
@@ -102,7 +92,6 @@ export const defaultSteps: StepsType[] = [
     title: "Volunteer Details",
     description: "Write a description of volunteer experiences",
     completed: false,
-    disabled: true,
     path: "/volunteer-details",
   },
   {
@@ -110,7 +99,6 @@ export const defaultSteps: StepsType[] = [
     title: "Specialized Experience",
     description: "get details on specialized experience",
     completed: false,
-    disabled: true,
     path: "/specialized-experience-details",
   },
   {
@@ -118,7 +106,6 @@ export const defaultSteps: StepsType[] = [
     title: "Final Resume",
     description: "A resume you can use in your job application",
     completed: false,
-    disabled: false,
     path: "/return-resume",
   },
 ];
@@ -166,31 +153,6 @@ export const ApplicationProvider = ({
   const dataLoadedRef = useRef(false);
   const applicationLoadingRef = useRef(false);
 
-  // Get current step synchronously from URL
-  const getCurrentStepId = () => {
-    if (typeof window === "undefined") return undefined;
-    const currentPath = window.location.pathname;
-    const currentStep = defaultSteps.find((step) => {
-      const stepPath = step.path.startsWith("/")
-        ? step.path.slice(1)
-        : step.path;
-      return (
-        currentPath.includes(`/ally/${stepPath}`) ||
-        currentPath.endsWith(`/${stepPath}`)
-      );
-    });
-    return currentStep?.id;
-  };
-
-  // State to track URL changes and force re-computation of step disabling
-  const [urlChangeCounter, setUrlChangeCounter] = useState(0);
-
-  // Apply disabling logic to steps at render time with memoization
-  const stepsWithDisabling = useMemo(() => {
-    const currentStepId = getCurrentStepId();
-    return applyStepDisablingLogic(steps, currentStepId);
-  }, [steps, urlChangeCounter]); // Re-compute when steps or URL changes
-
   function resetApplication() {
     setApplicationId("");
     setJob(undefined);
@@ -204,29 +166,6 @@ export const ApplicationProvider = ({
     dataLoadedRef.current = false;
     applicationLoadingRef.current = false;
   }
-
-  // Centralized method to complete steps
-  const completeStep = async (stepId: string, appId?: string) => {
-    const activeApplicationId = appId || applicationId;
-
-    if (!activeApplicationId) {
-      console.error("Cannot complete step: no applicationId provided");
-      return;
-    }
-
-    try {
-      const updatedSteps = await completeSteps({
-        steps,
-        stepId,
-        applicationId: activeApplicationId,
-      });
-
-      setSteps(updatedSteps);
-    } catch (error) {
-      console.error("Error completing step:", error);
-      throw error; // Re-throw so components can handle it
-    }
-  };
 
   // Listen for storage changes from other components
   useEffect(() => {
@@ -276,36 +215,23 @@ export const ApplicationProvider = ({
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const storedAppId = sessionStorage.getItem("applicationId");
-
     // Don't overwrite existing applicationId with null
+    const storedAppId = sessionStorage.getItem("applicationId");
     if (storedAppId && !applicationId) {
       setApplicationId(storedAppId);
-    } else if (applicationId && applicationId !== storedAppId) {
+    } else if (applicationId) {
       sessionStorage.setItem("applicationId", applicationId);
-      // Reset data loaded flag when applicationId changes
-      dataLoadedRef.current = false;
     }
   }, [applicationId]);
 
   useEffect(() => {
     if (!applicationId) return;
 
-    // Prevent multiple concurrent loads
-    if (applicationLoadingRef.current) return;
-    applicationLoadingRef.current = true;
-
     async function loadJobData() {
       try {
         const jobRes = await getJobByApplicationId(applicationId);
         if (jobRes) {
-          // Only update if the job actually changed
-          setJob((prevJob) => {
-            if (!prevJob || prevJob.id !== jobRes.id) {
-              return jobRes;
-            }
-            return prevJob;
-          });
+          setJob(jobRes);
         }
       } catch (error) {
         console.error("Error loading job data:", error);
@@ -317,13 +243,11 @@ export const ApplicationProvider = ({
             resetApplication();
           }
         }
-      } finally {
-        applicationLoadingRef.current = false;
       }
     }
 
     loadJobData();
-  }, [applicationId]); // Only depend on applicationId
+  }, [applicationId]);
 
   // Effect to load application data and update steps
   useEffect(() => {
@@ -362,19 +286,15 @@ export const ApplicationProvider = ({
         });
 
         if (!applicationRes) {
+          applicationLoadingRef.current = false;
           // Application not found - it might have been deleted
           resetApplication();
           return;
         }
 
-        // Update job if needed (only if different)
-        if (applicationRes.job) {
-          setJob((prevJob) => {
-            if (!prevJob || prevJob.id !== applicationRes.job.id) {
-              return applicationRes.job;
-            }
-            return prevJob;
-          });
+        // Update job if needed
+        if ((!job || job.id !== applicationRes.job?.id) && applicationRes.job) {
+          setJob(applicationRes.job);
         }
 
         // Update steps based on the application response
@@ -382,29 +302,37 @@ export const ApplicationProvider = ({
           applicationRes.completedSteps &&
           applicationRes.completedSteps.length > 0
         ) {
-          // Create new steps array with completion status using defaultSteps as base
-          const stepsWithCompletion = defaultSteps.map((step) => ({
-            ...step,
-            completed: applicationRes.completedSteps.includes(step.id),
-          }));
+          // Use functional update that doesn't depend on current steps
+          setSteps((currentSteps) => {
+            const updatedSteps = currentSteps.map((step) => ({
+              ...step,
+              completed: applicationRes.completedSteps.includes(step.id),
+            }));
 
-          // Set the raw steps - disabling logic will be applied at render time
-          setSteps(stepsWithCompletion);
+            return updatedSteps;
+          });
 
           // Only navigate to next step if this is the initial load
-          if (isInitialLoad) {
+          if (isInitialLoad && (job || applicationRes.job)) {
             setIsInitialLoad(false);
+
+            // Use a copy of steps to avoid dependency on steps state
+            const currentSteps = [...steps];
+            const stepsForComplete = currentSteps.map((step) => ({
+              ...step,
+              completed: applicationRes.completedSteps.includes(step.id),
+            }));
 
             // Ensure usa-jobs step is marked complete
             try {
               const stepsAfterComplete = await completeSteps({
-                steps: stepsWithCompletion,
+                steps: stepsForComplete,
                 stepId: "usa-jobs",
                 applicationId: applicationRes.id,
               });
 
-              // Set the raw steps - disabling logic will be applied at render time
-              setSteps(stepsAfterComplete);
+              // Use functional update to set steps
+              setSteps(() => stepsAfterComplete);
 
               // Find next incomplete step
               const next = findNextIncompleteStep(
@@ -419,7 +347,6 @@ export const ApplicationProvider = ({
             }
           }
         } else {
-          setSteps(defaultSteps);
         }
 
         // Mark data as loaded
@@ -442,43 +369,14 @@ export const ApplicationProvider = ({
     loadApplicationData();
   }, [
     applicationId,
-    initialJob?.id, // Only depend on job ID, not the entire object
-    initialSteps?.length, // Only depend on the length, not the entire array
+    initialJob,
+    initialSteps,
     initialAppId,
     isInitialLoad,
+    job,
     router,
+    steps,
   ]);
-
-  // Effect to detect URL changes and trigger re-computation of step disabling
-  useEffect(() => {
-    const handleRouteChange = () => {
-      // Instead of updating steps directly, update a counter to trigger re-computation
-      setUrlChangeCounter((prev) => prev + 1);
-    };
-
-    const originalPushState = window.history.pushState;
-    const originalReplaceState = window.history.replaceState;
-
-    window.history.pushState = function (...args) {
-      originalPushState.apply(window.history, args);
-      // Use setTimeout to avoid calling setState during render
-      setTimeout(handleRouteChange, 0);
-    };
-
-    window.history.replaceState = function (...args) {
-      originalReplaceState.apply(window.history, args);
-      // Use setTimeout to avoid calling setState during render
-      setTimeout(handleRouteChange, 0);
-    };
-
-    window.addEventListener("popstate", handleRouteChange);
-
-    return () => {
-      window.history.pushState = originalPushState;
-      window.history.replaceState = originalReplaceState;
-      window.removeEventListener("popstate", handleRouteChange);
-    };
-  }, []);
 
   // Effect to load application ID from sessionStorage on initial mount
   useEffect(() => {
@@ -487,20 +385,20 @@ export const ApplicationProvider = ({
     const storedAppId = sessionStorage.getItem("applicationId");
     if (storedAppId) {
       setApplicationId(storedAppId);
+    } else {
     }
   }, []); // Empty dependency array - only run once on mount
 
   const value = {
     applicationId,
     job,
-    steps: stepsWithDisabling, // Use memoized steps with disabling logic applied
+    steps,
     resetApplication,
     setApplicationId,
     setJob,
     setSteps,
     initialRedirectComplete,
     setInitialRedirectComplete,
-    completeStep,
   };
 
   return (

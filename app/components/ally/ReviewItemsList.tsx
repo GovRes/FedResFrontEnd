@@ -13,7 +13,7 @@ import {
 } from "@/app/utils/stringBuilders";
 import { useApplication } from "@/app/providers/applicationContext";
 export default function ReviewItemsList<
-  T extends AwardType | EducationType | PastJobType,
+  T extends AwardType | EducationType | PastJobType
 >({
   itemType,
   localItems,
@@ -44,10 +44,8 @@ export default function ReviewItemsList<
     <>
       <div className={styles.allyChatContainer}>
         <p>
-          These are the {pascalToSpaced(itemType)}s we found in your resume. If
-          any don’t relate to this application, check the box to leave them out
-          of your draft. Writing can take time and we want to concentrate your
-          energy on only what’s useful{" "}
+          Here are the {pascalToSpaced(itemType)}s we extracted from your
+          resume. Please select any that you DO NOT think will be relevant{" "}
           {job && <>in your application for {job.title}</>}.
         </p>
       </div>

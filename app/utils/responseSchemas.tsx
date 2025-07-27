@@ -24,7 +24,6 @@ export const Education = z.object({
   gpa: z.string().optional(),
   id: z.string(),
   major: z.string(),
-  minor: z.string().optional(),
   school: z.string(),
   schoolCity: z.string().optional(),
   schoolState: z.string().optional(),
@@ -145,7 +144,6 @@ export type StepsType = {
   description: string;
   completed: boolean;
   path: string;
-  disabled: boolean;
 };
 
 export interface JobType {

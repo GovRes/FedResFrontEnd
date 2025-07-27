@@ -6,6 +6,7 @@ import {
 } from "@/app/utils/responseSchemas";
 import { getCheckboxValues } from "@/app/utils/formUtils";
 import ReviewItemsList from "./ReviewItemsList";
+import { completeSteps } from "@/app/utils/stepUpdater";
 import { associateItemsWithApplication } from "@/app/crud/application";
 import { useApplication } from "@/app/providers/applicationContext";
 import { Loader } from "../loader/Loader";
@@ -13,7 +14,7 @@ import SkipItems from "./SkipItems";
 import { useNextStepNavigation } from "@/app/utils/nextStepNavigation";
 
 export default function InitialReview<
-  T extends AwardType | EducationType | PastJobType,
+  T extends AwardType | EducationType | PastJobType
 >({
   currentStepId,
   localItems,
@@ -38,7 +39,7 @@ export default function InitialReview<
 
   const [loading, setLoading] = useState(false);
 
-  const { completeStep, applicationId } = useApplication();
+  const { steps, applicationId, setSteps } = useApplication();
   const { navigateToNextIncompleteStep } = useNextStepNavigation();
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -60,7 +61,12 @@ export default function InitialReview<
         });
       }
 
-      await completeStep(currentStepId);
+      const updatedSteps = await completeSteps({
+        steps,
+        stepId: currentStepId,
+        applicationId,
+      });
+      setSteps(updatedSteps);
       navigateToNextIncompleteStep(currentStepId);
     }
   };

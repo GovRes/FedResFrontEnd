@@ -10,22 +10,31 @@ import { Loader } from "@/app/components/loader/Loader";
 import { SpecializedExperienceContext } from "@/app/providers/specializedExperienceContext";
 import { useApplication } from "@/app/providers/applicationContext";
 import { useNextStepNavigation } from "@/app/utils/nextStepNavigation";
+import { completeSteps } from "@/app/utils/stepUpdater";
 import { createAndSaveSpecializedExperiences } from "@/app/crud/specializedExperience";
 import { useAuthenticator } from "@aws-amplify/ui-react";
-
-export default function InitialReview() {
+export default function InitialReview({}: // setReviewing,
+{
+  // setReviewing: (reviewing: boolean) => void;
+}) {
   const { job } = useApplication();
   const { user } = useAuthenticator();
   const { specializedExperiences, setSpecializedExperiences } = useContext(
     SpecializedExperienceContext
   );
   const router = useRouter();
+  // const applicationId = "1dfd50fb-e594-412d-a62b-be45e8117dc3"; //for testing
   const [loading, setLoading] = useState(true);
-  const [extractorCompleted, setExtractorCompleted] = useState(false);
-  const extractorRan = useRef(false);
   const { navigateToNextIncompleteStep } = useNextStepNavigation();
-  const { applicationId, completeStep } = useApplication();
-
+  const { steps, applicationId, setSteps } = useApplication();
+  async function completeStep() {
+    const updatedSteps = await completeSteps({
+      steps,
+      stepId: "specialized-experience",
+      applicationId,
+    });
+    await setSteps(updatedSteps);
+  }
   async function storeSpecializedExperiences() {
     setLoading(true);
     try {
@@ -34,7 +43,7 @@ export default function InitialReview() {
         applicationId,
         userId: user.userId,
       });
-      await completeStep("specialized-experience");
+      await completeStep();
       navigateToNextIncompleteStep("specialized-experience");
     } catch (error) {
       console.error("Error storing specialized experiences:", error);
@@ -47,64 +56,31 @@ export default function InitialReview() {
     setSpecializedExperiences([]);
     router.push("/ally/job-search");
   }
-
   useEffect(() => {
-    // Prevent running multiple times
-    if (!job || extractorRan.current) return;
-    extractorRan.current = true;
     setLoading(true);
-
-    async function fetchSpecializedExperience() {
-      try {
-        const specializedExperienceRes = await specializedExperienceExtractor({
-          job,
-        });
-
-        setSpecializedExperiences(specializedExperienceRes);
-        setExtractorCompleted(true);
-
-        // Only auto-complete if there are truly no specialized experiences
-        if (
-          !specializedExperienceRes ||
-          specializedExperienceRes.length === 0
-        ) {
-          await completeStep("specialized-experience");
-          navigateToNextIncompleteStep("specialized-experience");
-        } else {
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error("Error fetching specialized experiences:", error);
-        setLoading(false);
-        setExtractorCompleted(true);
-      }
+    async function fetchSpecializedExperience({ job }: { job: any }) {
+      const specializedExperienceRes = await specializedExperienceExtractor({
+        job,
+      });
+      setSpecializedExperiences(specializedExperienceRes);
+      setLoading(false);
     }
+    async function completeAndMoveOn() {
+      await completeStep();
+      navigateToNextIncompleteStep("specialized-experience");
+    }
+    fetchSpecializedExperience({ job });
+    if (
+      !specializedExperiences ||
+      (specializedExperiences.length === 0 && applicationId)
+    ) {
+      completeAndMoveOn();
+    }
+  }, [applicationId]);
 
-    fetchSpecializedExperience();
-  }, [job]); // Simplified dependencies
-
-  // Show loading while extractor is running
-  if (loading || !extractorCompleted) {
+  if (loading) {
     return <Loader text="Loading specialized experiences..." />;
   }
-
-  // If no specialized experiences were found after extraction completed
-  if (!specializedExperiences || specializedExperiences.length === 0) {
-    return (
-      <div className={styles.allyChatContainer}>
-        <p>No specialized experience requirements found for this position.</p>
-        <button
-          onClick={async () => {
-            await completeStep("specialized-experience");
-            navigateToNextIncompleteStep("specialized-experience");
-          }}
-        >
-          Continue to next step
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div className={styles.allyChatContainer}>
       This job requires the following specialized experience. We do not

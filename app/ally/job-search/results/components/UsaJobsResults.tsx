@@ -1,17 +1,18 @@
 "use client";
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import UsaJobsResultsItem from "./UsaJobsResultsItem";
 import styles from "../../../ally.module.css";
+import { createModelRecord } from "@/app/crud/genericCreate";
 import Modal from "@/app/components/modal/Modal";
 import { formatJobDescription } from "@/app/utils/usaJobsSearch";
 import indefiniteArticle from "@/app/utils/indefiniteArticles";
 import { createAndSaveApplication } from "@/app/crud/application";
 import { useAuthenticator } from "@aws-amplify/ui-react";
+import { completeSteps } from "@/app/utils/stepUpdater";
 import { useApplication } from "@/app/providers/applicationContext";
 import { useNextStepNavigation } from "@/app/utils/nextStepNavigation";
 import { createOrGetJob } from "@/app/crud/job";
 import { useRouter } from "next/navigation";
-
 export interface MatchedObjectDescriptor {
   PositionTitle: string;
   DepartmentName: string;
@@ -45,56 +46,41 @@ export default function UsaJobsResults({
 }: {
   searchResults: Result[];
 }) {
-  const { setJob, setApplicationId, completeStep } = useApplication();
+  const { steps, setJob, setSteps, setApplicationId } = useApplication();
   const { navigateToNextIncompleteStep } = useNextStepNavigation();
   const { user } = useAuthenticator();
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [currentJob, setCurrentJob] = useState<Result | null>();
-  const [isProcessing, setIsProcessing] = useState(false);
-
   function selectJob({ job }: { job: Result }) {
     setModalOpen(true);
     setCurrentJob(job);
   }
-
   function returnToSearch() {
     router.push("/ally/job-search/");
   }
-
   async function setJobAndProceed() {
-    if (currentJob && !isProcessing) {
-      setIsProcessing(true);
+    if (currentJob) {
+      let formattedJobDescription = formatJobDescription({ job: currentJob });
+      //not using generic create because we want to check if there is already an entry for this job
+      let jobRes = await createOrGetJob({
+        ...formattedJobDescription,
+      });
+      let applicationRes = await createAndSaveApplication({
+        jobId: jobRes.id,
+        userId: user.userId,
+      });
+      setApplicationId(applicationRes.id);
+      const updatedSteps = await completeSteps({
+        steps,
+        stepId: "usa-jobs",
+        applicationId: applicationRes.id,
+      });
+      setSteps(updatedSteps);
+      setJob(jobRes);
 
-      try {
-        let formattedJobDescription = formatJobDescription({ job: currentJob });
-
-        // Create or get the job
-        let jobRes = await createOrGetJob({
-          ...formattedJobDescription,
-        });
-
-        // Create the application
-        let applicationRes = await createAndSaveApplication({
-          jobId: jobRes.id,
-          userId: user.userId,
-        });
-
-        // Update context state
-        setApplicationId(applicationRes.id);
-        setJob(jobRes);
-
-        // Complete the step through the context, passing the new applicationId
-        await completeStep("usa-jobs", applicationRes.id);
-
-        // Navigate to next step
-        await navigateToNextIncompleteStep("usa-jobs");
-      } catch (error) {
-        console.error("Error setting job and proceeding:", error);
-        // You might want to show an error message to the user here
-      } finally {
-        setIsProcessing(false);
-      }
+      // Only navigate after all steps are completed
+      await navigateToNextIncompleteStep("usa-jobs");
     }
   }
 
@@ -107,14 +93,14 @@ export default function UsaJobsResults({
               You want apply for{" "}
               {currentJob.MatchedObjectDescriptor.PositionTitle}, correct?
             </div>
-            <button onClick={setJobAndProceed} disabled={isProcessing}>
-              {isProcessing
-                ? "Processing..."
-                : `Yes, let's apply to be ${indefiniteArticle({
-                    phrase: currentJob.MatchedObjectDescriptor.PositionTitle,
-                  })} ${currentJob?.MatchedObjectDescriptor.PositionTitle}!`}
+            <button onClick={setJobAndProceed}>
+              Yes, let's apply to be{" "}
+              {indefiniteArticle({
+                phrase: currentJob.MatchedObjectDescriptor.PositionTitle,
+              })}{" "}
+              {currentJob?.MatchedObjectDescriptor.PositionTitle}!
             </button>
-            <button onClick={() => setModalOpen(false)} disabled={isProcessing}>
+            <button onClick={() => setModalOpen(false)}>
               No, please take me back to the search results.
             </button>
           </>

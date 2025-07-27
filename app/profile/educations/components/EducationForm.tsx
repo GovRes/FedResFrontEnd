@@ -28,12 +28,6 @@ export default function EducationForm({
         onChange={onChange}
       />
       <TextWithLabel
-        label="Minor"
-        name="minor"
-        value={item?.minor || ""}
-        onChange={onChange}
-      />
-      <TextWithLabel
         label="School or Institution"
         name="school"
         value={item?.school || ""}

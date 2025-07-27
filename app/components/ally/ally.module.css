@@ -32,9 +32,8 @@ button.negative {
   border-bottom-left-radius: 0 0;
   color: #fff;
   margin: 10px;
-  mask:
-    radial-gradient(100% 100% at 0 0, #0000 99%, #000 102%) 0 100% / var(--t)
-      var(--t) no-repeat,
+  mask: radial-gradient(100% 100% at 0 0, #0000 99%, #000 102%) 0 100% /
+      var(--t) var(--t) no-repeat,
     linear-gradient(#000 0 0) padding-box;
   padding: 1em;
   place-self: start;
@@ -76,11 +75,6 @@ button.negative {
   flex-direction: row;
   justify-content: space-evenly;
   align-items: flex-start;
-}
-.disabledStep {
-  opacity: 0.5;
-  pointer-events: none;
-  font-style: italic;
 }
 
 .qualificationEditorContainer {
@@ -179,8 +173,7 @@ button.negative {
   border-bottom-right-radius: 0 0;
   color: #fff;
   margin: 10px;
-  mask:
-    radial-gradient(100% 100% at 100% 0, #0000 99%, #000 102%) 100% 100% /
+  mask: radial-gradient(100% 100% at 100% 0, #0000 99%, #000 102%) 100% 100% /
       var(--t) var(--t) no-repeat,
     linear-gradient(#000 0 0) padding-box;
   padding: 1em;

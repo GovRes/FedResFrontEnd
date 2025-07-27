@@ -9,6 +9,7 @@ import {
 import { useEffect, useState } from "react";
 import { updateModelRecord } from "@/app/crud/genericUpdate";
 import { useNextStepNavigation } from "@/app/utils/nextStepNavigation";
+import { completeSteps } from "@/app/utils/stepUpdater";
 import {
   specializedExperienceAssistantInstructions,
   specializedExperienceAssistantName,
@@ -19,8 +20,7 @@ export default function ExperienceWriterPage() {
   const [additionalContext, setAdditionalContext] = useState<PastJobType[]>([]);
   const [items, setItems] = useState<SpecializedExperienceType[]>([]);
   const [loading, setLoading] = useState(true);
-  const { applicationId, completeStep, job, steps, setSteps } =
-    useApplication();
+  const { applicationId, job, steps, setSteps } = useApplication();
   const { navigateToNextIncompleteStep } = useNextStepNavigation();
   useEffect(() => {
     async function fetchItems() {
@@ -72,7 +72,12 @@ export default function ExperienceWriterPage() {
     }
   };
   async function handleComplete() {
-    await completeStep("specialized-experience-details");
+    const updatedSteps = await completeSteps({
+      steps,
+      stepId: "specialized-experience-details",
+      applicationId,
+    });
+    setSteps(updatedSteps);
     await navigateToNextIncompleteStep("specialized-experience-details");
   }
   if (loading) {

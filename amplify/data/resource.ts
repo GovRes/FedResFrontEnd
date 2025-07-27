@@ -80,7 +80,6 @@ const schema = a.schema({
       id: a.id().required(),
       degree: a.string().required(),
       major: a.string().required(),
-      minor: a.string(),
       school: a.string().required(),
       schoolCity: a.string(),
       schoolState: a.string(),

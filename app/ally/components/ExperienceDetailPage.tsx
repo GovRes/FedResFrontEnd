@@ -216,8 +216,8 @@ export default function ExperienceDetailPage({
         
         Use this context when asking questions and writing paragraphs.`}
         jobString={`${job?.title} at the ${job?.department}`}
-        sidebarTitle={`Skills from ${pastJob.title} at ${pastJob.organization} that might apply to ${job?.title}`}
-        heading={`${pastJob.title} at ${pastJob.organization} - Experience Details`}
+        sidebarTitle={`Qualifications from ${pastJob.title} at ${pastJob.organization} that might apply to ${job?.title}`}
+        heading={`${pastJob.title} at ${pastJob.organization} - Applicable Work Experience`}
         isNestedView={true}
         parentId={pastJob.id}
         nestedItemsKey="qualifications"

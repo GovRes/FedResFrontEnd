@@ -1,8 +1,10 @@
 "use client";
 import { useApplication } from "@/app/providers/applicationContext";
 import { useNextStepNavigation } from "@/app/utils/nextStepNavigation";
+import { completeSteps } from "@/app/utils/stepUpdater";
 import { pascalToDashed, pascalToSpaced } from "@/app/utils/stringBuilders";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function SkipItems({
   currentStepId,
@@ -17,10 +19,15 @@ export default function SkipItems({
     | "VolunteerExperience"
     | "Resume";
 }) {
-  const { completeStep } = useApplication();
+  const { steps, applicationId, setSteps } = useApplication();
   const { navigateToNextIncompleteStep } = useNextStepNavigation();
   async function skipItems() {
-    await completeStep(currentStepId);
+    const updatedSteps = await completeSteps({
+      steps,
+      stepId: currentStepId,
+      applicationId,
+    });
+    setSteps(updatedSteps);
     navigateToNextIncompleteStep(currentStepId);
   }
 

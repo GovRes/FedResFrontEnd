@@ -4,9 +4,11 @@ import ExperiencesTable from "./experienceComponents/ExperiencesTable";
 import {
   AwardType,
   EducationType,
+  // ResumeType,
   SpecializedExperienceType,
   QualificationType,
   PastJobType,
+  PastJob,
 } from "@/app/utils/responseSchemas";
 import {
   fetchUserAssociations,
@@ -23,13 +25,6 @@ type ExperienceItemType =
   | SpecializedExperienceType
   | PastJobType
   | QualificationType;
-
-const buttonTextMapping = {
-  PastJob: "Add a Past Job",
-  Award: "Add New Award",
-  Volunteer: "Add Volunteer Experience",
-  Education: "Add New Education",
-};
 
 export default function ExperienceDashboard({
   experienceType,
@@ -49,8 +44,9 @@ export default function ExperienceDashboard({
           associationType = "PastJob";
         }
         // Use the explicit type parameter for fetchUserAssociations
-        const itemsRes =
-          await fetchUserAssociations<ExperienceItemType>(associationType);
+        const itemsRes = await fetchUserAssociations<ExperienceItemType>(
+          associationType
+        );
         if (experienceType === "Volunteer") {
           // If the experienceType is "Volunteer", we need to filter the items
           // to only include those that are of type "Volunteer"
@@ -97,7 +93,7 @@ export default function ExperienceDashboard({
         setItems={setItems}
       />
       <Link href={`/profile/${pascalToDashed(experienceType)}s/new`}>
-        <button>{buttonTextMapping[experienceType]}</button>
+        <button>Add New {experienceType}</button>
       </Link>
     </div>
   );
