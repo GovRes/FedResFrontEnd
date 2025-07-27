@@ -24,10 +24,10 @@ export default function ProfileLayout({
 
   return (
     <div className="content-container">
-      {/* <PermissionGuard role="admin" fallback={<div>Access denied</div>}> */}
-      <AdminNavigation currentPath={pathname} />
-      <div className="tab-content">{children}</div>
-      {/* </PermissionGuard> */}
+      <PermissionGuard role="admin" fallback={<div>Access denied</div>}>
+        <AdminNavigation currentPath={pathname} />
+        <div className="tab-content">{children}</div>
+      </PermissionGuard>
     </div>
   );
 }
