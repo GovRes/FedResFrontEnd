@@ -13,55 +13,54 @@ export default function SeedRoles() {
   };
   return (
     <>
-      {hasRole && (
-        <>
-          <div>
-            <section>
-              <h2>Role Management</h2>
-              <p>
-                Initialize the system with default user roles. This should
-                typically only be done once during initial setup.
-              </p>
+      {/* {hasRole && ( */}
+      <>
+        <div>
+          <section>
+            <h2>Role Management</h2>
+            <p>
+              Initialize the system with default user roles. This should
+              typically only be done once during initial setup.
+            </p>
 
+            <div>
               <div>
                 <div>
+                  <h3>Caution</h3>
                   <div>
-                    <h3>Caution</h3>
-                    <div>
-                      <p>
-                        This will create default roles (User, Admin) if they
-                        don't already exist. Existing roles will not be
-                        modified.
-                      </p>
-                    </div>
+                    <p>
+                      This will create default roles (User, Admin) if they don't
+                      already exist. Existing roles will not be modified.
+                    </p>
                   </div>
                 </div>
               </div>
-
-              <SeedRolesButton onSeedComplete={handleSeedComplete} />
-            </section>
-          </div>
-          {seedHistory.length > 0 && (
-            <div>
-              <h3>Recent Seeding History</h3>
-              <div>
-                {seedHistory
-                  .slice(-5)
-                  .reverse()
-                  .map((entry, index) => (
-                    <div key={index}>
-                      <div>
-                        <span>{entry.timestamp.toLocaleString()}</span>
-                        <span>{entry.success ? "Success" : "Failed"}</span>
-                      </div>
-                      <p>{entry.message}</p>
-                    </div>
-                  ))}
-              </div>
             </div>
-          )}
-        </>
-      )}
+
+            <SeedRolesButton onSeedComplete={handleSeedComplete} />
+          </section>
+        </div>
+        {seedHistory.length > 0 && (
+          <div>
+            <h3>Recent Seeding History</h3>
+            <div>
+              {seedHistory
+                .slice(-5)
+                .reverse()
+                .map((entry, index) => (
+                  <div key={index}>
+                    <div>
+                      <span>{entry.timestamp.toLocaleString()}</span>
+                      <span>{entry.success ? "Success" : "Failed"}</span>
+                    </div>
+                    <p>{entry.message}</p>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+      </>
+      {/* )} */}
     </>
   );
 }
