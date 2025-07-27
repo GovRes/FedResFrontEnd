@@ -157,7 +157,7 @@ export default function ExperiencePage({
 
             <div className={styles.jobCardActions}>
               <button
-                onClick={() => job.id && navigateToJobEdit(job.id)}
+                onClick={() => navigateToJobEdit(job.id)}
                 className={styles.editButton}
               >
                 {job.qualifications?.every((q) => q.userConfirmed)

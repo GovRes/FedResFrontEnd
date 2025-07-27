@@ -1,50 +1,75 @@
 "use client";
 import { useState } from "react";
 import PastJobForm from "../../components/components/PastJobForm";
-import { pastJobZodSchema, PastJobType } from "@/app/utils/responseSchemas";
+import { PastJobType } from "@/app/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
 import { useRouter } from "next/navigation";
 import { createModelRecord } from "@/app/crud/genericCreate";
 import { useAuthenticator } from "@aws-amplify/ui-react";
-import { useSmartForm } from "@/lib/hooks/useFormDataCleaner";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 
 export default function NewVolunteerPage() {
   const router = useRouter();
   const { user } = useAuthenticator();
   const [loading, setLoading] = useState(false);
-  const { defaultValues, cleanData } = useSmartForm(pastJobZodSchema, {
-    userId: user.userId,
+  const [formData, setFormData] = useState<PastJobType>({
+    endDate: "",
+    gsLevel: "",
+    hours: "",
+    id: "",
+    organization: "",
+    organizationAddress: "",
+    qualifications: [],
+    responsibilities: "",
+    startDate: "",
+    supervisorMayContact: false,
+    supervisorName: "",
+    supervisorPhone: "",
+    title: "",
+    type: "Volunteer",
+    userId: "",
   });
-  const methods = useForm({
-    resolver: zodResolver(pastJobZodSchema),
-    defaultValues,
-  });
-  const onSubmit = async (data: PastJobType): Promise<void> => {
+  const onChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
+    if (formData) {
+      setFormData({ ...formData, [e.target.name]: e.target.value });
+    }
+  };
+  const onChangeToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      supervisorMayContact: e.target.checked,
+    });
+  };
+
+  const onSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ): Promise<void> => {
+    e.preventDefault();
     setLoading(true);
-    const cleaned = cleanData(data);
     try {
-      let res = await createModelRecord("PastJob", cleaned);
+      let res = await createModelRecord("PastJob", formData);
       setLoading(false);
       router.push(`/profile/volunteers/${res.id}`);
     } catch (error) {
-      console.error("Error updating award:", error);
-      setLoading(false);
+      console.error("Error updating past job:", error);
     }
   };
 
   if (loading) {
-    return <Loader text="loading job data" />;
+    return <Loader text="loading volunteer data" />;
   }
   return (
     <div>
       <h1>New Volunteer Experience</h1>
       <PastJobForm
+        item={formData}
         itemType="Volunteer"
-        loading={loading}
-        methods={methods}
-        onSubmit={methods.handleSubmit(onSubmit)}
+        onChange={onChange}
+        onChangeToggle={onChangeToggle}
+        onSubmit={onSubmit}
       />
     </div>
   );

@@ -7,9 +7,7 @@ export default function BaseForm({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   children: ReactNode;
 }) {
-  return (
-    <form role="form" onSubmit={onSubmit}>
-      {children}
-    </form>
-  );
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  return <form role="form"onSubmit={onSubmit}>{children}</form>;
 }

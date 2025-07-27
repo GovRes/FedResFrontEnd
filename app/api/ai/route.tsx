@@ -4,13 +4,13 @@ import { zodResponseFormat } from "openai/helpers/zod";
 import { AssistantResponse } from "ai";
 
 import {
-  awardsArrayZodSchema,
+  AwardsArraySchema,
   Keywords,
-  educationArrayZodSchema,
-  qualificationZodSchema,
-  topicZodSchema,
-  topicsArrayZodSchema,
-  pastJobsArrayZodSchema,
+  EducationArraySchema,
+  Qualification,
+  Topic,
+  TopicsArraySchema,
+  PastJobsArraySchema,
 } from "@/app/utils/responseSchemas";
 
 export async function POST(req: NextRequest) {
@@ -26,13 +26,13 @@ export async function POST(req: NextRequest) {
   const data = await req.json();
 
   const schemas = {
-    awards: awardsArrayZodSchema,
-    education: educationArrayZodSchema,
+    awards: AwardsArraySchema,
+    education: EducationArraySchema,
     keywords: Keywords,
-    qualification: topicZodSchema,
-    qualifications: qualificationZodSchema,
-    topics: topicsArrayZodSchema,
-    pastJobs: pastJobsArrayZodSchema,
+    qualification: Topic,
+    qualifications: Qualification,
+    topics: TopicsArraySchema,
+    pastJobs: PastJobsArraySchema,
   };
 
   type SchemaKey = keyof typeof schemas;

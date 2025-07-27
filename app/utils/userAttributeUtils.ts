@@ -6,7 +6,6 @@ import {
 } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "../../amplify/data/resource";
-import z from "zod";
 
 // Generate typed client for database operations
 const client = generateClient<Schema>();
@@ -329,7 +328,7 @@ function isUserType(obj: any): obj is UserType {
 }
 
 export interface UserType {
-  birthdate?: string | null | undefined;
+  birthdate?: string | null;
   email: string;
   familyName?: string | null;
   givenName?: string | null;
@@ -344,20 +343,3 @@ export interface UserType {
   id: string;
   isActive?: boolean | null; // Optional, defaults to true
 }
-
-export const userZodSchema = z.object({
-  birthdate: z.string().nullable().optional(),
-  email: z.string().email(),
-  familyName: z.string().nullable().optional(),
-  givenName: z.string().nullable().optional(),
-  gender: z.string().nullable().optional(),
-  academicLevel: z.string().nullable().optional(),
-  currentAgency: z.string().nullable().optional(),
-  citizen: z.boolean().nullable().optional(),
-  disabled: z.boolean().nullable().optional(),
-  fedEmploymentStatus: z.string().nullable().optional(),
-  militarySpouse: z.boolean().nullable().optional(),
-  veteran: z.boolean().nullable().optional(),
-  id: z.string(),
-  isActive: z.boolean().nullable().optional(), // Optional, defaults to true
-});

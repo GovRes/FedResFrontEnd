@@ -78,7 +78,7 @@ export default function ExperienceDetailPage({
           const formattedJob: PastJobType = {
             ...job,
             qualifications: Array.isArray(job.qualifications)
-              ? job.qualifications?.map((qual) => ({
+              ? job.qualifications.map((qual) => ({
                   ...qual,
                   userConfirmed: qual.userConfirmed || false,
                 }))
@@ -113,18 +113,20 @@ export default function ExperienceDetailPage({
       // 1. Update the qualification in the pastJob
       const updatedJob = {
         ...pastJob,
-        qualifications: pastJob.qualifications?.map((q) =>
+        qualifications: pastJob.qualifications.map((q) =>
           q.id === qualification.id ? qualification : q
         ),
       };
-      if (updatedJob.id) {
-        await updatePastJobWithQualifications(
-          updatedJob.id,
-          updatedJob,
-          updatedJob.qualifications
-        );
-        setPastJob(updatedJob);
-      }
+
+      // 2. Save to backend API
+      await updatePastJobWithQualifications(
+        updatedJob.id,
+        updatedJob,
+        updatedJob.qualifications
+      );
+
+      // 3. Update local state
+      setPastJob(updatedJob);
 
       return Promise.resolve();
     } catch (error) {
@@ -182,7 +184,7 @@ export default function ExperienceDetailPage({
   }
 
   // If no past job found
-  if (!pastJob || !pastJob.qualifications) {
+  if (!pastJob) {
     return (
       <div className="emptyState">
         <h3>Job not found</h3>

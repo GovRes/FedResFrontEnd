@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { agencies } from "@/app/utils/usaJobsCodes";
-import { UserType, userZodSchema } from "@/app/utils/userAttributeUtils";
+import { UserType } from "@/app/utils/userAttributeUtils";
 export type ApplicationType = {
   awards?: AwardType[];
   completedSteps: string[];
@@ -17,67 +17,48 @@ export type ApplicationType = {
 export const Keywords = z.object({
   keywords: z.array(z.string()),
 });
-export const educationZodSchema = z.object({
-  date: z.string().min(1, "Date is required"),
+export const Education = z.object({
+  date: z.string(),
   degree: z.string().optional(),
   gpa: z.string().optional(),
-  id: z.string().optional(),
+  id: z.string(),
   major: z.string().optional(),
   minor: z.string().optional(),
-  school: z.string().min(1, "School or institution is required"),
+  school: z.string(),
   schoolCity: z.string().optional(),
   schoolState: z.string().optional(),
-  type: z.string(), // "education" or "certification"
-  userId: z.string(),
-});
-export const educationArrayZodSchema = z.object({
-  education: z.array(educationZodSchema),
-});
-export type EducationType = z.infer<typeof educationZodSchema>;
-export const awardZodSchema = z.object({
-  date: z.string(),
-  id: z.string().optional(),
   title: z.string(),
+  type: z.string(), // "education" or "certification"
+  userConfirmed: z.boolean().optional(),
   userId: z.string(),
 });
-export const awardsArrayZodSchema = z.object({
-  awards: z.array(awardZodSchema),
+export const EducationArraySchema = z.object({
+  education: z.array(Education),
 });
-export type AwardType = z.infer<typeof awardZodSchema>;
-
-const agencyKeys = Object.keys(agencies) as Array<keyof typeof agencies>;
-const agencyEnum = z.enum(
-  agencyKeys as [keyof typeof agencies, ...Array<keyof typeof agencies>]
-);
-const optionalString = z.string().optional().or(z.literal(""));
-const optionalNumber = z
-  .string()
-  .transform((val) => (val === "" ? undefined : parseFloat(val)))
-  .optional();
-
-export const jobSearchZodSchema = z.object({
-  keyword: optionalString,
-  locationName: optionalString,
-  radius: optionalNumber,
-  organization: z.union([agencyEnum, z.literal("")]).optional(),
-  positionTitle: optionalString,
-  positionScheduleType: optionalString,
-  remote: z.boolean().optional(),
-  travelPercentage: optionalString,
-  user: userZodSchema.optional(),
+export type EducationType = z.infer<typeof Education>;
+export const Award = z.object({
+  id: z.string(),
+  title: z.string(),
+  date: z.string(),
+  userId: z.string(),
 });
+export const AwardsArraySchema = z.object({
+  awards: z.array(Award),
+});
+export type AwardType = z.infer<typeof Award>;
+
 export interface JobSearchObject {
-  keyword?: string | undefined;
-  locationName?: string | undefined;
-  radius?: number | undefined;
-  organization?: keyof typeof agencies | "" | undefined;
-  positionTitle?: string | undefined;
-  positionScheduleType?: string | undefined;
-  remote?: boolean | undefined;
-  travelPercentage?: string | undefined;
-  user?: UserType;
+  keyword?: string;
+  locationName?: string;
+  radius?: number;
+  organization?: keyof typeof agencies;
+  positionTitle?: string;
+  positionScheduleType?: string;
+  remote?: boolean;
+  travelPercentage?: string;
+  user: UserType;
 }
-export const topicZodSchema = z.object({
+export const Topic = z.object({
   id: z.string(),
   title: z.string(),
   jobId: z.string(),
@@ -87,11 +68,11 @@ export const topicZodSchema = z.object({
   evidence: z.string().optional(),
 });
 
-export const topicsArrayZodSchema = z.object({
-  topics: z.array(topicZodSchema),
+export const TopicsArraySchema = z.object({
+  topics: z.array(Topic),
 });
 
-export type TopicType = z.infer<typeof topicZodSchema>;
+export type TopicType = z.infer<typeof Topic>;
 
 export type ResumeType = {
   path: string;
@@ -101,9 +82,9 @@ export type ResumeType = {
   userId?: string;
 };
 
-export const qualificationZodSchema = z.object({
+export const Qualification = z.object({
   id: z.string(),
-  topic: topicZodSchema,
+  topic: Topic,
   description: z.string(),
   title: z.string(),
   paragraph: z.string().optional(),
@@ -112,30 +93,28 @@ export const qualificationZodSchema = z.object({
   userConfirmed: z.boolean(),
 });
 
-export type QualificationType = z.infer<typeof qualificationZodSchema>;
+export type QualificationType = z.infer<typeof Qualification>;
 
-export const pastJobZodSchema = z.object({
+export const PastJob = z.object({
   endDate: z.string().optional(),
   gsLevel: z.string().optional(),
   hours: z.string().optional(),
-  id: z.string().optional(),
-  organization: z.string().min(1, "Organization is required"),
+  id: z.string(),
+  organization: z.string(),
   organizationAddress: z.string().optional(),
-  qualifications: z.array(qualificationZodSchema).optional(),
+  qualifications: z.array(Qualification),
   responsibilities: z.string().optional(),
   startDate: z.string().optional(),
   supervisorMayContact: z.boolean().optional(),
   supervisorName: z.string().optional(),
   supervisorPhone: z.string().optional(),
-  title: z.string().min(1, "Title is required"),
+  title: z.string(),
   type: z.string(),
   userId: z.string(),
 });
 
-export type PastJobType = z.infer<typeof pastJobZodSchema>;
-export const pastJobsArrayZodSchema = z.object({
-  pastJobs: z.array(pastJobZodSchema),
-});
+export type PastJobType = z.infer<typeof PastJob>;
+export const PastJobsArraySchema = z.object({ pastJobs: z.array(PastJob) });
 
 export type StepsType = {
   id: string;

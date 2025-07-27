@@ -13,7 +13,7 @@ export type AssociationType =
  * Generic type for entity records
  */
 export type EntityRecord = {
-  id?: string;
+  id: string;
   userId: string;
   [key: string]: any;
 };
@@ -262,7 +262,16 @@ function getFieldsForType(associationType: AssociationType): string {
   // Type-specific fields
   const typeSpecificFields: Record<AssociationType, string[]> = {
     Award: ["title", "date"],
-    Education: ["degree", "major", "school", "date", "type", "gpa"],
+    Education: [
+      "degree",
+      "major",
+      "school",
+      "date",
+      "title",
+      "type",
+      "gpa",
+      "userConfirmed",
+    ],
     // Resume: ["fileName"],
     PastJob: [
       "title",

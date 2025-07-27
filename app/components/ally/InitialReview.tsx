@@ -40,15 +40,20 @@ export default function InitialReview<
   const { completeStep, applicationId } = useApplication();
   const { navigateToNextIncompleteStep } = useNextStepNavigation();
 
-  const onSubmit = async (selectedItems: T[]) => {
-    // Update parent state with selected items
-    setLocalItems(selectedItems);
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const values = getCheckboxValues(event);
+    // Filter out items whose IDs are in the values array
+    const updatedItems = localItems.filter((item) => !values.includes(item.id));
+
+    // Update parent state
+    setLocalItems(updatedItems);
     if (applicationId && items.length > 0) {
       setLoading(true);
-      if (selectedItems.length > 0) {
+      if (updatedItems.length > 0) {
         await associateItemsWithApplication({
           applicationId,
-          items: selectedItems as unknown as { id: string }[],
+          items: updatedItems,
           associationType:
             itemType === "VolunteerExperience" ? "PastJob" : itemType,
         });
