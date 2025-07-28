@@ -8,7 +8,7 @@ import { generateClient } from "aws-amplify/api";
  * @throws {Error} - If creation fails
  */
 export async function createOrGetJob(jobData: {
-  agencyDescription: string;
+  agencyDescription?: string;
   department: string;
   duties: string;
   evaluationCriteria: string;

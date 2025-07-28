@@ -58,6 +58,10 @@ export default function EditableFederalJobRecord({
         </div>
       </div>
       <div>
+        <h3>Questionnaire:</h3>
+        <p>{job.questionnaire}</p>
+      </div>
+      <div>
         <h3>Duties:</h3>
         <p>{job.duties}</p>
       </div>

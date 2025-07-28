@@ -3,12 +3,14 @@ import { type NextRequest } from "next/server";
 export async function POST(req: NextRequest) {
   const data = await req.json();
   const { url } = data;
+  console.log("Received URL:", url);
   if (!url) {
     return new Response("Missing url", { status: 400 });
   }
 
   //extract the jobId from the URL
   const jobId = url.match(/\/job\/(\d+)/);
+  console.log("Extracted jobId:", jobId);
   try {
     // Fetch HTML content server-side to avoid CORS
     console.log(`Fetching job page for ${jobId}...`);
@@ -235,7 +237,7 @@ function extractQuestionnaireLink(html: string): string | null {
 // Helper function to fetch job page HTML server-side
 async function fetchPageHTML(url: string): Promise<string | null> {
   try {
-    console.log(`Fetching HTML for job, ${url}`);
+    console.log(`240, Fetching HTML for ${url}`);
 
     const response = await fetch(`${url}`, {
       headers: {

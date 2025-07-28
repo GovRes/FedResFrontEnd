@@ -148,11 +148,12 @@ export type StepsType = {
 
 export interface JobType {
   id?: string;
-  agencyDescription: string;
+  agencyDescription?: string;
   department: string;
   duties: string;
   evaluationCriteria: string;
   qualificationsSummary: string;
+  questionnaire?: string;
   requiredDocuments: string;
   title: string;
   topics?: TopicType[];

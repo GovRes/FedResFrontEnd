@@ -93,7 +93,7 @@ const schema = a.schema({
   Job: a
     .model({
       id: a.id().required(),
-      agencyDescription: a.string().required(),
+      agencyDescription: a.string(),
       department: a.string().required(),
       duties: a.string().required(),
       evaluationCriteria: a.string().required(),

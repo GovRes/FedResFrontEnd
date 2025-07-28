@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { usaJobsTextFetch } from "@/app/utils/usaJobsTextFetch";
 import processUSAJob from "@/app/utils/processUSAJob";
+import { formatJobDescriptionFromTextFetch } from "@/app/api/jobs/[id]/route";
 const stringFieldSchema = z.object({
   value: z.string(),
 });
@@ -21,7 +22,10 @@ export default function PastJobUrl() {
     if (jobId) {
       let results = await fetch(`/api/jobs/${jobId}`).then((res) => res.json());
       console.log("Results from USA Jobs Text Fetch:", results);
-      processUSAJob(results);
+      const formattedJobDescription = formatJobDescriptionFromTextFetch({
+        job: results.data[0],
+      });
+      processUSAJob(formattedJobDescription);
     }
 
     setLoading(false);

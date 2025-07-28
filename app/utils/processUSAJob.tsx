@@ -1,14 +1,12 @@
+import { updateModelRecord } from "../crud/genericUpdate";
 import { createOrGetJob } from "../crud/job";
 import { JobType } from "./responseSchemas";
-import { formatJobDescription } from "./usaJobsSearch";
-import { Result } from "@/app/ally/job-search/results/components/UsaJobsResults";
 
-export default async function processUSAJob(job: Response) {
+export default async function processUSAJob(job: JobType) {
   console.log("Processing USA Job:", job);
-  let formattedJobDescription = formatJobDescription({ job: job as Result });
   try {
     // Create or get the job
-    let jobRes = await createOrGetJob({ ...formattedJobDescription });
+    let jobRes = await createOrGetJob({ ...job });
     const wasJustCreated: boolean =
       new Date().getTime() - new Date(jobRes.createdAt).getTime() < 1000;
     if (wasJustCreated || !jobRes.questionnaire) {
@@ -23,7 +21,9 @@ export default async function processUSAJob(job: Response) {
       });
       const resData = await response.json();
       if (resData.content) {
-        // save to job
+        await updateModelRecord("Job", jobRes.id, {
+          questionnaire: resData.content,
+        });
       }
     }
   } catch (error) {
