@@ -80,7 +80,7 @@ const schema = a.schema({
       schoolCity: a.string(),
       schoolState: a.string(),
       date: a.string().required(),
-      type: a.string().required(), // "education" or "certification"
+      type: a.string().required().default("education"), // "education" or "certification"
       gpa: a.string(),
       userId: a.id().required(),
       user: a.belongsTo("User", "userId"),
