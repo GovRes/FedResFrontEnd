@@ -18,7 +18,7 @@
     "@aws-amplify/ui-react-storage": "^3.5.0",
     "ai": "^4.3.17",
     "aws-amplify": "^6.15.3",
-    "axios": "^1.8.2",
+    "axios": "^1.11.0",
     "jest": "^30.0.4",
     "next": "^15.3.5",
     "openai": "^4.77.0",
