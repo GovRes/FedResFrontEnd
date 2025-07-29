@@ -5,12 +5,23 @@ backend:
       commands:
         - npm install --legacy-peer-deps --cache .npm --prefer-offline --include=dev
         - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
-        - npx playwright install
+        # Install system dependencies for Playwright
+        - apt-get update
+        - apt-get install -y libnss3-dev libatk-bridge2.0-dev libdrm-dev libxkbcommon-dev libgbm-dev libasound-dev
+        # Install Playwright browsers with dependencies
+        - npx playwright install --with-deps
+        # Verify Playwright installation
+        - npx playwright --version
 frontend:
   phases:
     preBuild:
       commands:
         - npm install --legacy-peer-deps --cache .npm --prefer-offline
+        # Install system dependencies for Playwright in frontend phase too
+        - apt-get update
+        - apt-get install -y libnss3-dev libatk-bridge2.0-dev libdrm-dev libxkbcommon-dev libgbm-dev libasound-dev
+        # Install Playwright browsers with dependencies
+        - npx playwright install --with-deps
     build:
       commands:
         - npm run build
@@ -22,3 +33,5 @@ frontend:
     paths:
       - .next/cache/**/*
       - .npm/**/*
+      # Cache Playwright browsers
+      - ~/.cache/ms-playwright/**/*
