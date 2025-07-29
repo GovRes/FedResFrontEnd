@@ -1,39 +1,35 @@
 "use client";
-import { awardZodSchema } from "@/app/utils/responseSchemas";
+import { AwardType } from "@/app/utils/responseSchemas";
 import BaseForm from "@/app/components/forms/BaseForm";
-import {
-  GenericFieldWithLabel,
-  SubmitButton,
-} from "@/app/components/forms/Inputs";
+import { SubmitButton, TextWithLabel } from "@/app/components/forms/Inputs";
+import { useState } from "react";
 
 export default function AwardForm({
-  loading = false,
-  methods,
+  item,
+  onChange,
   onSubmit,
 }: {
-  loading: boolean;
-  methods: any; // React Hook Form methods
+  item?: AwardType;
+  onChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => void;
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
 }) {
   return (
     <BaseForm onSubmit={onSubmit}>
-      <GenericFieldWithLabel
-        errors={methods.formState.errors}
+      <TextWithLabel
         label="Title"
         name="title"
-        register={methods.register}
-        schema={awardZodSchema}
+        value={item?.title || ""}
+        onChange={onChange}
       />
-      <GenericFieldWithLabel
-        errors={methods.formState.errors}
+      <TextWithLabel
         label="Date(s)"
         name="date"
-        register={methods.register}
-        schema={awardZodSchema}
+        value={item?.date || ""}
+        onChange={onChange}
       />
-      <SubmitButton disabled={!methods.formState.isValid || loading}>
-        {loading ? "Saving..." : "Save Award"}
-      </SubmitButton>
+      <SubmitButton type="submit">Submit</SubmitButton>
     </BaseForm>
   );
 }

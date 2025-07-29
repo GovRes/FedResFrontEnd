@@ -32,6 +32,7 @@ const schema = a.schema({
       pastJobs: a.hasMany("PastJob", "userId"),
       qualifications: a.hasMany("Qualification", "userId"),
       resumes: a.hasMany("Resume", "userId"),
+      specializedExperiences: a.hasMany("SpecializedExperience", "userId"),
       userRoles: a.hasMany("UserRole", "userId"),
       userPermission: a.hasMany("UserPermission", "userId"),
     })
@@ -48,6 +49,10 @@ const schema = a.schema({
       jobId: a.id().required(),
       job: a.belongsTo("Job", "jobId"),
       resumes: a.hasMany("ResumeApplication", "applicationId"),
+      specializedExperiences: a.hasMany(
+        "SpecializedExperienceApplication",
+        "applicationId"
+      ),
       status: a.string().default("draft"),
       userId: a.id().required(),
       user: a.belongsTo("User", "userId"),
@@ -73,15 +78,15 @@ const schema = a.schema({
   Education: a
     .model({
       id: a.id().required(),
-      degree: a.string(),
-      major: a.string(),
-      minor: a.string(),
+      degree: a.string().required(),
+      major: a.string().required(),
       school: a.string().required(),
       schoolCity: a.string(),
       schoolState: a.string(),
       date: a.string().required(),
-      type: a.string().required(), // "education" or "certification"
+      title: a.string().required(),
       gpa: a.string(),
+      userConfirmed: a.boolean(),
       userId: a.id().required(),
       user: a.belongsTo("User", "userId"),
       applications: a.hasMany("EducationApplication", "educationId"),
@@ -146,6 +151,26 @@ const schema = a.schema({
     .authorization((allow) => [
       allow.authenticated().to(["create", "read", "update", "delete"]),
     ]),
+  SpecializedExperience: a
+    .model({
+      id: a.id().required(),
+      title: a.string().required(),
+      description: a.string().required(),
+      userConfirmed: a.boolean(),
+      paragraph: a.string(),
+      initialMessage: a.string().required(),
+      typeOfExperience: a.string(),
+      userId: a.id().required(),
+      user: a.belongsTo("User", "userId"),
+      applications: a.hasMany(
+        "SpecializedExperienceApplication",
+        "specializedExperienceId"
+      ),
+    })
+    .authorization((allow) => [
+      allow.authenticated().to(["create", "read", "update", "delete"]),
+    ]),
+
   Topic: a
     .model({
       id: a.id().required(),
@@ -234,6 +259,21 @@ const schema = a.schema({
       resumeId: a.id().required(),
       applicationId: a.id().required(),
       resume: a.belongsTo("Resume", "resumeId"),
+      application: a.belongsTo("Application", "applicationId"),
+    })
+    .authorization((allow) => [
+      allow.authenticated().to(["create", "read", "update", "delete"]),
+    ]),
+
+  SpecializedExperienceApplication: a
+    .model({
+      id: a.id().required(),
+      specializedExperienceId: a.id().required(),
+      applicationId: a.id().required(),
+      specializedExperience: a.belongsTo(
+        "SpecializedExperience",
+        "specializedExperienceId"
+      ),
       application: a.belongsTo("Application", "applicationId"),
     })
     .authorization((allow) => [

@@ -3,41 +3,53 @@
 import {
   AwardType,
   EducationType,
+  SpecializedExperienceType,
   QualificationType,
   PastJobType,
 } from "@/app/utils/responseSchemas";
+import styles from "./resumeStyles.module.css";
 import { GrEdit, GrTrash } from "react-icons/gr";
+import { useEffect, useState } from "react";
 import {
   generateHeadingText,
   pascalToDashed,
 } from "@/app/utils/stringBuilders";
 import { deleteModelRecord } from "@/app/crud/genericDelete";
 import { useRouter } from "next/navigation";
-import NavigationLink from "@/app/components/loader/NavigationLink";
-import { useLoading } from "@/app/providers/loadingContext";
+import Link from "next/link";
 
 export default function ResumeItem({
   item,
   itemType,
   setItems,
 }: {
-  item: AwardType | EducationType | PastJobType | QualificationType;
+  item:
+    | AwardType
+    | EducationType
+    | SpecializedExperienceType
+    | PastJobType
+    | QualificationType;
 
   itemType: "Award" | "Education" | "PastJob" | "Volunteer";
   setItems: React.Dispatch<
     React.SetStateAction<
-      Array<AwardType | EducationType | PastJobType | QualificationType>
+      Array<
+        | AwardType
+        | EducationType
+        | SpecializedExperienceType
+        | PastJobType
+        | QualificationType
+      >
     >
   >;
 }) {
   const router = useRouter();
-  const { setIsLoading } = useLoading();
   async function deleteItem() {
     setItems((prevItems) =>
       prevItems.filter((prevItem) => prevItem.id !== item.id)
     );
     try {
-      await deleteModelRecord(itemType, item.id!);
+      await deleteModelRecord(itemType, item.id);
     } catch (error) {
       setItems((prevItems) => [...prevItems, item]);
       console.error(`Error deleting ${itemType} with ID ${item.id}:`, error);
@@ -45,18 +57,15 @@ export default function ResumeItem({
   }
 
   function editItem() {
-    setIsLoading(true);
     router.push(`/profile/${pascalToDashed(itemType)}s/${item.id}/edit`);
   }
 
   return (
     <tr>
       <td className="tableData" role="cell">
-        <NavigationLink
-          href={`/profile/${pascalToDashed(itemType)}s/${item.id}`}
-        >
+        <Link href={`/profile/${pascalToDashed(itemType)}s/${item.id}`}>
           {generateHeadingText(item)}
-        </NavigationLink>
+        </Link>
       </td>
       <td className="tableData" role="cell">
         <span onClick={editItem}>

@@ -1,20 +1,14 @@
 "use client";
 import { Loader } from "@/app/components/loader/Loader";
 import { fetchModelRecord } from "@/app/crud/genericFetch";
+import EducationForm from "../../components/EducationForm";
 import { updateModelRecord } from "@/app/crud/genericUpdate";
-import { educationZodSchema, EducationType } from "@/app/utils/responseSchemas";
+import { EducationType } from "@/app/utils/responseSchemas";
 import { useEffect, useState } from "react";
 import { use } from "react";
 import { useRouter } from "next/navigation";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useWatch } from "react-hook-form";
-import { useSmartForm } from "@/lib/hooks/useFormDataCleaner";
-import EducationForm from "../../components/EducationForm";
-import CertificationForm from "../../components/CertificationForm";
-import { transformApiDataForForm } from "@/app/utils/formUtils";
-import { useLoading } from "@/app/providers/loadingContext";
 
-export default function EditPastEducationPage({
+export default function EditPastJobPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -22,89 +16,65 @@ export default function EditPastEducationPage({
   const { id } = use(params);
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-
-  const { defaultValues, cleanData } = useSmartForm(educationZodSchema);
-  const { setIsLoading } = useLoading();
-  const methods = useForm({
-    resolver: zodResolver(educationZodSchema),
-    defaultValues,
-    mode: "onBlur",
-    reValidateMode: "onBlur",
-    criteriaMode: "all",
+  const [formData, setFormData] = useState<EducationType>({
+    date: "",
+    degree: "",
+    gpa: "",
+    id: "",
+    major: "",
+    school: "",
+    schoolCity: "",
+    schoolState: "",
+    title: "",
+    userConfirmed: false,
+    userId: "",
   });
-  const formType = useWatch({
-    control: methods.control,
-    name: "type",
-  });
+  const onChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
+    if (formData) {
+      setFormData({ ...formData, [e.target.name]: e.target.value });
+    }
+  };
 
+  const onSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ): Promise<void> => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await updateModelRecord("Education", id, formData);
+    } catch (error) {
+      console.error("Error updating past job:", error);
+    }
+    setLoading(false);
+    router.push(`/profile/educations/${id}`);
+  };
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      try {
-        const data = await fetchModelRecord("Education", id);
-        const transformedData = transformApiDataForForm(
-          data,
-          educationZodSchema
-        );
-        methods.reset(transformedData);
-      } catch (error) {
-        console.error("Error fetching education data:", error);
-      }
+      const educationData = await fetchModelRecord("Education", id);
+      setFormData({ ...formData, ...educationData });
       setLoading(false);
     }
-
-    if (id) {
-      fetchData();
-    }
-  }, [id, methods.reset]);
-
-  const onSubmit = async (data: EducationType): Promise<void> => {
-    setLoading(true);
-    const cleaned = cleanData(data);
-    try {
-      await updateModelRecord("Education", id, cleaned);
-      setIsLoading(true);
-      router.push(`/profile/educations/${id}`);
-    } catch (error) {
-      console.error("Error updating education:", error);
-    }
-    setLoading(false);
-  };
+    fetchData();
+  }, []);
 
   if (loading) {
     return <Loader text="loading education data" />;
   }
-
-  return (
-    <div>
-      <h1>Edit Education</h1>
-      <form onSubmit={methods.handleSubmit(onSubmit)}>
-        {formType === "education" ? (
-          <EducationForm
-            errors={methods.formState.errors}
-            register={methods.register}
-          />
-        ) : (
-          <CertificationForm
-            errors={methods.formState.errors}
-            register={methods.register}
-          />
-        )}
-        <button
-          type="submit"
-          disabled={!methods.formState.isValid || loading}
-          style={{
-            padding: "0.75rem 1.5rem",
-            backgroundColor: methods.formState.isValid ? "#007bff" : "#ccc",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: methods.formState.isValid ? "pointer" : "not-allowed",
-          }}
-        >
-          {loading ? "Saving..." : "Update Education"}
-        </button>
-      </form>
-    </div>
-  );
+  if (!loading && formData) {
+    return (
+      <div>
+        <h1>Edit Job</h1>
+        <EducationForm
+          item={formData}
+          onChange={onChange}
+          onSubmit={onSubmit}
+        />
+      </div>
+    );
+  }
 }

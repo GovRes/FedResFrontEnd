@@ -15,16 +15,15 @@ const instance = axios.create({
 });
 
 function constructHiringPath({ user }: { user: any }) {
-  console.log(user);
   //may want to add profile attributes and hiring paths for national guard, native Americans, students, peace corps, family of overseas, recent grads, fed competitive, fed excepted, etc.
   let hiringPath = "public";
-  if (user.disabled === "true") {
+  if (user["custom:disabled"] === "true") {
     hiringPath += ";disability";
   }
-  if (user.veteran === "true") {
+  if (user["custom:veteran"] === "true") {
     hiringPath += ";vet";
   }
-  if (user.militarySpouse === "true") {
+  if (user["custom:militarySpouse"] === "true") {
     hiringPath += ";mspouse";
   }
   return hiringPath;
@@ -45,17 +44,15 @@ export async function usaJobsSearch({
   try {
     const response = await instance.get("search", {
       params: {
-        ...(hiringPath && { HiringPath: hiringPath }),
-        ...(keyword && { Keyword: keyword }),
-        ...(locationName && { LocationName: locationName }),
-        ...(organization && { Organization: organization }),
-        ...(positionScheduleType && {
-          PositionScheduleType: positionScheduleType,
-        }),
-        ...(positionTitle && { PositionTitle: positionTitle }),
-        ...(radius && { Radius: radius }),
-        ...(remote && { Remote: remote }),
-        ...(travelPercentage && { TravelPercentage: travelPercentage }),
+        HiringPath: hiringPath,
+        Keyword: keyword,
+        LocationName: locationName,
+        Organization: organization,
+        PositionScheduleType: positionScheduleType,
+        PositionTitle: positionTitle,
+        Radius: radius,
+        Remote: remote,
+        TravelPercentage: travelPercentage,
         SortField: "salarymin",
         SortDirection: "Desc",
       },

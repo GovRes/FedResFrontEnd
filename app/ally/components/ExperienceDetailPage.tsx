@@ -10,7 +10,6 @@ import { updatePastJobWithQualifications } from "@/app/crud/pastJob";
 import { PastJobType, QualificationType } from "@/app/utils/responseSchemas";
 import { BaseItem } from "../../providers/chatContext";
 import { usePastJobDetailsStep } from "@/app/providers/useApplicationStep";
-import { useLoading } from "@/app/providers/loadingContext";
 
 export default function ExperienceDetailPage({
   assistantName,
@@ -44,7 +43,6 @@ export default function ExperienceDetailPage({
     const match = path.match(/\/past-job-details\/([^\/]+)$/);
     return match && match[1];
   };
-  const { setIsLoading } = useLoading();
 
   // Calculate if all qualifications are confirmed
   const allQualificationsConfirmed =
@@ -63,7 +61,6 @@ export default function ExperienceDetailPage({
 
       if (!id) {
         // No job ID in URL, redirect to the main page to find the next job
-        setIsLoading(true);
         router.push(`/ally/${currentStepId}`);
         return;
       }
@@ -81,7 +78,7 @@ export default function ExperienceDetailPage({
           const formattedJob: PastJobType = {
             ...job,
             qualifications: Array.isArray(job.qualifications)
-              ? job.qualifications?.map((qual) => ({
+              ? job.qualifications.map((qual) => ({
                   ...qual,
                   userConfirmed: qual.userConfirmed || false,
                 }))
@@ -93,7 +90,6 @@ export default function ExperienceDetailPage({
         } else {
           // Job not found - redirect to find the next job
           console.log("Job not found, redirecting");
-          setIsLoading(true);
           router.push(`/ally/${currentStepId}`);
         }
       } catch (error) {
@@ -117,18 +113,20 @@ export default function ExperienceDetailPage({
       // 1. Update the qualification in the pastJob
       const updatedJob = {
         ...pastJob,
-        qualifications: pastJob.qualifications?.map((q) =>
+        qualifications: pastJob.qualifications.map((q) =>
           q.id === qualification.id ? qualification : q
         ),
       };
-      if (updatedJob.id) {
-        await updatePastJobWithQualifications(
-          updatedJob.id,
-          updatedJob,
-          updatedJob.qualifications
-        );
-        setPastJob(updatedJob);
-      }
+
+      // 2. Save to backend API
+      await updatePastJobWithQualifications(
+        updatedJob.id,
+        updatedJob,
+        updatedJob.qualifications
+      );
+
+      // 3. Update local state
+      setPastJob(updatedJob);
 
       return Promise.resolve();
     } catch (error) {
@@ -164,7 +162,6 @@ export default function ExperienceDetailPage({
     // If we're in edit mode, we need to remove the edit=true param when navigating
     if (isEditingMode) {
       // Just go back to the past-jobs page without the edit param
-      setIsLoading(true);
       router.push(`/ally/${currentStepId}`);
       return;
     }
@@ -174,11 +171,9 @@ export default function ExperienceDetailPage({
 
     if (nextJob) {
       // Navigate to the next job that needs work
-      setIsLoading(true);
       router.push(`/ally/${currentStepId}/${nextJob.id}`);
     } else {
       // All jobs are complete, move to the next step
-      setIsLoading(true);
       router.push(`/ally/${currentStepId}`);
     }
   };
@@ -189,7 +184,7 @@ export default function ExperienceDetailPage({
   }
 
   // If no past job found
-  if (!pastJob || !pastJob.qualifications) {
+  if (!pastJob) {
     return (
       <div className="emptyState">
         <h3>Job not found</h3>
@@ -221,8 +216,8 @@ export default function ExperienceDetailPage({
         
         Use this context when asking questions and writing paragraphs.`}
         jobString={`${job?.title} at the ${job?.department}`}
-        sidebarTitle={`Skills from ${pastJob.title} at ${pastJob.organization} that might apply to ${job?.title}`}
-        heading={`${pastJob.title} at ${pastJob.organization} - Experience Details`}
+        sidebarTitle={`Qualifications from ${pastJob.title} at ${pastJob.organization} that might apply to ${job?.title}`}
+        heading={`${pastJob.title} at ${pastJob.organization} - Applicable Work Experience`}
         isNestedView={true}
         parentId={pastJob.id}
         nestedItemsKey="qualifications"

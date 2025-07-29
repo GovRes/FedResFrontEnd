@@ -85,8 +85,7 @@ export default function AdminEditableAttributeCheckboxField({
       ? value.map((key: string | number) => options[key] || key).join(", ")
       : "No roles assigned";
   return (
-    <EditableAttributeContainer>
-      <span className={styles.attributeTitle}>{title}: </span>
+    <EditableAttributeContainer title={title}>
       {showEdit ? (
         <form className={styles.attributeForm} onSubmit={submit}>
           <div className={styles.checkboxContainer}>

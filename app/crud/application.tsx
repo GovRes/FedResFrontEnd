@@ -2,6 +2,7 @@ import { fetchAuthSession } from "aws-amplify/auth";
 import {
   AwardType,
   EducationType,
+  SpecializedExperienceType,
   PastJobType,
   ResumeType,
 } from "../utils/responseSchemas";
@@ -10,11 +11,17 @@ import { generateClient } from "aws-amplify/api";
 /**
  * Types for different associations - updated to match responseSchemas
  */
-type AssociationType = "Award" | "Education" | "PastJob" | "Resume";
+type AssociationType =
+  | "Award"
+  | "Education"
+  | "SpecializedExperience"
+  | "PastJob"
+  | "Resume";
 
 type AssociationTypeMap = {
   Award: AwardType;
   Education: EducationType;
+  SpecializedExperience: SpecializedExperienceType;
   PastJob: PastJobType;
   Resume: ResumeType;
 };
@@ -226,15 +233,24 @@ export const getApplicationAssociations = async <T extends AssociationType>({
         case "Education":
           return `
             degree
-            date
-            gpa
             major
             school
             schoolCity
             schoolState
+            date
             title
-            type
+            gpa
             userConfirmed
+            userId
+          `;
+        case "SpecializedExperience":
+          return `
+            title
+            description
+            userConfirmed
+            paragraph
+            initialMessage
+            typeOfExperience
             userId
           `;
         case "PastJob":
@@ -654,6 +670,7 @@ export const deleteApplication = async ({
       "AwardApplication",
       "EducationApplication",
       "ResumeApplication",
+      "SpecializedExperienceApplication",
       "PastJobApplication",
     ];
 

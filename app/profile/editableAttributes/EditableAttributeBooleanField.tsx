@@ -1,26 +1,17 @@
 import { useEffect, useState } from "react";
 import styles from "./editableAttributeStyles.module.css";
-import { UserType } from "@/app/utils/userAttributeUtils";
-import { ToggleWithLabel } from "@/app/components/forms/Inputs";
+import {
+  handleUpdateUserAttribute,
+  updateUserTypeAttribute,
+  UserType,
+} from "@/app/utils/userAttributeUtils";
+import { Toggle } from "@/app/components/forms/Inputs";
 import SubmitCancelButtonArray from "@/app/components/editableAttributes/SubmitCancelButtonArray";
 import EditButton from "@/app/components/editableAttributes/EditButton";
 import EditableAttributeContainer from "@/app/components/editableAttributes/EditableAttributeContainer";
 import { useAttributeUpdate } from "@/lib/hooks/useAttributeUpdate";
 import LoadingButton from "@/app/components/editableAttributes/LoadingButton";
-import z from "zod";
-import { useForm } from "react-hook-form";
 
-interface EditableAttributeBooleanFieldProps {
-  attributeKey: keyof UserType;
-  currentlyEditing: string | null;
-  title: string;
-  value: boolean | string;
-  setAttributes: (updates: Partial<UserType>) => Promise<boolean>;
-  setCurrentlyEditing: (key: string | null) => void;
-}
-const booleanFieldSchema = z.object({
-  value: z.boolean(),
-});
 export default function EditableAttributeBooleanField({
   attributeKey,
   currentlyEditing,
@@ -28,37 +19,36 @@ export default function EditableAttributeBooleanField({
   value,
   setAttributes,
   setCurrentlyEditing,
-}: EditableAttributeBooleanFieldProps) {
+}: {
+  attributeKey: keyof UserType;
+  currentlyEditing: string | null;
+  title: string;
+  value: boolean | string;
+  setAttributes: Function;
+  setCurrentlyEditing: (key: string | null) => void;
+}) {
   // Convert value to boolean consistently
   const boolValue = value === true || value === "true";
-  const [loading, setLoading] = useState(false);
   const showEdit = currentlyEditing === attributeKey;
+  const [checked, setChecked] = useState(boolValue);
+  const [loading, setLoading] = useState(false);
   const { submitAttributeUpdate } = useAttributeUpdate(
     setAttributes,
     setCurrentlyEditing,
     setLoading
   );
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm({
-    defaultValues: {
-      value: boolValue,
-    },
-  });
-  useEffect(() => {
-    // Update form when external value changes
-    reset({ value: value === true || value === "true" });
-  }, [value, reset]);
 
-  async function onSubmit(data: { value: boolean }) {
-    setLoading(true);
+  useEffect(() => {
+    setChecked(value === true || value === "true");
+  }, [value]);
+
+  async function submit(e: { preventDefault: () => void }) {
+    // Convert boolean to string for the API call
     const result = await submitAttributeUpdate(
-      { preventDefault: () => {} },
+      e,
       attributeKey,
-      data.value.toString()
+      checked.toString(),
+      () => setChecked(boolValue) // Optional cleanup callback
     );
 
     if (result) {
@@ -69,30 +59,21 @@ export default function EditableAttributeBooleanField({
 
   function startEdit() {
     setCurrentlyEditing(attributeKey);
-    // Reset form with current value when starting edit
-    reset({ value: boolValue });
   }
 
   function cancelEdit() {
     setCurrentlyEditing(null);
-    reset({ value: boolValue });
+    setChecked(boolValue); // Reset to current value
   }
 
+  function onChange() {
+    setChecked(!checked);
+  }
   return (
-    <EditableAttributeContainer>
-      <span className={styles.attributeTitle}>{title}: </span>
+    <EditableAttributeContainer title={title}>
       {showEdit ? (
-        <form
-          className={styles.attributeForm}
-          onSubmit={handleSubmit(onSubmit)}
-        >
-          <ToggleWithLabel
-            errors={errors}
-            label={title}
-            name="value"
-            register={register}
-            schema={booleanFieldSchema}
-          />
+        <form className={styles.attributeForm} onSubmit={submit}>
+          <Toggle checked={checked} onChange={onChange} />
           {loading ? (
             <LoadingButton />
           ) : (

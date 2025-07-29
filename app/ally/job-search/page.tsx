@@ -7,7 +7,6 @@ import { Loader } from "@/app/components/loader/Loader";
 import { fetchUserAttributes } from "aws-amplify/auth";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { JobSearchObject } from "@/app/utils/responseSchemas";
-import { useLoading } from "@/app/providers/loadingContext";
 
 export default function JobSearchPage() {
   const router = useRouter();
@@ -17,7 +16,6 @@ export default function JobSearchPage() {
     context.user,
     context.authStatus,
   ]);
-  const { setIsLoading } = useLoading();
   useEffect(() => {
     async function getUserAttributes() {
       if (authStatus === "authenticated") {
@@ -46,14 +44,11 @@ export default function JobSearchPage() {
   }, [user, authStatus]);
 
   const handleSearchComplete = (results: JobSearchObject[]) => {
-    console.log("search complete", results);
     if (results.length === 0) {
-      setIsLoading(true);
       router.push("/ally/job-search/no-results");
       return;
     } else {
       setSearchResults(results);
-      setIsLoading(true);
       router.push("/ally/job-search/results");
     }
   };

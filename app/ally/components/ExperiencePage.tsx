@@ -38,6 +38,7 @@ export default function ExperiencePage({
       completeStep,
     });
   }
+
   useEffect(() => {
     async function fetchJobsAndRedirect() {
       if (!applicationId) {
@@ -79,7 +80,6 @@ export default function ExperiencePage({
         );
         if (jobWithUnconfirmedQuals) {
           // Redirect to the job with unconfirmed qualifications
-          setIsLoading(true);
           router.push(`/ally/${currentStepId}/${jobWithUnconfirmedQuals.id}`);
         } else {
           // If the step is not complete but all qualifications are confirmed,
@@ -103,7 +103,6 @@ export default function ExperiencePage({
 
   // Function to navigate to a job's details page in edit mode
   const navigateToJobEdit = (jobId: string) => {
-    setIsLoading(true);
     router.push(`/ally/${currentStepId}/${jobId}?edit=true`);
   };
 
@@ -118,14 +117,7 @@ export default function ExperiencePage({
       <div className={styles.errorContainer}>
         <h3>Error</h3>
         <p>{error}</p>
-        <button
-          onClick={() => {
-            setIsLoading(true);
-            router.push("/ally");
-          }}
-        >
-          Return to Home
-        </button>
+        <button onClick={() => router.push("/ally")}>Return to Home</button>
       </div>
     );
   }
@@ -178,7 +170,7 @@ export default function ExperiencePage({
 
             <div className={styles.jobCardActions}>
               <button
-                onClick={() => job.id && navigateToJobEdit(job.id)}
+                onClick={() => navigateToJobEdit(job.id)}
                 className={styles.editButton}
               >
                 {job.qualifications?.every((q) => q.userConfirmed)
@@ -193,14 +185,7 @@ export default function ExperiencePage({
       {pastJobs.length === 0 && (
         <div className={styles.emptyState}>
           <p>No past jobs found. Please add some job experiences first.</p>
-          <button
-            onClick={() => {
-              setIsLoading(true);
-              router.push("/ally");
-            }}
-          >
-            Return to Home
-          </button>
+          <button onClick={() => router.push("/ally")}>Return to Home</button>
         </div>
       )}
     </div>

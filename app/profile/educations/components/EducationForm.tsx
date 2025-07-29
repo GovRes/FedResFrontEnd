@@ -1,71 +1,63 @@
-import { educationZodSchema } from "@/app/utils/responseSchemas";
-import { GenericFieldWithLabel } from "@/app/components/forms/Inputs";
+import { EducationType } from "@/app/utils/responseSchemas";
+import BaseForm from "@/app/components/forms/BaseForm";
+import { SubmitButton, TextWithLabel } from "@/app/components/forms/Inputs";
 
 export default function EducationForm({
-  errors,
-  register,
+  item,
+  onChange,
+  onSubmit,
 }: {
-  errors?: any;
-  register: any;
+  item?: EducationType;
+  onChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => void;
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
 }) {
   return (
-    <>
-      <GenericFieldWithLabel
-        errors={errors}
+    <BaseForm onSubmit={onSubmit}>
+      <TextWithLabel
         label="Degree"
         name="degree"
-        register={register}
-        schema={educationZodSchema}
+        value={item?.degree || ""}
+        onChange={onChange}
       />
-      <GenericFieldWithLabel
-        errors={errors}
+      <TextWithLabel
         label="Major"
         name="major"
-        register={register}
-        schema={educationZodSchema}
+        value={item?.major || ""}
+        onChange={onChange}
       />
-      <GenericFieldWithLabel
-        errors={errors}
-        label="Minor"
-        name="minor"
-        register={register}
-        schema={educationZodSchema}
-      />
-      <GenericFieldWithLabel
-        errors={errors}
+      <TextWithLabel
         label="School or Institution"
         name="school"
-        register={register}
-        schema={educationZodSchema}
+        value={item?.school || ""}
+        onChange={onChange}
       />
-      <GenericFieldWithLabel
-        errors={errors}
+      <TextWithLabel
         label="School or Institution City"
         name="schoolCity"
-        register={register}
-        schema={educationZodSchema}
+        value={item?.schoolCity || ""}
+        onChange={onChange}
       />
-      <GenericFieldWithLabel
-        errors={errors}
+      <TextWithLabel
         label="School or Institution State"
         name="schoolState"
-        register={register}
-        schema={educationZodSchema}
+        value={item?.schoolState || ""}
+        onChange={onChange}
       />
-      <GenericFieldWithLabel
-        errors={errors}
+      <TextWithLabel
         label="Graduation Date"
         name="date"
-        register={register}
-        schema={educationZodSchema}
+        value={item?.date || ""}
+        onChange={onChange}
       />
-      <GenericFieldWithLabel
-        errors={errors}
+      <TextWithLabel
         label="GPA"
         name="gpa"
-        register={register}
-        schema={educationZodSchema}
+        value={item?.gpa || ""}
+        onChange={onChange}
       />
-    </>
+      <SubmitButton type="submit">Submit</SubmitButton>
+    </BaseForm>
   );
 }

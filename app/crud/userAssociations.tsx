@@ -6,6 +6,7 @@ import { generateClient } from "aws-amplify/api";
 export type AssociationType =
   | "Award"
   | "Education"
+  | "SpecializedExperience"
   | "PastJob"
   | "Qualification";
 
@@ -13,7 +14,7 @@ export type AssociationType =
  * Generic type for entity records
  */
 export type EntityRecord = {
-  id?: string;
+  id: string;
   userId: string;
   [key: string]: any;
 };
@@ -262,8 +263,23 @@ function getFieldsForType(associationType: AssociationType): string {
   // Type-specific fields
   const typeSpecificFields: Record<AssociationType, string[]> = {
     Award: ["title", "date"],
-    Education: ["degree", "major", "school", "date", "type", "gpa"],
+    Education: [
+      "degree",
+      "major",
+      "school",
+      "date",
+      "title",
+      "gpa",
+      "userConfirmed",
+    ],
     // Resume: ["fileName"],
+    SpecializedExperience: [
+      "title",
+      "description",
+      "userConfirmed",
+      "paragraph",
+      "initialMessage",
+    ],
     PastJob: [
       "title",
       "organization",

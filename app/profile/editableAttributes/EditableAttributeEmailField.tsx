@@ -1,51 +1,42 @@
 import { useEffect, useState } from "react";
-import styles from "./editableAttributeStyles.module.css";
-import { UserType } from "@/app/utils/userAttributeUtils";
-import EditButton from "../../components/editableAttributes/EditButton";
+import {
+  handleUpdateUserAttribute,
+  updateUserTypeAttribute,
+  UserType,
+} from "@/app/utils/userAttributeUtils";
 import SubmitCancelButtonArray from "../../components/editableAttributes/SubmitCancelButtonArray";
+import EditButton from "../../components/editableAttributes/EditButton";
+import styles from "./editableAttributeStyles.module.css";
 import EditableAttributeContainer from "../../components/editableAttributes/EditableAttributeContainer";
 import { useAttributeUpdate } from "@/lib/hooks/useAttributeUpdate";
 import LoadingButton from "../../components/editableAttributes/LoadingButton";
-import z from "zod";
-import { useForm } from "react-hook-form";
-import { GenericFieldWithLabel } from "@/app/components/forms/Inputs";
-interface EditableAttributeStringFieldProps {
-  attributeKey: keyof UserType;
-  currentlyEditing: string | null;
-  title: string;
-  value: string;
-  setAttributes: (updates: Partial<UserType>) => Promise<boolean>;
-  setCurrentlyEditing: (key: string | null) => void;
-}
-const stringFieldSchema = z.object({
-  value: z.string(),
-});
-export default function EditableAttributeStringField({
+
+export default function EditableAttributeEmailField({
   attributeKey,
   currentlyEditing,
   title,
   value,
   setAttributes,
   setCurrentlyEditing,
-}: EditableAttributeStringFieldProps) {
+}: {
+  attributeKey: keyof UserType;
+  currentlyEditing: string | null;
+  title: string;
+  value: string;
+  setAttributes: Function;
+  setCurrentlyEditing: (key: string | null) => void;
+}) {
   const [formValue, setFormValue] = useState(value);
-  const [loading, setLoading] = useState(false);
   const showEdit = currentlyEditing === attributeKey;
+  const [loading, setLoading] = useState(false);
   const { submitAttributeUpdate } = useAttributeUpdate(
     setAttributes,
     setCurrentlyEditing,
     setLoading
   );
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm({
-    defaultValues: {
-      value,
-    },
-  });
+  function onChange(e: { target: { value: any } }) {
+    setFormValue(e.target.value);
+  }
   function startEdit() {
     setCurrentlyEditing(attributeKey);
   }
@@ -54,18 +45,13 @@ export default function EditableAttributeStringField({
     setCurrentlyEditing(null);
     setFormValue(value); // Reset form value on cancel
   }
-
   useEffect(() => {
-    reset({ value });
+    setFormValue(value);
   }, [value]);
 
-  async function onSubmit(data: { value: string }) {
-    setLoading(true);
-    const result = await submitAttributeUpdate(
-      { preventDefault: () => {} },
-      attributeKey,
-      data.value.toString()
-    );
+  async function submit(e: { preventDefault: () => void }) {
+    // Convert boolean to string for the API call
+    const result = await submitAttributeUpdate(e, attributeKey, formValue);
 
     if (result) {
       // Handle error case
@@ -74,20 +60,17 @@ export default function EditableAttributeStringField({
   }
 
   return (
-    <EditableAttributeContainer>
-      <span className={styles.attributeTitle}>{title}: </span>
+    <EditableAttributeContainer title={title}>
       {showEdit ? (
-        <form
-          className={styles.attributeForm}
-          onSubmit={handleSubmit(onSubmit)}
-        >
-          <GenericFieldWithLabel
-            errors={errors}
-            label={title}
-            name="value"
-            register={register}
-            schema={stringFieldSchema}
+        <form className={styles.attributeForm} onSubmit={submit}>
+          <input
+            type="email"
+            onChange={onChange}
+            value={formValue}
+            name={title}
+            className={styles.attributeEmail}
           />
+
           {loading ? (
             <LoadingButton />
           ) : (
@@ -96,7 +79,7 @@ export default function EditableAttributeStringField({
         </form>
       ) : (
         <span>
-          {value || "No value set"}
+          {value}
           <EditButton startEdit={startEdit} />
         </span>
       )}

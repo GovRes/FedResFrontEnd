@@ -69,9 +69,6 @@ footer {
   width: 100%;
   z-index: var(--z-fixed);
 }
-form {
-  padding-bottom: 50px;
-}
 nav {
   align-items: center;
   display: flex;
@@ -229,14 +226,6 @@ textarea {
   flex-direction: row;
   justify-content: flex-start;
   padding: 3rem 0.5rem;
-}
-
-.info-box {
-  background-color: var(--grey-very-light);
-  border-radius: 10px;
-  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  width: 100%;
 }
 
 /* all for the tabs */

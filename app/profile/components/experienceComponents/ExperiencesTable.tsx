@@ -2,6 +2,8 @@ import styles from "../../resumes/resumeComponents/resumeStyles.module.css";
 import {
   AwardType,
   EducationType,
+  ResumeType,
+  SpecializedExperienceType,
   QualificationType,
   PastJobType,
 } from "@/app/utils/responseSchemas";
@@ -13,10 +15,22 @@ export default function ExperiencesTable({
   setItems,
 }: {
   experienceType: "Award" | "Education" | "PastJob" | "Volunteer";
-  items: Array<AwardType | EducationType | PastJobType | QualificationType>;
+  items: Array<
+    | AwardType
+    | EducationType
+    | SpecializedExperienceType
+    | PastJobType
+    | QualificationType
+  >;
   setItems: React.Dispatch<
     React.SetStateAction<
-      Array<AwardType | EducationType | PastJobType | QualificationType>
+      Array<
+        | AwardType
+        | EducationType
+        | SpecializedExperienceType
+        | PastJobType
+        | QualificationType
+      >
     >
   >;
 }) {
@@ -37,6 +51,7 @@ export default function ExperiencesTable({
                 item:
                   | AwardType
                   | EducationType
+                  | SpecializedExperienceType
                   | PastJobType
                   | QualificationType
               ) => (

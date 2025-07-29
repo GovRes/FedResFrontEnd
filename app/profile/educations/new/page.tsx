@@ -1,54 +1,60 @@
 "use client";
 import { useState } from "react";
-import { educationZodSchema, EducationType } from "@/app/utils/responseSchemas";
+import EducationForm from "../components/EducationForm";
+import { EducationType } from "@/app/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
 import { useRouter } from "next/navigation";
 import { createModelRecord } from "@/app/crud/genericCreate";
 import { useAuthenticator } from "@aws-amplify/ui-react";
-import EducationFormSwitch from "../components/EducationFormSwitch";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useSmartForm } from "@/lib/hooks/useFormDataCleaner";
-import { useLoading } from "@/app/providers/loadingContext";
 
-export default function NewEducationPage() {
+export default function NewAwardPage() {
   const router = useRouter();
-  const { setIsLoading } = useLoading();
   const { user } = useAuthenticator();
   const [loading, setLoading] = useState(false);
-  const { defaultValues, cleanData } = useSmartForm(educationZodSchema, {
+  const [formData, setFormData] = useState<EducationType>({
+    date: "",
+    degree: "",
+    gpa: "",
+    id: "",
+    major: "",
+    school: "",
+    schoolCity: "",
+    schoolState: "",
+    title: "",
+    userConfirmed: false,
     userId: user.userId,
   });
-  const methods = useForm({
-    resolver: zodResolver(educationZodSchema),
-    defaultValues,
-  });
+  const onChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
+    if (formData) {
+      setFormData({ ...formData, [e.target.name]: e.target.value });
+    }
+  };
 
-  const onSubmit = async (data: EducationType): Promise<void> => {
+  const onSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ): Promise<void> => {
+    e.preventDefault();
     setLoading(true);
-    const cleaned = cleanData(data);
     try {
-      let res = await createModelRecord("Education", cleaned);
+      let res = await createModelRecord("Education", formData);
       setLoading(false);
-      setIsLoading(true);
       router.push(`/profile/educations/${res.id}`);
     } catch (error) {
       console.error("Error updating education:", error);
-      setLoading(false);
     }
   };
 
   if (loading) {
-    return <Loader text="loading education data" />;
+    return <Loader text="loading volunteer data" />;
   }
-
   return (
     <div>
       <h1>New Educational Experience</h1>
-      <EducationFormSwitch
-        methods={methods}
-        onSubmit={methods.handleSubmit(onSubmit)}
-      />
+      <EducationForm item={formData} onChange={onChange} onSubmit={onSubmit} />
     </div>
   );
 }

@@ -1,108 +1,100 @@
-import BaseForm from "@/app/components/forms/BaseForm";
+import { PastJobType } from "@/app/utils/responseSchemas";
+import BaseForm from "../../../components/forms/BaseForm";
 import {
-  GenericFieldWithLabel,
   SubmitButton,
+  TextAreaWithLabel,
+  TextWithLabel,
   ToggleWithLabel,
-} from "@/app/components/forms/Inputs";
-import { pastJobZodSchema } from "@/app/utils/responseSchemas";
+} from "../../../components/forms/Inputs";
+interface PastJobFormProps {
+  item?: PastJobType;
+  itemType: "PastJob" | "Volunteer";
+  onChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => void;
+  onChangeToggle: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+}
 
 export default function PastJobForm({
+  item,
   itemType,
-  loading = false,
-  methods,
+  onChange,
+  onChangeToggle,
   onSubmit,
-}: {
-  itemType: "PastJob" | "Volunteer";
-  loading: boolean;
-  methods: any; // React Hook Form methods
-  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
-}) {
+}: PastJobFormProps) {
   return (
     <BaseForm onSubmit={onSubmit}>
-      <GenericFieldWithLabel
-        errors={methods.formState.errors}
+      <TextWithLabel
         label="Title"
         name="title"
-        register={methods.register}
-        schema={pastJobZodSchema}
+        value={item?.title}
+        onChange={onChange}
       />
-      <GenericFieldWithLabel
-        errors={methods.formState.errors}
+      <TextWithLabel
         label="Organization"
         name="organization"
-        register={methods.register}
-        schema={pastJobZodSchema}
+        value={item?.organization}
+        onChange={onChange}
       />
-      <GenericFieldWithLabel
-        errors={methods.formState.errors}
+      <TextWithLabel
         label="Organization Address"
         name="organizationAddress"
-        register={methods.register}
-        schema={pastJobZodSchema}
+        value={item?.organizationAddress}
+        onChange={onChange}
       />
-      <GenericFieldWithLabel
-        errors={methods.formState.errors}
+      <TextWithLabel
         label="Start Date"
         name="startDate"
-        register={methods.register}
-        schema={pastJobZodSchema}
+        value={item?.startDate}
+        onChange={onChange}
       />
-      <GenericFieldWithLabel
-        errors={methods.formState.errors}
+      <TextWithLabel
         label="End Date"
         name="endDate"
-        register={methods.register}
-        schema={pastJobZodSchema}
+        value={item?.endDate}
+        onChange={onChange}
       />
-      <GenericFieldWithLabel
-        errors={methods.formState.errors}
+      <TextWithLabel
         label="Hours worked per week"
         name="hours"
-        register={methods.register}
-        schema={pastJobZodSchema}
+        value={item?.hours}
+        onChange={onChange}
       />
       {itemType === "PastJob" && (
-        <GenericFieldWithLabel
-          errors={methods.formState.errors}
+        <TextWithLabel
           label="GS Level"
           name="gsLevel"
-          register={methods.register}
-          schema={pastJobZodSchema}
+          value={item?.gsLevel}
+          onChange={onChange}
         />
       )}
-      <GenericFieldWithLabel
-        errors={methods.formState.errors}
+      <TextAreaWithLabel
         label="Responsibilities"
         name="responsibilities"
-        type="textarea"
-        register={methods.register}
-        schema={pastJobZodSchema}
+        value={item?.responsibilities}
+        onChange={onChange}
       />
-      <GenericFieldWithLabel
-        errors={methods.formState.errors}
+      <TextWithLabel
         label="Supervisor Name"
         name="supervisorName"
-        register={methods.register}
-        schema={pastJobZodSchema}
+        value={item?.supervisorName}
+        onChange={onChange}
       />
-      <GenericFieldWithLabel
-        errors={methods.formState.errors}
+      <TextWithLabel
         label="Supervisor Phone"
         name="supervisorPhone"
-        register={methods.register}
-        schema={pastJobZodSchema}
+        value={item?.supervisorPhone}
+        onChange={onChange}
       />
       <ToggleWithLabel
-        errors={methods.formState.errors}
         label="May Contact Supervisor"
         name="supervisorMayContact"
-        register={methods.register}
-        schema={pastJobZodSchema}
+        checked={item?.supervisorMayContact || false}
+        onChange={onChangeToggle}
       />
       <input type="hidden" name="type" value={itemType} />
-      <SubmitButton disabled={!methods.formState.isValid || loading}>
-        {loading ? "Saving..." : "Save Job"}
-      </SubmitButton>
+      <SubmitButton type="submit">Submit</SubmitButton>
     </BaseForm>
   );
 }

@@ -1,26 +1,16 @@
 import { useEffect, useState } from "react";
-import styles from "./editableAttributeStyles.module.css";
-import { UserType } from "@/app/utils/userAttributeUtils";
-import EditButton from "../../components/editableAttributes/EditButton";
+import {
+  handleUpdateUserAttribute,
+  updateUserTypeAttribute,
+  UserType,
+} from "@/app/utils/userAttributeUtils";
 import SubmitCancelButtonArray from "../../components/editableAttributes/SubmitCancelButtonArray";
+import EditButton from "../../components/editableAttributes/EditButton";
 import EditableAttributeContainer from "../../components/editableAttributes/EditableAttributeContainer";
+import styles from "./editableAttributeStyles.module.css";
 import { useAttributeUpdate } from "@/lib/hooks/useAttributeUpdate";
 import LoadingButton from "../../components/editableAttributes/LoadingButton";
-import z from "zod";
-import { useForm } from "react-hook-form";
-import { GenericFieldWithLabel } from "@/app/components/forms/Inputs";
-interface EditableAttributeSelectFieldProps {
-  attributeKey: keyof UserType;
-  currentlyEditing: string | null;
-  options: Record<string, string>;
-  title: string;
-  value: string;
-  setAttributes: (updates: Partial<UserType>) => Promise<boolean>;
-  setCurrentlyEditing: (key: string | null) => void;
-}
-const selectFieldSchema = z.object({
-  value: z.string(),
-});
+
 export default function EditableAttributeSelectField({
   attributeKey,
   currentlyEditing,
@@ -29,25 +19,26 @@ export default function EditableAttributeSelectField({
   value,
   setAttributes,
   setCurrentlyEditing,
-}: EditableAttributeSelectFieldProps) {
+}: {
+  attributeKey: keyof UserType;
+  currentlyEditing: string | null;
+  options: Record<string, string>;
+  title: string;
+  value: string;
+  setAttributes: Function;
+  setCurrentlyEditing: (key: string | null) => void;
+}) {
   const [formValue, setFormValue] = useState(value);
-  const [loading, setLoading] = useState(false);
   const showEdit = currentlyEditing === attributeKey;
+  const [loading, setLoading] = useState(false);
   const { submitAttributeUpdate } = useAttributeUpdate(
     setAttributes,
     setCurrentlyEditing,
     setLoading
   );
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm({
-    defaultValues: {
-      value,
-    },
-  });
+  function onChange(e: { target: { value: any } }) {
+    setFormValue(e.target.value);
+  }
   function startEdit() {
     setCurrentlyEditing(attributeKey);
   }
@@ -56,18 +47,12 @@ export default function EditableAttributeSelectField({
     setCurrentlyEditing(null);
     setFormValue(value); // Reset form value on cancel
   }
-
   useEffect(() => {
-    reset({ value });
+    setFormValue(value);
   }, [value]);
 
-  async function onSubmit(data: { value: string }) {
-    setLoading(true);
-    const result = await submitAttributeUpdate(
-      { preventDefault: () => {} },
-      attributeKey,
-      data.value.toString()
-    );
+  async function submit(e: { preventDefault: () => void }) {
+    const result = await submitAttributeUpdate(e, attributeKey, formValue);
 
     if (result) {
       // Handle error case
@@ -75,21 +60,23 @@ export default function EditableAttributeSelectField({
     }
   }
   return (
-    <EditableAttributeContainer>
-      <span className={styles.attributeTitle}>{title}: </span>
+    <EditableAttributeContainer title={title}>
       {showEdit ? (
-        <form
-          className={styles.attributeForm}
-          onSubmit={handleSubmit(onSubmit)}
-        >
-          <GenericFieldWithLabel
-            errors={errors}
-            label={title}
-            options={options}
-            name="value"
-            register={register}
-            schema={selectFieldSchema}
-          />
+        <form className={styles.attributeForm} onSubmit={submit}>
+          <select
+            defaultValue={value}
+            onChange={onChange}
+            name={attributeKey}
+            className={styles.attributeSelect}
+          >
+            {Object.keys(options).map((key) => {
+              return (
+                <option key={key} value={key}>
+                  {options[key]}
+                </option>
+              );
+            })}
+          </select>
 
           {loading ? (
             <LoadingButton />

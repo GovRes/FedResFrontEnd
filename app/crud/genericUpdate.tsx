@@ -37,6 +37,7 @@ export async function updateModelRecord(
       "applications",
       "educations",
       "resumes",
+      "specializedExperiences",
       "awards",
       "topics",
       "pastJobs",

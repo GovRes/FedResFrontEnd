@@ -3,7 +3,6 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useEditableParagraph } from "./editableParagraphContext";
 import { PastJobType } from "../utils/responseSchemas";
-import { useLoading } from "./loadingContext";
 
 // Generic item type that can be extended by specific item types
 export type BaseItem = {
@@ -80,7 +79,6 @@ export function ChatProvider({
   isEditMode?: boolean; // Indicate if we're in edit mode
 }) {
   const router = useRouter();
-  const { setIsLoading } = useLoading();
   const [items, setItems] = useState<BaseItem[]>(initialItems);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentItem, setCurrentItem] = useState<BaseItem | null>(
@@ -333,7 +331,6 @@ export function ChatProvider({
     contextValue.parentNavigate = () => {
       // Navigate back to parent view
       if (parentId) {
-        setIsLoading(true);
         router.push(`/ally/${currentStepId}/${parentId}`);
       }
     };

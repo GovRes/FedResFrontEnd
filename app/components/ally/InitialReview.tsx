@@ -5,6 +5,7 @@ import {
   PastJobType,
 } from "@/app/utils/responseSchemas";
 import ReviewItemsList from "./ReviewItemsList";
+import { completeSteps } from "@/app/utils/stepUpdater";
 import { associateItemsWithApplication } from "@/app/crud/application";
 import { useApplication } from "@/app/providers/applicationContext";
 import { Loader } from "../loader/Loader";
@@ -13,7 +14,7 @@ import { navigateToNextIncompleteStep } from "@/app/utils/nextStepNavigation";
 import { useRouter } from "next/navigation";
 
 export default function InitialReview<
-  T extends AwardType | EducationType | PastJobType,
+  T extends AwardType | EducationType | PastJobType
 >({
   currentStepId,
   localItems,
@@ -25,6 +26,7 @@ export default function InitialReview<
   itemType:
     | "Award"
     | "Education"
+    | "SpecializedExperience"
     | "PastJob"
     | "VolunteerExperience"
     | "Resume";
@@ -37,22 +39,30 @@ export default function InitialReview<
 
   const [loading, setLoading] = useState(false);
 
+
   const { completeStep, steps, applicationId } = useApplication();
   const router = useRouter();
 
-  const onSubmit = async (selectedItems: T[]) => {
-    // Update parent state with selected items
-    setLocalItems(selectedItems);
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const values = getCheckboxValues(event);
+    // Filter out items whose IDs are in the values array
+    const updatedItems = localItems.filter((item) => !values.includes(item.id));
+
+    // Update parent state
+    setLocalItems(updatedItems);
     if (applicationId && items.length > 0) {
       setLoading(true);
-      if (selectedItems.length > 0) {
+      if (updatedItems.length > 0) {
         await associateItemsWithApplication({
           applicationId,
-          items: selectedItems as unknown as { id: string }[],
+          items: updatedItems,
           associationType:
             itemType === "VolunteerExperience" ? "PastJob" : itemType,
         });
       }
+
 
       navigateToNextIncompleteStep({
         steps,
@@ -61,6 +71,7 @@ export default function InitialReview<
         applicationId,
         completeStep,
       });
+
     }
   };
 

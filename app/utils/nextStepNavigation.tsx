@@ -1,6 +1,8 @@
 // utils/nextStepNavigation.ts
 import { StepsType } from "../utils/responseSchemas";
+
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+=
 
 /**
  * Finds the next incomplete step after the current step
@@ -38,6 +40,7 @@ export const findNextIncompleteStep = (
   // If all steps are completed, return undefined
   return steps.pop();
 };
+
 
 export const navigateToNextIncompleteStep = async ({
   applicationId,

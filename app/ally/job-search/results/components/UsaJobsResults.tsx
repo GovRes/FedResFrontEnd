@@ -1,18 +1,18 @@
 "use client";
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import UsaJobsResultsItem from "./UsaJobsResultsItem";
 import styles from "../../../ally.module.css";
+import { createModelRecord } from "@/app/crud/genericCreate";
 import Modal from "@/app/components/modal/Modal";
 import { formatJobDescription } from "@/app/utils/usaJobsSearch";
 import indefiniteArticle from "@/app/utils/indefiniteArticles";
 import { createAndSaveApplication } from "@/app/crud/application";
 import { useAuthenticator } from "@aws-amplify/ui-react";
+import { completeSteps } from "@/app/utils/stepUpdater";
 import { useApplication } from "@/app/providers/applicationContext";
 import { navigateToNextIncompleteStep } from "@/app/utils/nextStepNavigation";
 import { createOrGetJob } from "@/app/crud/job";
 import { useRouter } from "next/navigation";
-import { useLoading } from "@/app/providers/loadingContext";
-
 export interface MatchedObjectDescriptor {
   PositionTitle: string;
   DepartmentName: string;
@@ -48,23 +48,20 @@ export default function UsaJobsResults({
 }) {
   const { steps, setJob, setApplicationId, completeStep } = useApplication();
   const { setIsLoading } = useLoading();
+
   const { user } = useAuthenticator();
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [currentJob, setCurrentJob] = useState<Result | null>();
-  const [isProcessing, setIsProcessing] = useState(false);
-
   function selectJob({ job }: { job: Result }) {
     setModalOpen(true);
     setCurrentJob(job);
   }
-
   function returnToSearch() {
-    setIsLoading(true);
     router.push("/ally/job-search/");
   }
-
   async function setJobAndProceed() {
+
     if (currentJob && !isProcessing) {
       setIsProcessing(true);
 
@@ -155,6 +152,7 @@ export default function UsaJobsResults({
       } finally {
         setIsProcessing(false);
       }
+
     }
   }
 
@@ -167,14 +165,14 @@ export default function UsaJobsResults({
               You want apply for{" "}
               {currentJob.MatchedObjectDescriptor.PositionTitle}, correct?
             </div>
-            <button onClick={setJobAndProceed} disabled={isProcessing}>
-              {isProcessing
-                ? "Processing..."
-                : `Yes, let's apply to be ${indefiniteArticle({
-                    phrase: currentJob.MatchedObjectDescriptor.PositionTitle,
-                  })} ${currentJob?.MatchedObjectDescriptor.PositionTitle}!`}
+            <button onClick={setJobAndProceed}>
+              Yes, let's apply to be{" "}
+              {indefiniteArticle({
+                phrase: currentJob.MatchedObjectDescriptor.PositionTitle,
+              })}{" "}
+              {currentJob?.MatchedObjectDescriptor.PositionTitle}!
             </button>
-            <button onClick={() => setModalOpen(false)} disabled={isProcessing}>
+            <button onClick={() => setModalOpen(false)}>
               No, please take me back to the search results.
             </button>
           </>

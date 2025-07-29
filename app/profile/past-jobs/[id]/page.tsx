@@ -1,11 +1,12 @@
 "use client";
 import { fetchModelRecord } from "@/app/crud/genericFetch";
-import NavigationLink from "@/app/components/loader/NavigationLink";
+import { GrEdit } from "react-icons/gr";
+import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { PastJobType } from "@/app/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
 import PastJobItem from "@/app/ally/return-resume/components/PastJobItem";
-export default function PastJobPage({
+export default function AwardPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -30,9 +31,9 @@ export default function PastJobPage({
     return (
       <div>
         <PastJobItem pastJob={pastJob} />
-        <NavigationLink href={`/profile/past-jobs/${id}/edit`}>
+        <Link href={`/profile/past-jobs/${id}/edit`}>
           <button>Edit Item</button>
-        </NavigationLink>
+        </Link>
       </div>
     );
   }

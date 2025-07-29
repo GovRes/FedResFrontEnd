@@ -7,6 +7,7 @@ import React, {
   useContext,
   useEffect,
   useRef,
+
   useMemo,
   useCallback,
 } from "react";
@@ -14,9 +15,9 @@ import { JobType, StepsType } from "../utils/responseSchemas";
 import { getApplicationWithJob } from "../crud/application";
 import { completeSteps, applyStepDisablingLogic } from "../utils/stepUpdater";
 import { navigateToNextIncompleteStep } from "../utils/nextStepNavigation";
+
 import { useRouter } from "next/navigation";
 import { getJobByApplicationId } from "../crud/job";
-import { useLoading } from "./loadingContext";
 
 // Combined interface for state + methods
 interface ApplicationContextType {
@@ -30,7 +31,6 @@ interface ApplicationContextType {
   setSteps: (value: StepsType[]) => void;
   setApplicationId: (value: string) => void;
   setInitialRedirectComplete: (value: boolean) => void;
-  completeStep: (stepId: string, appId?: string) => Promise<void>;
 }
 
 // Default steps array
@@ -40,15 +40,23 @@ export const defaultSteps: StepsType[] = [
     title: "USAJobs",
     description: "Select a federal job",
     completed: false,
+
     disabled: false,
     path: "/usa-jobs",
+
+  },
+  {
+    id: "specialized-experience",
+    title: "Specialized Experience",
+    description: "Add specialized experience",
+    completed: false,
+    path: "/specialized-experience",
   },
   {
     id: "extract-keywords",
     title: "Extract Keywords",
     description: "Extract keywords from the job description",
     completed: false,
-    disabled: true,
     path: "/extract-keywords",
   },
   {
@@ -56,7 +64,6 @@ export const defaultSteps: StepsType[] = [
     title: "Past Jobs",
     description: "Add and edit past jobs",
     completed: false,
-    disabled: true,
     path: "/past-jobs",
   },
   {
@@ -64,7 +71,6 @@ export const defaultSteps: StepsType[] = [
     title: "Awards",
     description: "Add and edit awards",
     completed: false,
-    disabled: true,
     path: "/awards",
   },
   {
@@ -72,7 +78,6 @@ export const defaultSteps: StepsType[] = [
     title: "Education",
     description: "Add and edit educational experiences",
     completed: false,
-    disabled: true,
     path: "/education",
   },
   {
@@ -80,7 +85,6 @@ export const defaultSteps: StepsType[] = [
     title: "Volunteer Experience",
     description: "Add and edit volunteer experiences",
     completed: false,
-    disabled: true,
     path: "/volunteer-experiences",
   },
   {
@@ -88,7 +92,6 @@ export const defaultSteps: StepsType[] = [
     title: "Past Job Details",
     description: "Write a description of past jobs",
     completed: false,
-    disabled: true,
     path: "/past-job-details",
   },
   {
@@ -96,15 +99,20 @@ export const defaultSteps: StepsType[] = [
     title: "Volunteer Details",
     description: "Write a description of volunteer experiences",
     completed: false,
-    disabled: true,
     path: "/volunteer-details",
+  },
+  {
+    id: "specialized-experience-details",
+    title: "Specialized Experience",
+    description: "get details on specialized experience",
+    completed: false,
+    path: "/specialized-experience-details",
   },
   {
     id: "return-resume",
     title: "Final Resume",
     description: "A resume you can use in your job application",
     completed: false,
-    disabled: false,
     path: "/return-resume",
   },
 ];
@@ -147,7 +155,6 @@ export const ApplicationProvider = ({
   const [initialRedirectComplete, setInitialRedirectComplete] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const router = useRouter();
-  const { setIsLoading } = useLoading();
 
   // Refs to prevent infinite loops
   const dataLoadedRef = useRef(false);
@@ -160,10 +167,12 @@ export const ApplicationProvider = ({
 
   // Wrap resetApplication in useCallback
   const resetApplication = useCallback(() => {
+
     setApplicationId("");
     setJob(undefined);
     setSteps(defaultSteps);
     setInitialRedirectComplete(false);
+
 
     if (typeof window !== "undefined") {
       sessionStorage.removeItem("applicationId");
@@ -225,6 +234,7 @@ export const ApplicationProvider = ({
   );
 
   // Updated sessionStorage sync effect
+
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -266,26 +276,18 @@ export const ApplicationProvider = ({
     return () => {
       window.removeEventListener(STORAGE_EVENT_KEY, handleCustomEvent);
     };
+
   }, [resetApplication]); // Include resetApplication in dependencies since it's now memoized
+
 
   useEffect(() => {
     if (!applicationId) return;
-
-    // Prevent multiple concurrent loads
-    if (applicationLoadingRef.current) return;
-    applicationLoadingRef.current = true;
 
     async function loadJobData() {
       try {
         const jobRes = await getJobByApplicationId(applicationId);
         if (jobRes) {
-          // Only update if the job actually changed
-          setJob((prevJob) => {
-            if (!prevJob || prevJob.id !== jobRes.id) {
-              return jobRes;
-            }
-            return prevJob;
-          });
+          setJob(jobRes);
         }
       } catch (error) {
         console.error("Error loading job data:", error);
@@ -297,13 +299,13 @@ export const ApplicationProvider = ({
             resetApplication();
           }
         }
-      } finally {
-        applicationLoadingRef.current = false;
       }
     }
 
     loadJobData();
+
   }, [applicationId, resetApplication]); // Include resetApplication dependency
+
 
   // Effect to load application data and update steps
   useEffect(() => {
@@ -342,19 +344,15 @@ export const ApplicationProvider = ({
         });
 
         if (!applicationRes) {
+          applicationLoadingRef.current = false;
           // Application not found - it might have been deleted
           resetApplication();
           return;
         }
 
-        // Update job if needed (only if different)
-        if (applicationRes.job) {
-          setJob((prevJob) => {
-            if (!prevJob || prevJob.id !== applicationRes.job.id) {
-              return applicationRes.job;
-            }
-            return prevJob;
-          });
+        // Update job if needed
+        if ((!job || job.id !== applicationRes.job?.id) && applicationRes.job) {
+          setJob(applicationRes.job);
         }
 
         // Update steps based on the application response
@@ -362,26 +360,35 @@ export const ApplicationProvider = ({
           applicationRes.completedSteps &&
           applicationRes.completedSteps.length > 0
         ) {
-          // Create new steps array with completion status using defaultSteps as base
-          const stepsWithCompletion = defaultSteps.map((step) => ({
-            ...step,
-            completed: applicationRes.completedSteps.includes(step.id),
-          }));
+          // Use functional update that doesn't depend on current steps
+          setSteps((currentSteps) => {
+            const updatedSteps = currentSteps.map((step) => ({
+              ...step,
+              completed: applicationRes.completedSteps.includes(step.id),
+            }));
 
-          // Set the raw steps - disabling logic will be applied at render time
-          setSteps(stepsWithCompletion);
+            return updatedSteps;
+          });
 
           // Only navigate to next step if this is the initial load
-          if (isInitialLoad) {
+          if (isInitialLoad && (job || applicationRes.job)) {
             setIsInitialLoad(false);
+
+            // Use a copy of steps to avoid dependency on steps state
+            const currentSteps = [...steps];
+            const stepsForComplete = currentSteps.map((step) => ({
+              ...step,
+              completed: applicationRes.completedSteps.includes(step.id),
+            }));
 
             // Ensure usa-jobs step is marked complete
             try {
               const stepsAfterComplete = await completeSteps({
-                steps: stepsWithCompletion,
+                steps: stepsForComplete,
                 stepId: "usa-jobs",
                 applicationId: applicationRes.id,
               });
+
 
               // Set the raw steps - disabling logic will be applied at render time
               setSteps(stepsAfterComplete);
@@ -393,12 +400,12 @@ export const ApplicationProvider = ({
                 router,
                 steps,
               });
+
             } catch (error) {
               console.error("Provider: Error completing steps:", error);
             }
           }
         } else {
-          setSteps(defaultSteps);
         }
 
         // Mark data as loaded
@@ -421,45 +428,17 @@ export const ApplicationProvider = ({
     loadApplicationData();
   }, [
     applicationId,
-    initialJob?.id, // Only depend on job ID, not the entire object
-    initialSteps?.length, // Only depend on the length, not the entire array
+    initialJob,
+    initialSteps,
     initialAppId,
     isInitialLoad,
+    job,
     router,
+
     resetApplication,
     completeStep,
+
   ]);
-
-  // Effect to detect URL changes and trigger re-computation of step disabling
-  useEffect(() => {
-    const handleRouteChange = () => {
-      // Instead of updating steps directly, update a counter to trigger re-computation
-      setUrlChangeCounter((prev) => prev + 1);
-    };
-
-    const originalPushState = window.history.pushState;
-    const originalReplaceState = window.history.replaceState;
-
-    window.history.pushState = function (...args) {
-      originalPushState.apply(window.history, args);
-      // Use setTimeout to avoid calling setState during render
-      setTimeout(handleRouteChange, 0);
-    };
-
-    window.history.replaceState = function (...args) {
-      originalReplaceState.apply(window.history, args);
-      // Use setTimeout to avoid calling setState during render
-      setTimeout(handleRouteChange, 0);
-    };
-
-    window.addEventListener("popstate", handleRouteChange);
-
-    return () => {
-      window.history.pushState = originalPushState;
-      window.history.replaceState = originalReplaceState;
-      window.removeEventListener("popstate", handleRouteChange);
-    };
-  }, []);
 
   // Effect to load application ID from sessionStorage on initial mount
   useEffect(() => {
@@ -468,7 +447,9 @@ export const ApplicationProvider = ({
     const storedAppId = sessionStorage.getItem("applicationId");
     if (storedAppId) {
       setApplicationId(storedAppId);
+    } else {
     }
+
   }, [applicationId, setApplicationId]); // Include setApplicationId in dependencies
 
   const value = useMemo(
@@ -494,6 +475,7 @@ export const ApplicationProvider = ({
       completeStep,
     ]
   );
+
 
   return (
     <ApplicationContext.Provider value={value}>

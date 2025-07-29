@@ -12,17 +12,16 @@ import { getApplicationWithJob } from "@/app/crud/application";
 import { StepsType } from "@/app/utils/responseSchemas";
 import { defaultSteps } from "@/app/providers/applicationContext";
 import { Loader } from "../components/loader/Loader";
-import { useLoading } from "../providers/loadingContext";
 
 // Replace the ApplicationLoader component in layout.tsx with this:
 
 function ApplicationLoader({ children }: { children: ReactNode }) {
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
-  const { setIsLoading } = useLoading();
   const {
     applicationId,
+    initialRedirectComplete,
     setApplicationId,
     setInitialRedirectComplete,
     setSteps,
@@ -42,7 +41,7 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
   // Handle applicationId changes and data loading
   useEffect(() => {
     async function loadApplicationData() {
-      setLoading(true);
+      setIsLoading(true);
 
       if (applicationId) {
         try {
@@ -64,7 +63,6 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
               );
               if (nextIncompleteStep) {
                 setInitialRedirectComplete(true);
-                setIsLoading(true);
                 router.push(`/ally${nextIncompleteStep.path}`);
                 return;
               }
@@ -78,12 +76,13 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
         }
       } else if (pathname === "/ally") {
         setInitialRedirectComplete(true);
-        setIsLoading(true);
         router.push("/ally/job-search");
         return;
       }
 
+
       setLoading(false);
+
     }
 
     loadApplicationData();
@@ -96,7 +95,9 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
     setInitialRedirectComplete,
   ]);
 
+
   if (loading && pathname === "/ally") {
+
     return <Loader text="Loading your application progress..." />;
   }
 

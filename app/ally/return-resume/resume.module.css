@@ -19,6 +19,9 @@
 .resumeSection {
   padding: 20px 0;
 }
+.specializedExperience h3 {
+  text-transform: uppercase;
+}
 
 .userInfo {
   display: flex;

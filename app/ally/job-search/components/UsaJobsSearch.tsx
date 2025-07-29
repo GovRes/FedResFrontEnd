@@ -1,19 +1,19 @@
 import styles from "../../ally.module.css";
+import BaseForm from "@/app/components/forms/BaseForm";
 import {
   SubmitButton,
-  GenericFieldWithLabel,
+  SelectWithLabel,
+  TextWithLabel,
+  NumberWithLabel,
   ToggleWithLabel,
 } from "../../../components/forms/Inputs";
-import { useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import {
   agencies,
   positionScheduleType,
   travelPercentage,
 } from "@/app/utils/usaJobsCodes";
-import {
-  JobSearchObject,
-  jobSearchZodSchema,
-} from "@/app/utils/responseSchemas";
+import { JobSearchObject } from "@/app/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
 
 import { delayAllyChat } from "@/app/utils/allyChat";
@@ -22,7 +22,6 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLoading } from "@/app/providers/loadingContext";
-
 export default function UsaJobsSearch({
   searchObject,
   setSearchObject,
@@ -34,6 +33,7 @@ export default function UsaJobsSearch({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+
   const { setIsLoading } = useLoading();
 
   const {
@@ -66,32 +66,36 @@ export default function UsaJobsSearch({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(completeSearchData),
     }).then((res) => res.json());
-
     setLoading(false);
+    return res;
+  }
+
+  async function onSubmitUsaJobsSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    window.scrollTo(0, 0);
+    let results = await search();
     if (results.length > 0) {
-      setIsLoading(true);
       router.push("/ally/job-search/results");
     } else {
-      setIsLoading(true);
       router.push("/ally/job-search/no-results");
     }
     setSearchResults(results);
+
   };
 
   const onError = (errors: any) => {
     console.error("Form validation errors:", errors);
   };
 
+
   let allyStatements = [
     "Let's search for the job you want. Put in as much or as little information as you wish.",
   ];
 
   let { allyFormattedGraphs, delay } = delayAllyChat({ allyStatements });
-
   if (loading) {
     return <Loader text="Searching USA jobs..." />;
   }
-
   return (
     <div>
       <div className={`${styles.allyChatContainer}`}>{allyFormattedGraphs}</div>
@@ -99,77 +103,65 @@ export default function UsaJobsSearch({
         className={`${styles.userChatContainer} ${styles.fade}`}
         style={{ animationDelay: `${delay}s` }}
       >
-        <form
-          onSubmit={(e) => {
-            console.log("Form onSubmit triggered directly!");
-            handleSubmit(onSubmit, onError)(e);
-          }}
-        >
-          <GenericFieldWithLabel
-            errors={errors}
+        <BaseForm onSubmit={onSubmitUsaJobsSearch}>
+          <TextWithLabel
             label="Keywords (separate multiple keywords with a semicolon)"
             name="keyword"
-            register={register}
-            schema={jobSearchZodSchema}
+            onChange={onChange}
+            value={searchObject.keyword || ""}
           />
-          <GenericFieldWithLabel
-            errors={errors}
+          <TextWithLabel
             label="Position Title"
             name="positionTitle"
-            register={register}
-            schema={jobSearchZodSchema}
+            onChange={onChange}
+            value={searchObject.positionTitle || ""}
           />
-          <GenericFieldWithLabel
-            errors={errors}
+          <TextWithLabel
             label="Location"
             name="locationName"
-            register={register}
-            schema={jobSearchZodSchema}
+            onChange={onChange}
+            value={searchObject.locationName || ""}
           />
-          <GenericFieldWithLabel
-            errors={errors}
+          <NumberWithLabel
             label="Max distance from location (miles)"
             name="radius"
-            register={register}
-            schema={jobSearchZodSchema}
-            type="number"
+            onChange={onChange}
+            value={searchObject.radius || undefined}
           />
-          <GenericFieldWithLabel
+          <SelectWithLabel
             allowNull={true}
-            errors={errors}
             label="Organization"
             name="organization"
             options={agencies}
-            register={register}
-            schema={jobSearchZodSchema}
+            onChange={onChange}
+            value={searchObject.organization}
           />
-          <GenericFieldWithLabel
+          <SelectWithLabel
             allowNull={true}
-            errors={errors}
             label="Desired Schedule"
             name="positionScheduleType"
             options={positionScheduleType}
-            register={register}
-            schema={jobSearchZodSchema}
+            onChange={onChange}
+            value={searchObject.positionScheduleType}
           />
           <ToggleWithLabel
-            errors={errors}
             label="Remote Only?"
-            name="remote"
-            register={register}
-            schema={jobSearchZodSchema}
+            checked={searchObject.remote === true}
+            onChange={onChange}
+            name={"remote"}
           />
-          <GenericFieldWithLabel
-            errors={errors}
+          <SelectWithLabel
             allowNull={true}
             label="How much travel?"
             name="travelPercentage"
             options={travelPercentage}
-            register={register}
-            schema={jobSearchZodSchema}
+            onChange={onChange}
+            value={searchObject.travelPercentage}
           />
+
           <SubmitButton>Submit</SubmitButton>
         </form>
+
       </div>
     </div>
   );
