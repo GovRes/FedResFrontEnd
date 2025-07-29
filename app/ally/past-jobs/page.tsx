@@ -6,7 +6,7 @@ import { Loader } from "@/app/components/loader/Loader";
 import { listUserModelRecords } from "@/app/crud/genericListForUser";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { useApplication } from "@/app/providers/applicationContext";
-import { topicPastJobMatcher } from "@/app/components/aiProcessing/topicPastJobMatcher";
+import { fetchUserAssociations } from "@/app/crud/userAssociations";
 export default function pastJobsPage() {
   const [localPastJobs, setLocalPastJobs] = useState<PastJobType[]>([]);
   const { job } = useApplication();
@@ -19,12 +19,12 @@ export default function pastJobsPage() {
       if (!user) return;
       setLoading(true);
       // Fetch past jobs
-      let res = await listUserModelRecords("PastJob", user.userId);
-      if (res.items.length > 0) {
-        res.items = res.items.filter(
-          (job: PastJobType) => job.type === "PastJob"
-        );
-        setLocalPastJobs(res.items);
+      let res = await fetchUserAssociations("PastJob");
+      if (res.length > 0) {
+        const filteredJobs = res.filter(
+          (job) => job.type === "PastJob"
+        ) as PastJobType[];
+        setLocalPastJobs(filteredJobs);
       }
       setLoading(false);
     }
