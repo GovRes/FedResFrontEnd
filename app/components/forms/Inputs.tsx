@@ -1,5 +1,48 @@
 import React, { ChangeEvent, useEffect, useState } from "react";
+import { z } from "zod";
 import styles from "./forms.module.css";
+
+interface FormFieldProps<T extends z.ZodRawShape> {
+  allowNull?: boolean;
+  cols?: number;
+  errors: any;
+  label: string;
+  name: keyof z.infer<z.ZodObject<T>>;
+  options?: Record<string, string>;
+  placeholder?: string;
+  register: any;
+  rows?: number;
+  schema: z.ZodObject<T>;
+  type?: string;
+}
+
+interface ToggleProps<T extends z.ZodRawShape> {
+  name: keyof z.infer<z.ZodObject<T>>;
+  label: string;
+  schema: z.ZodObject<T>;
+  register: any;
+  errors: any;
+}
+
+interface CheckboxesProps<T extends z.ZodRawShape> {
+  additionalClassName?: string;
+  errors: any;
+  label?: string;
+  name: keyof z.infer<z.ZodObject<T>>;
+  options: { id: number | string; name: string }[];
+  register: any;
+  schema: z.ZodObject<T>;
+}
+
+interface RadioSelectProps<T extends z.ZodRawShape> {
+  additionalClassName?: string;
+  errors: any;
+  label?: string;
+  name: keyof z.infer<z.ZodObject<T>>;
+  options: { id: number | string; name: string }[];
+  register: any;
+  schema: z.ZodObject<T>;
+}
 
 export const Checkbox = ({
   handleChange,
@@ -10,6 +53,7 @@ export const Checkbox = ({
 }) => {
   return <input name={name} onChange={handleChange} type="checkbox" />;
 };
+
 export const CheckboxWithLabel = ({
   handleChange,
   label,
@@ -28,317 +72,283 @@ export const CheckboxWithLabel = ({
     </div>
   );
 };
-export const Checkboxes = ({
-  additionalClassName,
+
+export function Checkboxes<T extends z.ZodRawShape>({
+  additionalClassName = "",
+  errors,
+  label,
+  name,
   options,
-}: {
-  additionalClassName: string;
-  options: { id: number | string; name: string }[];
-}) => {
-  const [checkedState, setCheckedState] = useState(
-    new Array(options.length).fill(false)
-  );
+  register,
+  schema,
+}: CheckboxesProps<T>) {
+  const field = schema.shape[name as string];
+  const isRequired = field && !field.isOptional?.() && !field.isNullable?.();
+  const fieldError = errors[name as string];
 
-  const handleOnChange = (position: number) => {
-    const updatedCheckedState = checkedState.map((item, index) =>
-      index === position ? !item : item
-    );
-
-    setCheckedState(updatedCheckedState);
-  };
   return (
-    <div className={`${styles.checkboxWrapper} ${styles[additionalClassName]}`}>
-      {options.map((option, index) => (
-        <div key={index}>
-          <input
-            id={`checkbox-${index}`}
-            name={option.name}
-            type="checkbox"
-            value={option.id}
-            checked={checkedState[index]}
-            onChange={() => handleOnChange(index)}
-          />
-          <label htmlFor={`checkbox-${index}`}>{option.name}</label>
-        </div>
-      ))}
+    <div className="mb-4">
+      {label && (
+        <label className="block mb-2">
+          {label} {isRequired && <span className="text-red-500">*</span>}
+        </label>
+      )}
+      <div
+        className={`${styles.checkboxWrapper} ${styles[additionalClassName]}`}
+      >
+        {options.map((option, index) => (
+          <div key={index} className="flex items-center mb-2">
+            <input
+              {...register(name)}
+              id={`checkbox-${name as string}-${index}`}
+              type="checkbox"
+              value={option.id}
+              className="mr-2"
+            />
+            <label
+              htmlFor={`checkbox-${name as string}-${index}`}
+              className="cursor-pointer"
+            >
+              {option.name}
+            </label>
+          </div>
+        ))}
+      </div>
+      {fieldError && (
+        <p className="text-red-500 text-sm mt-1">{fieldError.message}</p>
+      )}
     </div>
   );
-};
-export const Email = ({ name }: { name: string }) => {
-  const [email, setEmail] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const handleEmailChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setEmail(event.target.value);
-  };
-  const validateEmail = () => {
-    const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
-    if (!emailRegex.test(email)) {
-      setError("Please enter a valid email address");
-    } else {
-      setError("");
-    }
-  };
+}
 
-  useEffect(() => {
-    validateEmail();
-  }, [email]);
+export function RadioSelect<T extends z.ZodRawShape>({
+  additionalClassName = "",
+  errors,
+  label,
+  name,
+  options,
+  register,
+  schema,
+}: RadioSelectProps<T>) {
+  const field = schema.shape[name as string];
+  const isRequired = field && !field.isOptional?.() && !field.isNullable?.();
+  const fieldError = errors[name as string];
+
+  return (
+    <div className="mb-4">
+      {label && (
+        <label className="block mb-2">
+          {label} {isRequired && <span className="text-red-500">*</span>}
+        </label>
+      )}
+      <div
+        className={`${styles.checkboxWrapper} ${styles[additionalClassName]}`}
+      >
+        {options.map((option, index) => (
+          <div key={index} className="flex items-center mb-2">
+            <input
+              {...register(name)}
+              id={`radio-${name as string}-${index}`}
+              name={name as string}
+              type="radio"
+              value={option.id}
+              className="mr-2"
+            />
+            <label
+              htmlFor={`radio-${name as string}-${index}`}
+              className="cursor-pointer"
+            >
+              {option.name}
+            </label>
+          </div>
+        ))}
+      </div>
+      {fieldError && (
+        <p className="text-red-500 text-sm mt-1">{fieldError.message}</p>
+      )}
+    </div>
+  );
+}
+
+export const SubmitButton = ({
+  disabled,
+  children,
+}: {
+  disabled?: boolean;
+  children: string;
+}) => {
+  return (
+    <button
+      type="submit"
+      style={{
+        opacity: disabled ? 0.5 : 1,
+        cursor: disabled ? "not-allowed" : "pointer",
+      }}
+    >
+      {children}
+    </button>
+  );
+};
+
+export function GenericFieldWithLabel<T extends z.ZodRawShape>({
+  allowNull = false,
+  cols,
+  errors,
+  label,
+  name,
+  options,
+  placeholder,
+  register,
+  rows,
+  schema,
+  type = "text",
+}: FormFieldProps<T>) {
+  const field = schema.shape[name as string];
+  const isRequired = field && !field.isOptional?.() && !field.isNullable?.();
+  const fieldError = errors[name as string];
+
+  // Handle checkboxes and radio buttons through options with special types
+  if (type === "checkbox" && options) {
+    const checkboxOptions = Object.entries(options).map(([id, name]) => ({
+      id,
+      name,
+    }));
+    return (
+      <Checkboxes
+        additionalClassName=""
+        errors={errors}
+        label={label}
+        name={name}
+        options={checkboxOptions}
+        register={register}
+        schema={schema}
+      />
+    );
+  }
+
+  if (type === "radio" && options) {
+    const radioOptions = Object.entries(options).map(([id, name]) => ({
+      id,
+      name,
+    }));
+    return (
+      <RadioSelect
+        additionalClassName=""
+        errors={errors}
+        label={label}
+        name={name}
+        options={radioOptions}
+        register={register}
+        schema={schema}
+      />
+    );
+  }
+
+  // Handle select dropdowns
+  if (options) {
+    return (
+      <div className="mb-4">
+        <label className="block mb-2">
+          {label} {isRequired && <span className="text-red-500">*</span>}
+        </label>
+        <select
+          {...register(name)}
+          className={`w-full p-2 border rounded ${fieldError ? "border-red-500" : "border-gray-300"}`}
+        >
+          <option value="">Select {label}</option>
+          {allowNull && <option value="">Select...</option>}
+          {Object.entries(options).map(([value, text]) => (
+            <option key={value} value={value}>
+              {text}
+            </option>
+          ))}
+        </select>
+        {fieldError && (
+          <p className="text-red-500 text-sm mt-1">{fieldError.message}</p>
+        )}
+      </div>
+    );
+  }
+
+  // Handle textarea
+  if (type === "textarea") {
+    return (
+      <div className="mb-4">
+        <label className="block mb-2">
+          {label} {isRequired && <span className="text-red-500">*</span>}
+        </label>
+        <textarea
+          placeholder={placeholder}
+          rows={rows || 3}
+          cols={cols}
+          {...register(name)}
+          className={`w-full p-2 border rounded ${fieldError ? "border-red-500" : "border-gray-300"}`}
+        />
+        {fieldError && (
+          <p className="text-red-500 text-sm mt-1">{fieldError.message}</p>
+        )}
+      </div>
+    );
+  }
+
+  // Handle regular input fields
+  return (
+    <div className="mb-4">
+      <label className="block mb-2">
+        {label} {isRequired && <span className="text-red-500">*</span>}
+      </label>
+      <input
+        type={type}
+        placeholder={placeholder}
+        {...register(name)}
+        className={`w-full p-2 border rounded ${fieldError ? "border-red-500" : "border-gray-300"}`}
+      />
+      {fieldError && (
+        <p className="text-red-500 text-sm mt-1">{fieldError.message}</p>
+      )}
+    </div>
+  );
+}
+
+export function ToggleWithLabel<T extends z.ZodRawShape>({
+  errors,
+  label,
+  name,
+  register,
+  schema,
+}: ToggleProps<T>) {
+  const field = schema.shape[name as string];
+  const isRequired = field && !field.isOptional?.() && !field.isNullable?.();
+  const fieldError = errors[name as string];
 
   return (
     <>
-      <input
-        autoFocus
-        name={name}
-        onChange={handleEmailChange}
-        type="email"
-        value={email}
-      ></input>
-      {error && (
-        <div>
-          {" "}
-          <p>{error}</p>
-        </div>
+      <div className={styles.checkboxWithLabel}>
+        <span>
+          {label} {isRequired && <span style={{ color: "red" }}>*</span>}:
+        </span>{" "}
+        <span className={styles.attributeToggle}>
+          <div
+            className={`${styles.button} ${styles.r}`}
+            id={`button-${name as string}`} // Fixed: use name instead of field
+          >
+            <input
+              {...register(name)}
+              className={styles.checkbox}
+              type="checkbox"
+            />
+            <div className={styles.knobs}></div>
+            <div className={styles.layer}></div>
+          </div>
+        </span>
+      </div>
+      {fieldError && (
+        <p className="text-red-500 text-sm mt-1">{fieldError.message}</p>
       )}
     </>
   );
-};
-export const Number = ({
-  name,
-  onChange,
-  value,
-}: {
-  name: string;
-  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  value: number | undefined;
-}) => {
-  return <input name={name} type="number" onChange={onChange} value={value} />;
-};
-export const NumberWithLabel = ({
-  label,
-  name,
-  onChange,
-  value,
-}: {
-  label: string;
-  name: string;
-  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  value: number | undefined;
-}) => {
-  return (
-    <span>
-      {label}: <Number name={name} onChange={onChange} value={value} />
-    </span>
-  );
-};
-export const RadioSelect = ({
-  additionalClassName,
-  name,
-  options,
-}: {
-  additionalClassName: string;
-  name: string;
-  options: { id: number | string; name: string }[];
-}) => {
-  const [checkedState, setCheckedState] = useState(
-    new Array(options.length).fill(false)
-  );
+}
 
-  const handleOnChange = (position: number) => {
-    const updatedCheckedState = checkedState.map((item, index) =>
-      index === position ? !item : item
-    );
-    setCheckedState(updatedCheckedState);
-  };
-  return (
-    <div className={`${styles.checkboxWrapper} ${styles[additionalClassName]}`}>
-      {options.map((option, index) => (
-        <div key={index}>
-          <input
-            id={`radio-${index}`}
-            name={name}
-            type="radio"
-            value={option.id}
-            onChange={() => handleOnChange(index)}
-          />
-          <label htmlFor={`radio-${index}`}>{option.name}</label>
-        </div>
-      ))}
-    </div>
-  );
-};
-export const Select = ({
-  allowNull = false,
-  name,
-  options,
-  onChange,
-  value,
-}: {
-  allowNull?: boolean;
-  name: string;
-  options: Record<string, string>;
-  onChange: (event: ChangeEvent<HTMLSelectElement>) => void;
-  value: string | number | undefined;
-}) => {
-  return (
-    <select defaultValue={value} name={name} onChange={onChange}>
-      {allowNull && <option value="">Select...</option>}
-      {Object.keys(options).map((key) => {
-        return (
-          <option key={key} value={key}>
-            {options[key]}
-          </option>
-        );
-      })}
-    </select>
-  );
-};
-export const SelectWithLabel = ({
-  allowNull = false,
-  label,
-  name,
-  options,
-  onChange,
-  value,
-}: {
-  allowNull?: boolean;
-  label: string;
-  name: string;
-  options: Record<string, string>;
-  onChange: (event: ChangeEvent<HTMLSelectElement>) => void;
-  value: string | number | undefined;
-}) => {
-  return (
-    <div>
-      <span>{label}</span>:{" "}
-      <Select
-        allowNull={allowNull}
-        name={name}
-        options={options}
-        onChange={onChange}
-        value={value}
-      />
-    </div>
-  );
-};
-export const SubmitButton = ({
-  children,
-}: {
-  type: string;
-  children: string;
-}) => {
-  return <button type="submit">{children}</button>;
-};
-export const Text = ({
-  name,
-  onChange,
-  value,
-}: {
-  name: string;
-  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  value: string | undefined;
-}) => {
-  return <input name={name} type="text" onChange={onChange} value={value} />;
-};
-export const TextWithLabel = ({
-  label,
-  name,
-  onChange,
-  value,
-}: {
-  label: string;
-  name: string;
-  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  value: string | undefined;
-}) => {
-  return (
-    <div>
-      <div>{label}:</div> <Text name={name} onChange={onChange} value={value} />
-    </div>
-  );
-};
-
-export const TextArea = ({
-  name,
-  value,
-  onChange,
-}: {
-  name: string;
-  value: string | undefined;
-  onChange: (e: ChangeEvent<HTMLTextAreaElement>) => void;
-}) => {
-  return (
-    <textarea
-      autoFocus
-      cols={100}
-      name={name}
-      rows={30}
-      value={value}
-      onChange={onChange}
-    />
-  );
-};
-
-export const TextAreaWithLabel = ({
-  label,
-  name,
-  onChange,
-  value,
-}: {
-  label: string;
-  name: string;
-  onChange: (e: ChangeEvent<HTMLTextAreaElement>) => void;
-  value: string | undefined;
-}) => {
-  return (
-    <div>
-      <div>{label}:</div>
-
-      <TextArea name={name} value={value} onChange={onChange} />
-    </div>
-  );
-};
-export const ToggleWithLabel = ({
-  label,
-  checked,
-  onChange,
-  name,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  name?: string;
-}) => {
-  return (
-    <div className={styles.checkboxWithLabel}>
-      <span>{label}:</span>{" "}
-      <Toggle checked={checked} name={name} onChange={onChange} />
-    </div>
-  );
-};
-export const Toggle = ({
-  checked,
-  onChange,
-  name,
-}: {
-  checked: boolean;
-  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  name?: string;
-}) => {
-  return (
-    <span className={styles.attributeToggle}>
-      <div className={`${styles.button} ${styles.r}`} id="button-1">
-        <input
-          type="checkbox"
-          className={styles.checkbox}
-          checked={checked}
-          name={name}
-          onChange={onChange}
-        />
-        <div className={styles.knobs}></div>
-        <div className={styles.layer}></div>
-      </div>
-    </span>
-  );
-};
 export const Url = ({ name }: { name: string }) => {
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);

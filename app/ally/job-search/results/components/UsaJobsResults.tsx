@@ -2,17 +2,17 @@
 import React, { useContext, useState } from "react";
 import UsaJobsResultsItem from "./UsaJobsResultsItem";
 import styles from "../../../ally.module.css";
-import { createModelRecord } from "@/app/crud/genericCreate";
 import Modal from "@/app/components/modal/Modal";
 import { formatJobDescription } from "@/app/utils/usaJobsSearch";
 import indefiniteArticle from "@/app/utils/indefiniteArticles";
 import { createAndSaveApplication } from "@/app/crud/application";
 import { useAuthenticator } from "@aws-amplify/ui-react";
-import { completeSteps } from "@/app/utils/stepUpdater";
 import { useApplication } from "@/app/providers/applicationContext";
-import { useNextStepNavigation } from "@/app/utils/nextStepNavigation";
+import { navigateToNextIncompleteStep } from "@/app/utils/nextStepNavigation";
 import { createOrGetJob } from "@/app/crud/job";
 import { useRouter } from "next/navigation";
+import processUSAJob from "@/app/utils/processUSAJob";
+import createApplication from "@/app/utils/createApplication";
 export interface MatchedObjectDescriptor {
   PositionTitle: string;
   DepartmentName: string;
@@ -46,12 +46,15 @@ export default function UsaJobsResults({
 }: {
   searchResults: Result[];
 }) {
-  const { steps, setJob, setSteps, setApplicationId } = useApplication();
-  const { navigateToNextIncompleteStep } = useNextStepNavigation();
+  const { steps, setJob, applicationId, setApplicationId, completeStep } =
+    useApplication();
   const { user } = useAuthenticator();
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [currentJob, setCurrentJob] = useState<Result | null>();
+  const [loading, setLoading] = useState<boolean>(false);
+  const [jobResult, setJobResult] = useState<any>(null);
+  const [questionnaireFound, setQuestionnaireFound] = useState<boolean>(false);
   function selectJob({ job }: { job: Result }) {
     setModalOpen(true);
     setCurrentJob(job);
@@ -61,26 +64,40 @@ export default function UsaJobsResults({
   }
   async function setJobAndProceed() {
     if (currentJob) {
-      let formattedJobDescription = formatJobDescription({ job: currentJob });
-      //not using generic create because we want to check if there is already an entry for this job
-      let jobRes = await createOrGetJob({
-        ...formattedJobDescription,
-      });
-      let applicationRes = await createAndSaveApplication({
-        jobId: jobRes.id,
-        userId: user.userId,
-      });
-      setApplicationId(applicationRes.id);
-      const updatedSteps = await completeSteps({
-        steps,
-        stepId: "usa-jobs",
-        applicationId: applicationRes.id,
-      });
-      setSteps(updatedSteps);
-      setJob(jobRes);
+      try {
+        let formattedJobDescription = formatJobDescription({ job: currentJob });
 
-      // Only navigate after all steps are completed
-      await navigateToNextIncompleteStep("usa-jobs");
+        // Create or get the job
+        const jobResult = await processUSAJob(formattedJobDescription);
+        console.log("Job processing result:", jobResult);
+        if (jobResult?.jobId) {
+          setJobResult(jobResult);
+          setQuestionnaireFound(jobResult?.questionnaireFound || false);
+          setJob(formattedJobDescription);
+          // Navigate to next step
+          createApplication({
+            completeStep,
+            jobId: jobResult.jobId,
+            userId: user.userId,
+            setLoading,
+            setApplicationId,
+          });
+          navigateToNextIncompleteStep({
+            steps,
+            router,
+            currentStepId: "usa-jobs",
+            applicationId,
+            completeStep,
+          });
+        }
+      } catch (error) {
+        console.error("Error getting questionnaire URL:", error);
+        return {
+          found: false,
+          questionnaireUrl: null,
+          reasoning: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+        };
+      }
     }
   }
 

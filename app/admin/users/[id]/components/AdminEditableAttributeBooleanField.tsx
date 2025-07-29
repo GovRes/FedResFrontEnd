@@ -1,11 +1,20 @@
 import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { UserProfile, AdminUserUpdate } from "@/lib/types/user";
-import { Toggle } from "@/app/components/forms/Inputs";
+import { ToggleWithLabel } from "@/app/components/forms/Inputs";
 import EditableAttributeContainer from "@/app/components/editableAttributes/EditableAttributeContainer";
 import SubmitCancelButtonArray from "@/app/components/editableAttributes/SubmitCancelButtonArray";
 import EditButton from "@/app/components/editableAttributes/EditButton";
 import styles from "./editableAttributeStyles.module.css";
 import LoadingButton from "@/app/components/editableAttributes/LoadingButton";
+
+// Schema for the boolean form
+const booleanFieldSchema = z.object({
+  value: z.boolean(),
+});
+
+type BooleanFormData = z.infer<typeof booleanFieldSchema>;
 
 interface AdminEditableAttributeBooleanFieldProps {
   attributeKey: keyof UserProfile;
@@ -24,11 +33,25 @@ export default function AdminEditableAttributeBooleanField({
   updateUser,
   setCurrentlyEditing,
 }: AdminEditableAttributeBooleanFieldProps) {
-  const [formValue, setFormValue] = useState(value || "");
   const boolValue = value === true || value === "true";
-  const [checked, setChecked] = useState(boolValue);
   const [loading, setLoading] = useState(false);
   const showEdit = currentlyEditing === attributeKey;
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<BooleanFormData>({
+    defaultValues: {
+      value: boolValue,
+    },
+  });
+
+  // Reset form when value changes
+  useEffect(() => {
+    reset({ value: boolValue });
+  }, [value, reset, boolValue]);
 
   function startEdit() {
     setCurrentlyEditing(attributeKey);
@@ -36,25 +59,16 @@ export default function AdminEditableAttributeBooleanField({
 
   function cancelEdit() {
     setCurrentlyEditing(null);
-    setChecked(boolValue);
+    reset({ value: boolValue }); // Reset to original value
   }
 
-  function onChange() {
-    setChecked(!checked);
-  }
-
-  useEffect(() => {
-    setChecked(value === true || value === "true");
-  }, [value]);
-
-  async function submit(e: { preventDefault: () => void }) {
-    e.preventDefault();
+  async function onSubmit(data: BooleanFormData) {
     setLoading(true);
 
     try {
       // Create the update object with only the field being changed
       const updates: AdminUserUpdate = {
-        [attributeKey]: checked.toString(),
+        [attributeKey]: data.value.toString(),
       };
 
       const success = await updateUser(updates);
@@ -73,11 +87,24 @@ export default function AdminEditableAttributeBooleanField({
     }
   }
 
+  const onError = (errors: any) => {
+    console.error("Form validation errors:", errors);
+  };
+
   return (
     <EditableAttributeContainer title={title}>
       {showEdit ? (
-        <form className={styles.attributeForm} onSubmit={submit}>
-          <Toggle checked={checked} onChange={onChange} />
+        <form
+          className={styles.attributeForm}
+          onSubmit={handleSubmit(onSubmit, onError)}
+        >
+          <ToggleWithLabel
+            errors={errors}
+            label={title}
+            name="value"
+            register={register}
+            schema={booleanFieldSchema}
+          />
           {loading ? (
             <LoadingButton />
           ) : (

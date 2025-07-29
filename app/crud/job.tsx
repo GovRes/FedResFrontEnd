@@ -8,12 +8,12 @@ import { generateClient } from "aws-amplify/api";
  * @throws {Error} - If creation fails
  */
 export async function createOrGetJob(jobData: {
-  agencyDescription: string;
+  agencyDescription?: string;
   department: string;
-  duties: string;
-  evaluationCriteria: string;
-  qualificationsSummary: string;
-  requiredDocuments: string;
+  duties?: string;
+  evaluationCriteria?: string;
+  qualificationsSummary?: string;
+  requiredDocuments?: string;
   title: string;
   usaJobsId: string;
 }) {
@@ -33,6 +33,7 @@ export async function createOrGetJob(jobData: {
             duties
             evaluationCriteria
             qualificationsSummary
+            questionnaire
             requiredDocuments
             title
             topics {
@@ -88,6 +89,7 @@ export async function createOrGetJob(jobData: {
           duties
           evaluationCriteria
           qualificationsSummary
+          questionnaire
           requiredDocuments
           title
           usaJobsId
@@ -171,6 +173,7 @@ export async function getJobByApplicationId(applicationId: string) {
               duties
               evaluationCriteria
               qualificationsSummary
+              questionnaire
               requiredDocuments
               title
               topics {

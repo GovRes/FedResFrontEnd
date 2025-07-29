@@ -38,7 +38,11 @@ export function SeedRolesButton({ onSeedComplete }: SeedRolesButtonProps) {
     <div>
       <div>
         <button onClick={handleSeedRoles} disabled={isSeeding}>
-          {isSeeding ? <span>Seeding Roles...</span> : "Seed Default Roles"}
+          {isSeeding ? (
+            <span>Seeding Roles...</span>
+          ) : (
+            "Seed Default Roles - only click if you know what you are doing!"
+          )}
         </button>
 
         {lastResult && (

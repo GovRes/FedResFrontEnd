@@ -1,100 +1,148 @@
-import { PastJobType } from "@/app/utils/responseSchemas";
+import { PastJobType, pastJobZodSchema } from "@/app/utils/responseSchemas";
 import BaseForm from "../../../components/forms/BaseForm";
 import {
   SubmitButton,
-  TextAreaWithLabel,
-  TextWithLabel,
+  GenericFieldWithLabel,
   ToggleWithLabel,
 } from "../../../components/forms/Inputs";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+// Create a form-specific schema without userId and qualifications (handled by parent)
+const pastJobFormSchema = pastJobZodSchema.omit({
+  userId: true,
+  id: true,
+  qualifications: true,
+});
+type PastJobFormData = z.infer<typeof pastJobFormSchema>;
+
 interface PastJobFormProps {
   item?: PastJobType;
   itemType: "PastJob" | "Volunteer";
-  onChange: (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => void;
-  onChangeToggle: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  onSubmit: (data: PastJobFormData) => void;
 }
 
 export default function PastJobForm({
   item,
   itemType,
-  onChange,
-  onChangeToggle,
   onSubmit,
 }: PastJobFormProps) {
+  const {
+    formState: { errors },
+    handleSubmit,
+    register,
+  } = useForm<PastJobFormData>({
+    resolver: zodResolver(pastJobFormSchema),
+    defaultValues: {
+      title: item?.title || "",
+      organization: item?.organization || "",
+      organizationAddress: item?.organizationAddress || "",
+      startDate: item?.startDate || "",
+      endDate: item?.endDate || "",
+      hours: item?.hours || "",
+      gsLevel: item?.gsLevel || "",
+      responsibilities: item?.responsibilities || "",
+      supervisorName: item?.supervisorName || "",
+      supervisorPhone: item?.supervisorPhone || "",
+      supervisorMayContact: item?.supervisorMayContact || false,
+      type: itemType,
+    },
+  });
+
+  const onError = (errors: any) => {
+    console.error("Form validation errors:", errors);
+  };
+
   return (
-    <BaseForm onSubmit={onSubmit}>
-      <TextWithLabel
+    <BaseForm onSubmit={handleSubmit(onSubmit, onError)}>
+      <GenericFieldWithLabel
+        errors={errors}
         label="Title"
         name="title"
-        value={item?.title}
-        onChange={onChange}
+        register={register}
+        schema={pastJobFormSchema}
       />
-      <TextWithLabel
+      <GenericFieldWithLabel
+        errors={errors}
         label="Organization"
         name="organization"
-        value={item?.organization}
-        onChange={onChange}
+        register={register}
+        schema={pastJobFormSchema}
       />
-      <TextWithLabel
+      <GenericFieldWithLabel
+        errors={errors}
         label="Organization Address"
         name="organizationAddress"
-        value={item?.organizationAddress}
-        onChange={onChange}
+        register={register}
+        schema={pastJobFormSchema}
       />
-      <TextWithLabel
+      <GenericFieldWithLabel
+        errors={errors}
         label="Start Date"
         name="startDate"
-        value={item?.startDate}
-        onChange={onChange}
+        register={register}
+        schema={pastJobFormSchema}
+        type="date"
       />
-      <TextWithLabel
+      <GenericFieldWithLabel
+        errors={errors}
         label="End Date"
         name="endDate"
-        value={item?.endDate}
-        onChange={onChange}
+        register={register}
+        schema={pastJobFormSchema}
+        type="date"
       />
-      <TextWithLabel
+      <GenericFieldWithLabel
+        errors={errors}
         label="Hours worked per week"
         name="hours"
-        value={item?.hours}
-        onChange={onChange}
+        register={register}
+        schema={pastJobFormSchema}
+        type="number"
       />
       {itemType === "PastJob" && (
-        <TextWithLabel
+        <GenericFieldWithLabel
+          errors={errors}
           label="GS Level"
           name="gsLevel"
-          value={item?.gsLevel}
-          onChange={onChange}
+          register={register}
+          schema={pastJobFormSchema}
         />
       )}
-      <TextAreaWithLabel
+      <GenericFieldWithLabel
+        errors={errors}
         label="Responsibilities"
         name="responsibilities"
-        value={item?.responsibilities}
-        onChange={onChange}
+        register={register}
+        schema={pastJobFormSchema}
+        type="textarea"
+        rows={4}
       />
-      <TextWithLabel
+      <GenericFieldWithLabel
+        errors={errors}
         label="Supervisor Name"
         name="supervisorName"
-        value={item?.supervisorName}
-        onChange={onChange}
+        register={register}
+        schema={pastJobFormSchema}
       />
-      <TextWithLabel
+      <GenericFieldWithLabel
+        errors={errors}
         label="Supervisor Phone"
         name="supervisorPhone"
-        value={item?.supervisorPhone}
-        onChange={onChange}
+        register={register}
+        schema={pastJobFormSchema}
+        type="tel"
       />
       <ToggleWithLabel
+        errors={errors}
         label="May Contact Supervisor"
         name="supervisorMayContact"
-        checked={item?.supervisorMayContact || false}
-        onChange={onChangeToggle}
+        register={register}
+        schema={pastJobFormSchema}
       />
-      <input type="hidden" name="type" value={itemType} />
-      <SubmitButton type="submit">Submit</SubmitButton>
+      <input type="hidden" {...register("type")} />
+      <SubmitButton>Submit</SubmitButton>
     </BaseForm>
   );
 }

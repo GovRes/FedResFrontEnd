@@ -3,10 +3,19 @@ import { Loader } from "@/app/components/loader/Loader";
 import { updateModelRecord } from "@/app/crud/genericUpdate";
 import { fetchModelRecord } from "@/app/crud/genericFetch";
 import PastJobForm from "@/app/profile/components/components/PastJobForm";
-import { PastJobType } from "@/app/utils/responseSchemas";
+import { PastJobType, pastJobZodSchema } from "@/app/utils/responseSchemas";
 import { useEffect, useState } from "react";
 import { use } from "react";
 import { useRouter } from "next/navigation";
+import { z } from "zod";
+
+// Create the form schema and type
+const pastJobFormSchema = pastJobZodSchema.omit({
+  userId: true,
+  id: true,
+  qualifications: true,
+});
+type PastJobFormData = z.infer<typeof pastJobFormSchema>;
 
 export default function EditPastJobPage({
   params,
@@ -16,77 +25,53 @@ export default function EditPastJobPage({
   const { id } = use(params);
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [formData, setFormData] = useState<PastJobType>({
-    endDate: "",
-    gsLevel: "",
-    hours: "",
-    id: "",
-    organization: "",
-    organizationAddress: "",
-    qualifications: [],
-    responsibilities: "",
-    startDate: "",
-    supervisorMayContact: false,
-    supervisorName: "",
-    supervisorPhone: "",
-    title: "",
-    type: "PastJob",
-    userId: "",
-  });
-  const onChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
-  ) => {
-    if (formData) {
-      setFormData({ ...formData, [e.target.name]: e.target.value });
-    }
-  };
-  const onChangeToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      supervisorMayContact: e.target.checked,
-    });
-  };
+  const [pastJobData, setPastJobData] = useState<PastJobType | null>(null);
 
-  const onSubmit = async (
-    e: React.FormEvent<HTMLFormElement>
-  ): Promise<void> => {
-    e.preventDefault();
+  const onSubmit = async (formData: PastJobFormData): Promise<void> => {
     setLoading(true);
     try {
-      await updateModelRecord("PastJob", id, formData);
+      // Combine form data with existing past job data (id, userId, qualifications)
+      const completePastJobData: PastJobType = {
+        ...formData,
+        id: pastJobData!.id,
+        userId: pastJobData!.userId,
+        qualifications: pastJobData!.qualifications || [],
+      };
+
+      await updateModelRecord("PastJob", id, completePastJobData);
+      router.push(`/profile/past-jobs/${id}`);
     } catch (error) {
       console.error("Error updating past job:", error);
+      setLoading(false);
     }
-    setLoading(false);
-    router.push(`/profile/past-jobs/${id}`);
   };
+
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      const pastJobData = await fetchModelRecord("PastJob", id);
-      setFormData({ ...formData, ...pastJobData });
+      try {
+        const fetchedPastJobData = await fetchModelRecord("PastJob", id);
+        setPastJobData(fetchedPastJobData);
+      } catch (error) {
+        console.error("Error fetching past job:", error);
+      }
       setLoading(false);
     }
     fetchData();
-  }, []);
+  }, [id]);
 
   if (loading) {
-    return <Loader text="loading past job data" />;
+    return <Loader text="Loading past job data..." />;
   }
-  if (!loading && formData) {
-    return (
-      <div>
-        <h1>Edit Job</h1>
-        <PastJobForm
-          item={formData}
-          itemType="PastJob"
-          onChange={onChange}
-          onChangeToggle={onChangeToggle}
-          onSubmit={onSubmit}
-        />
-      </div>
-    );
+
+  if (!pastJobData) {
+    return <div>Past job not found</div>;
   }
+
+  return (
+    <div>
+      <h1>Edit Job Experience</h1>
+      <PastJobForm item={pastJobData} itemType="PastJob" onSubmit={onSubmit} />
+    </div>
+  );
 }

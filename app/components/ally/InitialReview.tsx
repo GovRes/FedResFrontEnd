@@ -4,17 +4,16 @@ import {
   EducationType,
   PastJobType,
 } from "@/app/utils/responseSchemas";
-import { getCheckboxValues } from "@/app/utils/formUtils";
 import ReviewItemsList from "./ReviewItemsList";
-import { completeSteps } from "@/app/utils/stepUpdater";
 import { associateItemsWithApplication } from "@/app/crud/application";
 import { useApplication } from "@/app/providers/applicationContext";
 import { Loader } from "../loader/Loader";
 import SkipItems from "./SkipItems";
-import { useNextStepNavigation } from "@/app/utils/nextStepNavigation";
+import { navigateToNextIncompleteStep } from "@/app/utils/nextStepNavigation";
+import { useRouter } from "next/navigation";
 
 export default function InitialReview<
-  T extends AwardType | EducationType | PastJobType
+  T extends AwardType | EducationType | PastJobType,
 >({
   currentStepId,
   localItems,
@@ -26,7 +25,6 @@ export default function InitialReview<
   itemType:
     | "Award"
     | "Education"
-    | "SpecializedExperience"
     | "PastJob"
     | "VolunteerExperience"
     | "Resume";
@@ -39,35 +37,30 @@ export default function InitialReview<
 
   const [loading, setLoading] = useState(false);
 
-  const { steps, applicationId, setSteps } = useApplication();
-  const { navigateToNextIncompleteStep } = useNextStepNavigation();
+  const { completeStep, steps, applicationId } = useApplication();
+  const router = useRouter();
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const values = getCheckboxValues(event);
-    // Filter out items whose IDs are in the values array
-    const updatedItems = localItems.filter((item) => !values.includes(item.id));
-
-    // Update parent state
-    setLocalItems(updatedItems);
+  const onSubmit = async (selectedItems: T[]) => {
+    // Update parent state with selected items
+    setLocalItems(selectedItems);
     if (applicationId && items.length > 0) {
       setLoading(true);
-      if (updatedItems.length > 0) {
+      if (selectedItems.length > 0) {
         await associateItemsWithApplication({
           applicationId,
-          items: updatedItems,
+          items: selectedItems as unknown as { id: string }[],
           associationType:
             itemType === "VolunteerExperience" ? "PastJob" : itemType,
         });
       }
 
-      const updatedSteps = await completeSteps({
+      navigateToNextIncompleteStep({
         steps,
-        stepId: currentStepId,
+        router,
+        currentStepId,
         applicationId,
+        completeStep,
       });
-      setSteps(updatedSteps);
-      navigateToNextIncompleteStep(currentStepId);
     }
   };
 

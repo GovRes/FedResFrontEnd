@@ -1,16 +1,25 @@
 import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import styles from "./editableAttributeStyles.module.css";
 import {
   handleUpdateUserAttribute,
   updateUserTypeAttribute,
   UserType,
 } from "@/app/utils/userAttributeUtils";
-import { Toggle } from "@/app/components/forms/Inputs";
+import { ToggleWithLabel } from "@/app/components/forms/Inputs";
 import SubmitCancelButtonArray from "@/app/components/editableAttributes/SubmitCancelButtonArray";
 import EditButton from "@/app/components/editableAttributes/EditButton";
 import EditableAttributeContainer from "@/app/components/editableAttributes/EditableAttributeContainer";
 import { useAttributeUpdate } from "@/lib/hooks/useAttributeUpdate";
 import LoadingButton from "@/app/components/editableAttributes/LoadingButton";
+
+// Schema for the boolean form
+const booleanFieldSchema = z.object({
+  value: z.boolean(),
+});
+
+type BooleanFormData = z.infer<typeof booleanFieldSchema>;
 
 export default function EditableAttributeBooleanField({
   attributeKey,
@@ -30,7 +39,6 @@ export default function EditableAttributeBooleanField({
   // Convert value to boolean consistently
   const boolValue = value === true || value === "true";
   const showEdit = currentlyEditing === attributeKey;
-  const [checked, setChecked] = useState(boolValue);
   const [loading, setLoading] = useState(false);
   const { submitAttributeUpdate } = useAttributeUpdate(
     setAttributes,
@@ -38,17 +46,29 @@ export default function EditableAttributeBooleanField({
     setLoading
   );
 
-  useEffect(() => {
-    setChecked(value === true || value === "true");
-  }, [value]);
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<BooleanFormData>({
+    defaultValues: {
+      value: boolValue,
+    },
+  });
 
-  async function submit(e: { preventDefault: () => void }) {
+  // Reset form when value changes
+  useEffect(() => {
+    reset({ value: boolValue });
+  }, [value, reset, boolValue]);
+
+  async function onSubmit(data: BooleanFormData) {
     // Convert boolean to string for the API call
     const result = await submitAttributeUpdate(
-      e,
+      { preventDefault: () => {} }, // Mock event object
       attributeKey,
-      checked.toString(),
-      () => setChecked(boolValue) // Optional cleanup callback
+      data.value.toString(),
+      () => reset({ value: boolValue }) // Optional cleanup callback
     );
 
     if (result) {
@@ -57,23 +77,33 @@ export default function EditableAttributeBooleanField({
     }
   }
 
+  const onError = (errors: any) => {
+    console.error("Form validation errors:", errors);
+  };
+
   function startEdit() {
     setCurrentlyEditing(attributeKey);
   }
 
   function cancelEdit() {
     setCurrentlyEditing(null);
-    setChecked(boolValue); // Reset to current value
+    reset({ value: boolValue }); // Reset to current value
   }
 
-  function onChange() {
-    setChecked(!checked);
-  }
   return (
     <EditableAttributeContainer title={title}>
       {showEdit ? (
-        <form className={styles.attributeForm} onSubmit={submit}>
-          <Toggle checked={checked} onChange={onChange} />
+        <form
+          className={styles.attributeForm}
+          onSubmit={handleSubmit(onSubmit, onError)}
+        >
+          <ToggleWithLabel
+            errors={errors}
+            label={title}
+            name="value"
+            register={register}
+            schema={booleanFieldSchema}
+          />
           {loading ? (
             <LoadingButton />
           ) : (

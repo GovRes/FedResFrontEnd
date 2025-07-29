@@ -9,7 +9,7 @@ export default function AllyPage() {
 
   const handleNewApplication = () => {
     resetApplication();
-    router.push("/ally/job-search");
+    router.push("/ally/usa-jobs");
   };
 
   return (

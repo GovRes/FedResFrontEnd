@@ -3,12 +3,21 @@ import { Loader } from "@/app/components/loader/Loader";
 import { updateModelRecord } from "@/app/crud/genericUpdate";
 import { fetchModelRecord } from "@/app/crud/genericFetch";
 import PastJobForm from "@/app/profile/components/components/PastJobForm";
-import { PastJobType } from "@/app/utils/responseSchemas";
+import { PastJobType, pastJobZodSchema } from "@/app/utils/responseSchemas";
 import { useEffect, useState } from "react";
 import { use } from "react";
 import { useRouter } from "next/navigation";
+import { z } from "zod";
 
-export default function EditPastJobPage({
+// Create the form schema and type
+const pastJobFormSchema = pastJobZodSchema.omit({
+  userId: true,
+  id: true,
+  qualifications: true,
+});
+type PastJobFormData = z.infer<typeof pastJobFormSchema>;
+
+export default function EditVolunteerPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -16,77 +25,57 @@ export default function EditPastJobPage({
   const { id } = use(params);
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [formData, setFormData] = useState<PastJobType>({
-    endDate: "",
-    gsLevel: "",
-    hours: "",
-    id: "",
-    organization: "",
-    organizationAddress: "",
-    qualifications: [],
-    responsibilities: "",
-    startDate: "",
-    supervisorMayContact: false,
-    supervisorName: "",
-    supervisorPhone: "",
-    title: "",
-    type: "Volunteer",
-    userId: "",
-  });
-  const onChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
-  ) => {
-    if (formData) {
-      setFormData({ ...formData, [e.target.name]: e.target.value });
-    }
-  };
-  const onChangeToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      supervisorMayContact: e.target.checked,
-    });
-  };
+  const [volunteerData, setVolunteerData] = useState<PastJobType | null>(null);
 
-  const onSubmit = async (
-    e: React.FormEvent<HTMLFormElement>
-  ): Promise<void> => {
-    e.preventDefault();
+  const onSubmit = async (formData: PastJobFormData): Promise<void> => {
     setLoading(true);
     try {
-      await updateModelRecord("Volunteer", id, formData);
+      // Combine form data with existing volunteer data (id, userId, qualifications)
+      const completeVolunteerData: PastJobType = {
+        ...formData,
+        id: volunteerData!.id,
+        userId: volunteerData!.userId,
+        qualifications: volunteerData!.qualifications || [],
+      };
+
+      await updateModelRecord("Volunteer", id, completeVolunteerData);
+      router.push(`/profile/volunteers/${id}`);
     } catch (error) {
-      console.error("Error updating volunteer:", error);
+      console.error("Error updating volunteer experience:", error);
+      setLoading(false);
     }
-    setLoading(false);
-    router.push(`/profile/volunteers/${id}`);
   };
+
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      const volunteerData = await fetchModelRecord("PastJob", id);
-      setFormData({ ...formData, ...volunteerData });
+      try {
+        const fetchedVolunteerData = await fetchModelRecord("PastJob", id);
+        setVolunteerData(fetchedVolunteerData);
+      } catch (error) {
+        console.error("Error fetching volunteer experience:", error);
+      }
       setLoading(false);
     }
     fetchData();
-  }, []);
+  }, [id]);
 
   if (loading) {
-    return <Loader text="loading volunteer experience data" />;
+    return <Loader text="Loading volunteer experience data..." />;
   }
-  if (!loading && formData) {
-    return (
-      <div>
-        <h1>Edit Volunteer Experience</h1>
-        <PastJobForm
-          item={formData}
-          itemType="Volunteer"
-          onChange={onChange}
-          onChangeToggle={onChangeToggle}
-          onSubmit={onSubmit}
-        />
-      </div>
-    );
+
+  if (!volunteerData) {
+    return <div>Volunteer experience not found</div>;
   }
+
+  return (
+    <div>
+      <h1>Edit Volunteer Experience</h1>
+      <PastJobForm
+        item={volunteerData}
+        itemType="Volunteer"
+        onSubmit={onSubmit}
+      />
+    </div>
+  );
 }

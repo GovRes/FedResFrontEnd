@@ -1,9 +1,8 @@
 "use client";
 import { useApplication } from "@/app/providers/applicationContext";
-import { useNextStepNavigation } from "@/app/utils/nextStepNavigation";
-import { completeSteps } from "@/app/utils/stepUpdater";
+import { navigateToNextIncompleteStep } from "@/app/utils/nextStepNavigation";
 import { pascalToDashed, pascalToSpaced } from "@/app/utils/stringBuilders";
-import Link from "next/link";
+import NavigationLink from "@/app/components/loader/NavigationLink";
 import { useRouter } from "next/navigation";
 
 export default function SkipItems({
@@ -14,31 +13,30 @@ export default function SkipItems({
   itemType:
     | "Award"
     | "Education"
-    | "SpecializedExperience"
     | "PastJob"
     | "VolunteerExperience"
     | "Resume";
 }) {
-  const { steps, applicationId, setSteps } = useApplication();
-  const { navigateToNextIncompleteStep } = useNextStepNavigation();
+  const router = useRouter();
+  const { applicationId, completeStep, steps } = useApplication();
   async function skipItems() {
-    const updatedSteps = await completeSteps({
+    navigateToNextIncompleteStep({
       steps,
-      stepId: currentStepId,
+      router,
+      currentStepId,
       applicationId,
+      completeStep,
     });
-    setSteps(updatedSteps);
-    navigateToNextIncompleteStep(currentStepId);
   }
 
   return (
     <div>
       <div>You don't have any {pascalToSpaced(itemType)}s.</div>
-      <Link href={`/profile/${pascalToDashed(itemType)}s`}>
+      <NavigationLink href={`/profile/${pascalToDashed(itemType)}s`}>
         <button>
           Add {pascalToSpaced(itemType)}s and then come back here to continue
         </button>
-      </Link>
+      </NavigationLink>
       <button onClick={skipItems}>Skip {pascalToSpaced(itemType)}s</button>
     </div>
   );

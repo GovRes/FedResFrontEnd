@@ -1,35 +1,58 @@
 "use client";
-import { AwardType } from "@/app/utils/responseSchemas";
+import { AwardType, awardZodSchema } from "@/app/utils/responseSchemas";
 import BaseForm from "@/app/components/forms/BaseForm";
-import { SubmitButton, TextWithLabel } from "@/app/components/forms/Inputs";
-import { useState } from "react";
+import {
+  SubmitButton,
+  GenericFieldWithLabel,
+} from "@/app/components/forms/Inputs";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+// Create a form-specific schema without userId (since it's handled by the parent)
+const awardFormSchema = awardZodSchema.omit({ userId: true, id: true });
+type AwardFormData = z.infer<typeof awardFormSchema>;
 
 export default function AwardForm({
   item,
-  onChange,
   onSubmit,
 }: {
   item?: AwardType;
-  onChange: (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => void;
-  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  onSubmit: (data: AwardFormData) => void;
 }) {
+  const {
+    formState: { errors },
+    handleSubmit,
+    register,
+  } = useForm<AwardFormData>({
+    resolver: zodResolver(awardFormSchema),
+    defaultValues: {
+      title: item?.title || "",
+      date: item?.date || "",
+    },
+  });
+
+  const onError = (errors: any) => {
+    console.error("Form validation errors:", errors);
+  };
+
   return (
-    <BaseForm onSubmit={onSubmit}>
-      <TextWithLabel
+    <BaseForm onSubmit={handleSubmit(onSubmit, onError)}>
+      <GenericFieldWithLabel
+        errors={errors}
         label="Title"
         name="title"
-        value={item?.title || ""}
-        onChange={onChange}
+        register={register}
+        schema={awardFormSchema}
       />
-      <TextWithLabel
+      <GenericFieldWithLabel
+        errors={errors}
         label="Date(s)"
         name="date"
-        value={item?.date || ""}
-        onChange={onChange}
+        register={register}
+        schema={awardFormSchema}
       />
-      <SubmitButton type="submit">Submit</SubmitButton>
+      <SubmitButton>Submit</SubmitButton>
     </BaseForm>
   );
 }

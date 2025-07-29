@@ -109,26 +109,30 @@ export default function ExperienceDetailPage({
       if (!pastJob) {
         return Promise.reject(new Error("No past job loaded"));
       }
+      if (pastJob && pastJob.qualifications) {
+        // Ensure the qualification is properly formatted}
 
-      // 1. Update the qualification in the pastJob
-      const updatedJob = {
-        ...pastJob,
-        qualifications: pastJob.qualifications.map((q) =>
-          q.id === qualification.id ? qualification : q
-        ),
-      };
+        // 1. Update the qualification in the pastJob
+        const updatedJob = {
+          ...pastJob,
+          qualifications: pastJob.qualifications.map((q) =>
+            q.id === qualification.id ? qualification : q
+          ),
+        };
+        if (updatedJob && updatedJob.id) {
+          // 2. Save to backend API
+          await updatePastJobWithQualifications(
+            updatedJob.id,
+            updatedJob,
+            updatedJob.qualifications
+          );
 
-      // 2. Save to backend API
-      await updatePastJobWithQualifications(
-        updatedJob.id,
-        updatedJob,
-        updatedJob.qualifications
-      );
+          // 3. Update local state
+          setPastJob(updatedJob);
 
-      // 3. Update local state
-      setPastJob(updatedJob);
-
-      return Promise.resolve();
+          return Promise.resolve();
+        }
+      }
     } catch (error) {
       console.error("Error saving qualification:", error);
       return Promise.reject(error);
@@ -184,7 +188,11 @@ export default function ExperienceDetailPage({
   }
 
   // If no past job found
-  if (!pastJob) {
+  if (
+    !pastJob ||
+    !pastJob.qualifications ||
+    pastJob.qualifications.length === 0
+  ) {
     return (
       <div className="emptyState">
         <h3>Job not found</h3>

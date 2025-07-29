@@ -1,7 +1,6 @@
 // utils/nextStepNavigation.ts
-import { useRouter } from "next/navigation";
-import { useApplication } from "../providers/applicationContext";
 import { StepsType } from "../utils/responseSchemas";
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
 /**
  * Finds the next incomplete step after the current step
@@ -40,44 +39,24 @@ export const findNextIncompleteStep = (
   return steps.pop();
 };
 
-/**
- * Hook to navigate to the next incomplete step
- * @returns Functions to navigate to the next step
- */
-export function useNextStepNavigation() {
-  const { steps } = useApplication();
-  const router = useRouter();
-
-  /**
-   * Navigates to the next incomplete step
-   * @param currentStepId - The ID of the current step
-   * @returns True if navigation was successful, false otherwise
-   */
-  const navigateToNextIncompleteStep = (currentStepId: string): boolean => {
-    const nextStep = findNextIncompleteStep(steps, currentStepId);
-
-    if (nextStep) {
-      router.push(`/ally${nextStep.path}`);
-      return true;
-    } else {
-      return false;
-    }
-  };
-
-  /**
-   * Gets the path to the next incomplete step without navigating
-   * @param currentStepId - The ID of the current step
-   * @returns The path to the next incomplete step or undefined
-   */
-  const getNextIncompletePath = (currentStepId: string): string | undefined => {
-    const nextStep = findNextIncompleteStep(steps, currentStepId);
-    return nextStep ? `/ally${nextStep.path}` : undefined;
-  };
-
-  return {
-    navigateToNextIncompleteStep,
-    findNextIncompleteStep: (currentStepId: string) =>
-      findNextIncompleteStep(steps, currentStepId),
-    getNextIncompletePath,
-  };
-}
+export const navigateToNextIncompleteStep = async ({
+  applicationId,
+  steps,
+  router,
+  currentStepId,
+  completeStep,
+}: {
+  applicationId: string;
+  steps: StepsType[];
+  router: AppRouterInstance;
+  currentStepId: string;
+  completeStep: (stepId: string, applicationId?: string) => Promise<void>;
+}): Promise<boolean> => {
+  await completeStep(currentStepId, applicationId);
+  const nextStep = findNextIncompleteStep(steps, currentStepId);
+  if (nextStep) {
+    router.push(`/ally${nextStep.path}`);
+    return true; // indicates navigation occurred
+  }
+  return false; // indicates no navigation (all steps complete)
+};

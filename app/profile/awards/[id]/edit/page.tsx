@@ -1,69 +1,47 @@
 "use client";
+import { useState } from "react";
+import AwardForm from "../../components/AwardForm";
+import { AwardType, awardZodSchema } from "@/app/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
-import { updateModelRecord } from "@/app/crud/genericUpdate";
-import { fetchModelRecord } from "@/app/crud/genericFetch";
-import AwardForm from "@/app/profile/awards/components/AwardForm";
-import { AwardType } from "@/app/utils/responseSchemas";
-import { useEffect, useState } from "react";
-import { use } from "react";
 import { useRouter } from "next/navigation";
+import { createModelRecord } from "@/app/crud/genericCreate";
+import { useAuthenticator } from "@aws-amplify/ui-react";
+import { z } from "zod";
 
-export default function EditAwardPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = use(params);
+// Create the form schema and type
+const awardFormSchema = awardZodSchema.omit({ userId: true, id: true });
+type AwardFormData = z.infer<typeof awardFormSchema>;
+
+export default function NewAwardPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [formData, setFormData] = useState<AwardType>({
-    id: "",
-    title: "",
-    date: "",
-    userId: "",
-  });
-  const onChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
-  ) => {
-    if (formData) {
-      setFormData({ ...formData, [e.target.name]: e.target.value });
-    }
-  };
+  const { user } = useAuthenticator();
+  const [loading, setLoading] = useState(false);
 
-  const onSubmit = async (
-    e: React.FormEvent<HTMLFormElement>
-  ): Promise<void> => {
-    e.preventDefault();
+  const onSubmit = async (formData: AwardFormData): Promise<void> => {
     setLoading(true);
     try {
-      await updateModelRecord("Award", id, formData);
+      // Combine form data with user ID
+      const completeAwardData: Omit<AwardType, "id"> = {
+        ...formData,
+        userId: user.userId,
+      };
+
+      const res = await createModelRecord("Award", completeAwardData);
+      router.push(`/profile/awards/${res.id}`);
     } catch (error) {
-      console.error("Error updating award:", error);
-    }
-    setLoading(false);
-    router.push(`/profile/awards/${id}`);
-  };
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-      const awardData = await fetchModelRecord("Award", id);
-      setFormData(awardData);
+      console.error("Error creating award:", error);
       setLoading(false);
     }
-    fetchData();
-  }, []);
+  };
 
   if (loading) {
-    return <Loader text="loading award data" />;
+    return <Loader text="Creating award..." />;
   }
-  if (!loading && formData) {
-    return (
-      <div>
-        <h1>Edit Award</h1>
-        <AwardForm item={formData} onChange={onChange} onSubmit={onSubmit} />
-      </div>
-    );
-  }
+
+  return (
+    <div>
+      <h1>New Award</h1>
+      <AwardForm onSubmit={onSubmit} />
+    </div>
+  );
 }
