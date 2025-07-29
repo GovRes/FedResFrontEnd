@@ -13,7 +13,7 @@ export async function updateExistingEducationTypes(
         listEducations {
           items {
             id
-            type
+            
           }
         }
       }
@@ -29,18 +29,18 @@ export async function updateExistingEducationTypes(
     }
 
     // Filter records that need updating (null, empty, or undefined type)
-    const educationsToUpdate = listResult.data.listEducations.items.filter(
-      (education: any) => !education.type || education.type === ""
-    );
+    // const educationsToUpdate = listResult.data.listEducations.items.filter(
+    //   (education: any) => !education.type || education.type === ""
+    // );
 
-    if (educationsToUpdate.length === 0) {
-      console.log("No Education records found to update");
-      return { success: true, updated: 0 };
-    }
+    // if (educationsToUpdate.length === 0) {
+    //   console.log("No Education records found to update");
+    //   return { success: true, updated: 0 };
+    // }
 
-    console.log(
-      `Found ${educationsToUpdate.length} Education records to update`
-    );
+    // console.log(
+    //   `Found ${educationsToUpdate.length} Education records to update`
+    // );
 
     // Update records using GraphQL mutations (matching your approach)
     const updateMutation = `
@@ -57,8 +57,8 @@ export async function updateExistingEducationTypes(
     const results = [];
     const batchSize = 25; // Process in batches to avoid overwhelming the API
 
-    for (let i = 0; i < educationsToUpdate.length; i += batchSize) {
-      const batch = educationsToUpdate.slice(i, i + batchSize);
+    for (let i = 0; i < listResult.data.length; i += batchSize) {
+      const batch = listResult.data.slice(i, i + batchSize);
 
       const batchPromises = batch.map(async (education: any) => {
         try {
