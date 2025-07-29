@@ -8,7 +8,7 @@ import { useApplication } from "@/app/providers/applicationContext";
 import { getApplicationAssociations } from "@/app/crud/application";
 import { PastJobType } from "@/app/utils/responseSchemas";
 import styles from "@/app/components/ally/ally.module.css";
-import { useNextStepNavigation } from "@/app/utils/nextStepNavigation";
+import { navigateToNextIncompleteStep } from "@/app/utils/nextStepNavigation";
 import { useLoading } from "@/app/providers/loadingContext";
 
 export default function ExperiencePage({
@@ -19,15 +19,25 @@ export default function ExperiencePage({
   type: "PastJob" | "Volunteer";
 }) {
   const router = useRouter();
-  const { applicationId, steps } = useApplication();
+  const { applicationId, completeStep, steps } = useApplication();
   const [loading, setLoading] = useState(true);
   const [pastJobs, setPastJobs] = useState<PastJobType[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const { navigateToNextIncompleteStep } = useNextStepNavigation();
   // Check if the past-job-details step is complete
   const isPastJobDetailsStepComplete =
     steps.find((step) => step.id === "past-job-details")?.completed || false;
   const { setIsLoading } = useLoading();
+
+  async function markCompleteAndNavigate() {
+    console.log("Navigating to next step");
+    navigateToNextIncompleteStep({
+      steps,
+      router,
+      currentStepId,
+      applicationId,
+      completeStep,
+    });
+  }
   useEffect(() => {
     async function fetchJobsAndRedirect() {
       if (!applicationId) {
@@ -59,7 +69,7 @@ export default function ExperiencePage({
 
         // If no jobs, move to the next step
         if (!pastJobs || pastJobs.length === 0) {
-          navigateToNextIncompleteStep(currentStepId);
+          await markCompleteAndNavigate();
           return;
         }
 
@@ -75,7 +85,7 @@ export default function ExperiencePage({
           // If the step is not complete but all qualifications are confirmed,
           // we can move to the next step
           if (!isPastJobDetailsStepComplete) {
-            navigateToNextIncompleteStep(currentStepId);
+            markCompleteAndNavigate();
           } else {
             // If step is complete, just show the list of jobs
             setLoading(false);
@@ -133,7 +143,7 @@ export default function ExperiencePage({
           </p>
           <button
             className={styles.continueButton}
-            onClick={() => navigateToNextIncompleteStep(currentStepId)}
+            onClick={() => markCompleteAndNavigate()}
           >
             Continue
           </button>

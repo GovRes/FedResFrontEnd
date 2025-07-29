@@ -46,6 +46,7 @@ export const modelFields: Record<string, string[]> = {
     "duties",
     "evaluationCriteria",
     "qualificationsSummary",
+    "questionnaire",
     "requiredDocuments",
     "title",
     "usaJobsId",

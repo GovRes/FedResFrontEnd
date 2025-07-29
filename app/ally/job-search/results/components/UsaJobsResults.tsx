@@ -8,7 +8,7 @@ import indefiniteArticle from "@/app/utils/indefiniteArticles";
 import { createAndSaveApplication } from "@/app/crud/application";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { useApplication } from "@/app/providers/applicationContext";
-import { useNextStepNavigation } from "@/app/utils/nextStepNavigation";
+import { navigateToNextIncompleteStep } from "@/app/utils/nextStepNavigation";
 import { createOrGetJob } from "@/app/crud/job";
 import { useRouter } from "next/navigation";
 import { useLoading } from "@/app/providers/loadingContext";
@@ -46,8 +46,7 @@ export default function UsaJobsResults({
 }: {
   searchResults: Result[];
 }) {
-  const { setJob, setApplicationId, completeStep } = useApplication();
-  const { navigateToNextIncompleteStep } = useNextStepNavigation();
+  const { steps, setJob, setApplicationId, completeStep } = useApplication();
   const { setIsLoading } = useLoading();
   const { user } = useAuthenticator();
   const router = useRouter();
@@ -142,12 +141,14 @@ export default function UsaJobsResults({
         // Update context state
         setApplicationId(applicationRes.id);
         setJob(jobRes);
-
-        // Complete the step through the context, passing the new applicationId
-        await completeStep("usa-jobs", applicationRes.id);
-
         // Navigate to next step
-        await navigateToNextIncompleteStep("usa-jobs");
+        navigateToNextIncompleteStep({
+          steps,
+          router,
+          currentStepId: "usa-jobs",
+          applicationId: applicationRes.id,
+          completeStep,
+        });
       } catch (error) {
         console.error("Error setting job and proceeding:", error);
         // You might want to show an error message to the user here

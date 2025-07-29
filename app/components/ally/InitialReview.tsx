@@ -4,13 +4,13 @@ import {
   EducationType,
   PastJobType,
 } from "@/app/utils/responseSchemas";
-import { getCheckboxValues } from "@/app/utils/formUtils";
 import ReviewItemsList from "./ReviewItemsList";
 import { associateItemsWithApplication } from "@/app/crud/application";
 import { useApplication } from "@/app/providers/applicationContext";
 import { Loader } from "../loader/Loader";
 import SkipItems from "./SkipItems";
-import { useNextStepNavigation } from "@/app/utils/nextStepNavigation";
+import { navigateToNextIncompleteStep } from "@/app/utils/nextStepNavigation";
+import { useRouter } from "next/navigation";
 
 export default function InitialReview<
   T extends AwardType | EducationType | PastJobType,
@@ -37,8 +37,8 @@ export default function InitialReview<
 
   const [loading, setLoading] = useState(false);
 
-  const { completeStep, applicationId } = useApplication();
-  const { navigateToNextIncompleteStep } = useNextStepNavigation();
+  const { completeStep, steps, applicationId } = useApplication();
+  const router = useRouter();
 
   const onSubmit = async (selectedItems: T[]) => {
     // Update parent state with selected items
@@ -54,8 +54,13 @@ export default function InitialReview<
         });
       }
 
-      await completeStep(currentStepId);
-      navigateToNextIncompleteStep(currentStepId);
+      navigateToNextIncompleteStep({
+        steps,
+        router,
+        currentStepId,
+        applicationId,
+        completeStep,
+      });
     }
   };
 

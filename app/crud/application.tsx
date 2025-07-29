@@ -421,6 +421,7 @@ export const getApplicationWithJob = async ({ id }: { id: string }) => {
           duties
           evaluationCriteria
           qualificationsSummary
+          questionnaire
           requiredDocuments
           usaJobsId
           topics {

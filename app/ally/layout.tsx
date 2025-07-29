@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useEffect, useState, useCallback } from "react";
+import { ReactNode, useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import AllyContainer from "./components/AllyContainer";
 import styles from "./ally.module.css";
@@ -14,7 +14,8 @@ import { defaultSteps } from "@/app/providers/applicationContext";
 import { Loader } from "../components/loader/Loader";
 import { useLoading } from "../providers/loadingContext";
 
-// This component will be inside the ApplicationProvider
+// Replace the ApplicationLoader component in layout.tsx with this:
+
 function ApplicationLoader({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -27,45 +28,18 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
     setSteps,
   } = useApplication();
 
-  // Memoize the sessionStorage check function to prevent recreation
-  const checkSessionStorage = useCallback(() => {
-    const storedApplicationId = sessionStorage.getItem("applicationId");
-    // Only update if different from current applicationId
-    if (storedApplicationId && storedApplicationId !== applicationId) {
-      setApplicationId(storedApplicationId);
-    }
-  }, [applicationId, setApplicationId]);
-
-  // Effect to check for sessionStorage changes - removed applicationId from deps
+  // Only check sessionStorage once on mount, not on every applicationId change
   useEffect(() => {
-    // Check immediately
-    checkSessionStorage();
+    if (typeof window !== "undefined" && !applicationId) {
+      const storedApplicationId = sessionStorage.getItem("applicationId");
+      if (storedApplicationId) {
+        setApplicationId(storedApplicationId);
+        return; // Exit early, let the next effect handle the data loading
+      }
+    }
+  }, []); // Empty dependency array - only run once
 
-    // Create a storage event listener to detect changes
-    const handleStorageChange = () => {
-      checkSessionStorage();
-    };
-
-    // Custom event for direct communication
-    const handleCustomEvent = (e: CustomEvent) => {
-      checkSessionStorage();
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    window.addEventListener(
-      "applicationIdChanged",
-      handleCustomEvent as EventListener
-    );
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener(
-        "applicationIdChanged",
-        handleCustomEvent as EventListener
-      );
-    };
-  }, [checkSessionStorage]); // Only depend on the memoized function
-
+  // Handle applicationId changes and data loading
   useEffect(() => {
     async function loadApplicationData() {
       setLoading(true);
@@ -77,16 +51,13 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
           });
 
           if (applicationRes && applicationRes.completedSteps) {
-            // Update steps based on the application response
             const updatedSteps = defaultSteps.map((step: StepsType) => ({
               ...step,
               completed: applicationRes.completedSteps.includes(step.id),
             }));
 
-            // Update the steps in context
             setSteps(updatedSteps);
 
-            // Handle redirection logic
             if (pathname === "/ally" || !pathname.includes("/ally/")) {
               const nextIncompleteStep = updatedSteps.find(
                 (step) => !step.completed
@@ -95,7 +66,7 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
                 setInitialRedirectComplete(true);
                 setIsLoading(true);
                 router.push(`/ally${nextIncompleteStep.path}`);
-                return; // Keep loading until redirect
+                return;
               }
             }
           }
@@ -106,28 +77,29 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
           );
         }
       } else if (pathname === "/ally") {
-        // No application ID but on root path, redirect to first step
         setInitialRedirectComplete(true);
         setIsLoading(true);
         router.push("/ally/job-search");
-        return; // Keep loading until redirect
+        return;
       }
 
-      // Finished loading
       setLoading(false);
     }
 
     loadApplicationData();
-    // Removed setSteps and setInitialRedirectComplete from dependencies
-    // as they are stable functions from context and don't need to trigger re-runs
-  }, [applicationId, pathname, router, setIsLoading]);
+  }, [
+    applicationId,
+    pathname,
+    router,
+    setIsLoading,
+    setSteps,
+    setInitialRedirectComplete,
+  ]);
 
-  // Loading state UI
   if (loading && pathname === "/ally") {
     return <Loader text="Loading your application progress..." />;
   }
 
-  // Normal content once loaded or if not on root path
   return <>{children}</>;
 }
 

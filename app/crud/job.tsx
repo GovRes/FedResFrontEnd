@@ -33,6 +33,7 @@ export async function createOrGetJob(jobData: {
             duties
             evaluationCriteria
             qualificationsSummary
+            questionnaire
             requiredDocuments
             title
             topics {
@@ -88,6 +89,7 @@ export async function createOrGetJob(jobData: {
           duties
           evaluationCriteria
           qualificationsSummary
+          questionnaire
           requiredDocuments
           title
           usaJobsId
@@ -171,6 +173,7 @@ export async function getJobByApplicationId(applicationId: string) {
               duties
               evaluationCriteria
               qualificationsSummary
+              questionnaire
               requiredDocuments
               title
               topics {

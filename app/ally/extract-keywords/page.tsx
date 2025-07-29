@@ -6,13 +6,13 @@ import { jobDescriptionKeywordFinder } from "@/app/components/aiProcessing/jobDe
 import { topicsCategorizer } from "@/app/components/aiProcessing/topicCategorizer";
 import { TopicType } from "@/app/utils/responseSchemas";
 import { createOrFindSimilarTopics } from "@/app/crud/topic";
-import { useNextStepNavigation } from "@/app/utils/nextStepNavigation";
 import TopicLI from "./components/TopicLI";
-
+import { navigateToNextIncompleteStep } from "@/app/utils/nextStepNavigation";
+import { useRouter } from "next/navigation";
 export default function ExtractKeywords() {
-  const { job, setJob } = useApplication();
-  const { navigateToNextIncompleteStep } = useNextStepNavigation();
-  const { completeStep } = useApplication();
+  const { job, setJob, steps } = useApplication();
+  const { applicationId, completeStep } = useApplication();
+  const router = useRouter();
   const [keywords, setKeywords] = useState<string[]>([]);
   const [topics, setTopics] = useState<TopicType[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -64,8 +64,14 @@ export default function ExtractKeywords() {
   }, []);
 
   async function setNext() {
-    await completeStep("extract-keywords");
-    navigateToNextIncompleteStep("extract-keywords");
+    await completeStep("extract-keywords", applicationId);
+    navigateToNextIncompleteStep({
+      steps,
+      router,
+      currentStepId: "extract-keywords",
+      applicationId,
+      completeStep,
+    });
   }
   if (loading) {
     return <Loader text="finding and sorting keywords from job description" />;
