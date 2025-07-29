@@ -7,11 +7,15 @@ import React, {
   useContext,
   useEffect,
   useRef,
+
+  useMemo,
+  useCallback,
 } from "react";
 import { JobType, StepsType } from "../utils/responseSchemas";
 import { getApplicationWithJob } from "../crud/application";
-import { completeSteps } from "../utils/stepUpdater";
-import { findNextIncompleteStep } from "../utils/nextStepNavigation";
+import { completeSteps, applyStepDisablingLogic } from "../utils/stepUpdater";
+import { navigateToNextIncompleteStep } from "../utils/nextStepNavigation";
+
 import { useRouter } from "next/navigation";
 import { getJobByApplicationId } from "../crud/job";
 
@@ -36,7 +40,10 @@ export const defaultSteps: StepsType[] = [
     title: "USAJobs",
     description: "Select a federal job",
     completed: false,
-    path: "/job-search",
+
+    disabled: false,
+    path: "/usa-jobs",
+
   },
   {
     id: "specialized-experience",
@@ -144,7 +151,7 @@ export const ApplicationProvider = ({
   // State declarations with initial values if provided
   const [job, setJob] = useState<JobType | undefined>(initialJob);
   const [steps, setSteps] = useState<StepsType[]>(initialSteps || defaultSteps);
-  const [applicationId, setApplicationId] = useState(initialAppId || "");
+  const [applicationId, setApplicationIdState] = useState(initialAppId || "");
   const [initialRedirectComplete, setInitialRedirectComplete] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const router = useRouter();
@@ -153,11 +160,19 @@ export const ApplicationProvider = ({
   const dataLoadedRef = useRef(false);
   const applicationLoadingRef = useRef(false);
 
-  function resetApplication() {
+  // Wrap setApplicationId in useCallback to prevent unnecessary re-renders
+  const setApplicationId = useCallback((id: string) => {
+    setApplicationIdState(id);
+  }, []);
+
+  // Wrap resetApplication in useCallback
+  const resetApplication = useCallback(() => {
+
     setApplicationId("");
     setJob(undefined);
     setSteps(defaultSteps);
     setInitialRedirectComplete(false);
+
 
     if (typeof window !== "undefined") {
       sessionStorage.removeItem("applicationId");
@@ -165,29 +180,89 @@ export const ApplicationProvider = ({
 
     dataLoadedRef.current = false;
     applicationLoadingRef.current = false;
-  }
+  }, [setApplicationId]);
 
-  // Listen for storage changes from other components
-  useEffect(() => {
-    if (typeof window === "undefined") return;
+  // Get current step synchronously from URL
+  const getCurrentStepId = () => {
+    if (typeof window === "undefined") return undefined;
+    const currentPath = window.location.pathname;
+    const currentStep = defaultSteps.find((step) => {
+      const stepPath = step.path.startsWith("/")
+        ? step.path.slice(1)
+        : step.path;
+      return (
+        currentPath.includes(`/ally/${stepPath}`) ||
+        currentPath.endsWith(`/${stepPath}`)
+      );
+    });
+    return currentStep?.id;
+  };
 
-    // Check sessionStorage on mount and syncs with state
-    const syncWithSessionStorage = () => {
-      const storedAppId = sessionStorage.getItem("applicationId");
+  // State to track URL changes and force re-computation of step disabling
+  const [urlChangeCounter, setUrlChangeCounter] = useState(0);
 
-      // If applicationId exists in state but not in storage, reset the application
-      if (applicationId && !storedAppId) {
-        resetApplication();
+  // Apply disabling logic to steps at render time with memoization
+  const stepsWithDisabling = useMemo(() => {
+    const currentStepId = getCurrentStepId();
+    return applyStepDisablingLogic(steps, currentStepId);
+  }, [steps, urlChangeCounter]); // Re-compute when steps or URL changes
+
+  // Centralized method to complete steps - also wrapped in useCallback
+  const completeStep = useCallback(
+    async (stepId: string, appId?: string) => {
+      const activeApplicationId = appId || applicationId;
+
+      if (!activeApplicationId) {
+        console.error("Cannot complete step: no applicationId provided");
         return;
       }
 
-      // If there's a different applicationId in storage than in state, update state
-      if (storedAppId && storedAppId !== applicationId) {
-        setApplicationId(storedAppId);
-      }
-    };
+      try {
+        const updatedSteps = await completeSteps({
+          steps,
+          stepId,
+          applicationId: activeApplicationId,
+        });
 
-    // Handle custom events for application reset
+        setSteps(updatedSteps);
+      } catch (error) {
+        console.error("Error completing step:", error);
+        throw error; // Re-throw so components can handle it
+      }
+    },
+    [applicationId, steps]
+  );
+
+  // Updated sessionStorage sync effect
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // Only update sessionStorage when applicationId changes, don't read from it here
+    if (applicationId) {
+      const storedAppId = sessionStorage.getItem("applicationId");
+      if (storedAppId !== applicationId) {
+        sessionStorage.setItem("applicationId", applicationId);
+
+        // Dispatch custom event to notify other components
+        const event = new CustomEvent("applicationIdChanged", {
+          detail: { applicationId },
+        });
+        window.dispatchEvent(event);
+      }
+      // Reset data loaded flag when applicationId changes
+      dataLoadedRef.current = false;
+    } else {
+      // Clear sessionStorage when applicationId is empty
+      sessionStorage.removeItem("applicationId");
+    }
+  }, [applicationId]);
+
+  // Simplified storage sync effect for reset events only
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // Handle custom events for application reset only
     const handleCustomEvent = (event: Event) => {
       const customEvent = event as CustomEvent;
       if (customEvent.detail?.type === "reset") {
@@ -195,34 +270,15 @@ export const ApplicationProvider = ({
       }
     };
 
-    // Initial sync
-    syncWithSessionStorage();
-
     // Add event listeners for changes
     window.addEventListener(STORAGE_EVENT_KEY, handleCustomEvent);
-    window.addEventListener("storage", syncWithSessionStorage);
-
-    // Polling mechanism to check storage periodically (as a backup)
-    const intervalId = setInterval(syncWithSessionStorage, 1000);
 
     return () => {
       window.removeEventListener(STORAGE_EVENT_KEY, handleCustomEvent);
-      window.removeEventListener("storage", syncWithSessionStorage);
-      clearInterval(intervalId);
     };
-  }, [applicationId]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
+  }, [resetApplication]); // Include resetApplication in dependencies since it's now memoized
 
-    // Don't overwrite existing applicationId with null
-    const storedAppId = sessionStorage.getItem("applicationId");
-    if (storedAppId && !applicationId) {
-      setApplicationId(storedAppId);
-    } else if (applicationId) {
-      sessionStorage.setItem("applicationId", applicationId);
-    }
-  }, [applicationId]);
 
   useEffect(() => {
     if (!applicationId) return;
@@ -247,7 +303,9 @@ export const ApplicationProvider = ({
     }
 
     loadJobData();
-  }, [applicationId]);
+
+  }, [applicationId, resetApplication]); // Include resetApplication dependency
+
 
   // Effect to load application data and update steps
   useEffect(() => {
@@ -331,17 +389,18 @@ export const ApplicationProvider = ({
                 applicationId: applicationRes.id,
               });
 
-              // Use functional update to set steps
-              setSteps(() => stepsAfterComplete);
 
-              // Find next incomplete step
-              const next = findNextIncompleteStep(
-                stepsAfterComplete,
-                "usa-jobs"
-              );
-              if (next) {
-                router.push(`/ally${next.path}`);
-              }
+              // Set the raw steps - disabling logic will be applied at render time
+              setSteps(stepsAfterComplete);
+              console.log("Navigating to next step");
+              navigateToNextIncompleteStep({
+                applicationId,
+                completeStep,
+                currentStepId: "usa-jobs",
+                router,
+                steps,
+              });
+
             } catch (error) {
               console.error("Provider: Error completing steps:", error);
             }
@@ -375,7 +434,10 @@ export const ApplicationProvider = ({
     isInitialLoad,
     job,
     router,
-    steps,
+
+    resetApplication,
+    completeStep,
+
   ]);
 
   // Effect to load application ID from sessionStorage on initial mount
@@ -387,19 +449,33 @@ export const ApplicationProvider = ({
       setApplicationId(storedAppId);
     } else {
     }
-  }, []); // Empty dependency array - only run once on mount
 
-  const value = {
-    applicationId,
-    job,
-    steps,
-    resetApplication,
-    setApplicationId,
-    setJob,
-    setSteps,
-    initialRedirectComplete,
-    setInitialRedirectComplete,
-  };
+  }, [applicationId, setApplicationId]); // Include setApplicationId in dependencies
+
+  const value = useMemo(
+    () => ({
+      applicationId,
+      job,
+      steps: stepsWithDisabling, // Use memoized steps with disabling logic applied
+      resetApplication,
+      setApplicationId,
+      setJob,
+      setSteps,
+      initialRedirectComplete,
+      setInitialRedirectComplete,
+      completeStep,
+    }),
+    [
+      applicationId,
+      job,
+      stepsWithDisabling,
+      resetApplication,
+      setApplicationId,
+      initialRedirectComplete,
+      completeStep,
+    ]
+  );
+
 
   return (
     <ApplicationContext.Provider value={value}>

@@ -4,14 +4,14 @@ import {
   EducationType,
   PastJobType,
 } from "@/app/utils/responseSchemas";
-import { getCheckboxValues } from "@/app/utils/formUtils";
 import ReviewItemsList from "./ReviewItemsList";
 import { completeSteps } from "@/app/utils/stepUpdater";
 import { associateItemsWithApplication } from "@/app/crud/application";
 import { useApplication } from "@/app/providers/applicationContext";
 import { Loader } from "../loader/Loader";
 import SkipItems from "./SkipItems";
-import { useNextStepNavigation } from "@/app/utils/nextStepNavigation";
+import { navigateToNextIncompleteStep } from "@/app/utils/nextStepNavigation";
+import { useRouter } from "next/navigation";
 
 export default function InitialReview<
   T extends AwardType | EducationType | PastJobType
@@ -39,8 +39,10 @@ export default function InitialReview<
 
   const [loading, setLoading] = useState(false);
 
-  const { steps, applicationId, setSteps } = useApplication();
-  const { navigateToNextIncompleteStep } = useNextStepNavigation();
+
+  const { completeStep, steps, applicationId } = useApplication();
+  const router = useRouter();
+
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -61,13 +63,15 @@ export default function InitialReview<
         });
       }
 
-      const updatedSteps = await completeSteps({
+
+      navigateToNextIncompleteStep({
         steps,
-        stepId: currentStepId,
+        router,
+        currentStepId,
         applicationId,
+        completeStep,
       });
-      setSteps(updatedSteps);
-      navigateToNextIncompleteStep(currentStepId);
+
     }
   };
 

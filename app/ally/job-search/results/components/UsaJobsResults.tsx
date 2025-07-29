@@ -10,7 +10,7 @@ import { createAndSaveApplication } from "@/app/crud/application";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { completeSteps } from "@/app/utils/stepUpdater";
 import { useApplication } from "@/app/providers/applicationContext";
-import { useNextStepNavigation } from "@/app/utils/nextStepNavigation";
+import { navigateToNextIncompleteStep } from "@/app/utils/nextStepNavigation";
 import { createOrGetJob } from "@/app/crud/job";
 import { useRouter } from "next/navigation";
 export interface MatchedObjectDescriptor {
@@ -46,8 +46,9 @@ export default function UsaJobsResults({
 }: {
   searchResults: Result[];
 }) {
-  const { steps, setJob, setSteps, setApplicationId } = useApplication();
-  const { navigateToNextIncompleteStep } = useNextStepNavigation();
+  const { steps, setJob, setApplicationId, completeStep } = useApplication();
+  const { setIsLoading } = useLoading();
+
   const { user } = useAuthenticator();
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState<boolean>(false);
@@ -60,27 +61,98 @@ export default function UsaJobsResults({
     router.push("/ally/job-search/");
   }
   async function setJobAndProceed() {
-    if (currentJob) {
-      let formattedJobDescription = formatJobDescription({ job: currentJob });
-      //not using generic create because we want to check if there is already an entry for this job
-      let jobRes = await createOrGetJob({
-        ...formattedJobDescription,
-      });
-      let applicationRes = await createAndSaveApplication({
-        jobId: jobRes.id,
-        userId: user.userId,
-      });
-      setApplicationId(applicationRes.id);
-      const updatedSteps = await completeSteps({
-        steps,
-        stepId: "usa-jobs",
-        applicationId: applicationRes.id,
-      });
-      setSteps(updatedSteps);
-      setJob(jobRes);
 
-      // Only navigate after all steps are completed
-      await navigateToNextIncompleteStep("usa-jobs");
+    if (currentJob && !isProcessing) {
+      setIsProcessing(true);
+
+      try {
+        let formattedJobDescription = formatJobDescription({ job: currentJob });
+
+        // Create or get the job
+        let jobRes = await createOrGetJob({
+          ...formattedJobDescription,
+        });
+        const wasJustCreated: boolean =
+          new Date().getTime() - new Date(jobRes.createdAt).getTime() < 1000;
+        if (wasJustCreated || !jobRes.questionnaire) {
+          setIsLoading(true);
+          let usaJobsId = jobRes.usaJobsId;
+          console.log(84, usaJobsId);
+          try {
+            const response = await fetch("/api/ai-questionnaire-extractor", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                jobId: usaJobsId, // Only send jobId, server will fetch HTML
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log("AI Questionnaire Extractor Result:", result);
+            if (result.found) {
+              try {
+                const response = await fetch(`${result.questionnaireUrl}`, {
+                  headers: {
+                    "User-Agent":
+                      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    Accept:
+                      "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                    "Accept-Language": "en-US,en;q=0.5",
+                    "Accept-Encoding": "gzip, deflate, br",
+                    DNT: "1",
+                    Connection: "keep-alive",
+                    "Upgrade-Insecure-Requests": "1",
+                    "Sec-Fetch-Dest": "document",
+                    "Sec-Fetch-Mode": "navigate",
+                    "Sec-Fetch-Site": "none",
+                  },
+                });
+                //tk add this to the job object in the questionnaire attribute.
+                console.log(119, response);
+              } catch (error) {
+                console.error("Error pulling questionnaire:", error);
+              }
+            }
+          } catch (error) {
+            console.error("Error getting questionnaire URL:", error);
+            return {
+              found: false,
+              questionnaireUrl: null,
+              reasoning: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+              usaJobsId,
+            };
+          }
+        }
+        // Create the application
+        let applicationRes = await createAndSaveApplication({
+          jobId: jobRes.id,
+          userId: user.userId,
+        });
+
+        // Update context state
+        setApplicationId(applicationRes.id);
+        setJob(jobRes);
+        // Navigate to next step
+        navigateToNextIncompleteStep({
+          steps,
+          router,
+          currentStepId: "usa-jobs",
+          applicationId: applicationRes.id,
+          completeStep,
+        });
+      } catch (error) {
+        console.error("Error setting job and proceeding:", error);
+        // You might want to show an error message to the user here
+      } finally {
+        setIsProcessing(false);
+      }
+
     }
   }
 

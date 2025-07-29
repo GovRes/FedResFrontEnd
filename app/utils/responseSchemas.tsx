@@ -148,13 +148,44 @@ export type StepsType = {
 
 export interface JobType {
   id?: string;
-  agencyDescription: string;
+  agencyDescription?: string;
   department: string;
   duties: string;
   evaluationCriteria: string;
   qualificationsSummary: string;
+  questionnaire?: string;
   requiredDocuments: string;
   title: string;
   topics?: TopicType[];
   usaJobsId: string;
+}
+
+export interface USAJobsPositionTextFetch {
+  usajobsControlNumber: number;
+  positionOpenDate: string;
+  positionCloseDate: string;
+  hiringAgencyCode: string;
+  hiringDepartmentCode: string;
+  announcementNumber: string;
+  summary: string;
+  duties: string;
+  hiringPathExplanation: string;
+  majorDutiesList: string;
+  requirementsConditionsOfEmployment: string;
+  requirementsQualifications: string;
+  requirementsEducation: string;
+  requiredStandardDocuments: string;
+  requiredDocuments: string;
+  howToApply: string;
+  howToApplyNextSteps: string;
+  requirements: null | string;
+  evaluations: string;
+  benefitsURL: string;
+  benefits: null | string;
+  otherInformation: string;
+  appointmentTypeOverride: null | string;
+  positionScheduleOverride: null | string;
+  exclusiveClarificationText: null | string;
+  videoURL: string;
+  JobCategories: Array<any>; // Could be more specific if you know the structure
 }

@@ -19,7 +19,9 @@ import { Loader } from "@/app/components/loader/Loader";
 import { delayAllyChat } from "@/app/utils/allyChat";
 import { usaJobsSearch } from "@/app/utils/usaJobsSearch";
 import { useRouter } from "next/navigation";
-
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useLoading } from "@/app/providers/loadingContext";
 export default function UsaJobsSearch({
   searchObject,
   setSearchObject,
@@ -31,45 +33,39 @@ export default function UsaJobsSearch({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  useEffect(() => {
-    setSearchObject({
-      ...searchObject,
-      keyword: null,
-      locationName: null,
-      organization: null,
-      positionTitle: null,
-      positionScheduleType: null,
-      radius: null,
-      remote: null,
-      travelPercentage: null,
-    });
-  }, []);
 
-  const onChange = (
-    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value, type, checked } = event.target as HTMLInputElement;
-    const newValue = type === "checkbox" ? checked : value;
-    setSearchObject({
-      ...searchObject,
-      [name]: newValue,
-    });
-  };
+  const { setIsLoading } = useLoading();
 
-  async function search() {
+  const {
+    formState: { errors, isValid },
+    handleSubmit,
+    register,
+  } = useForm({
+    resolver: zodResolver(jobSearchZodSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
+    criteriaMode: "all",
+  });
+
+  const onSubmit = async (data: JobSearchObject): Promise<void> => {
+    window.scrollTo(0, 0);
     setLoading(true);
 
-    let res = await usaJobsSearch({
-      ...searchObject,
-      keyword: searchObject.keyword,
-      locationName: searchObject.locationName,
-      organization: searchObject.organization,
-      positionTitle: searchObject.positionTitle,
-      positionScheduleType: searchObject.positionScheduleType,
-      radius: searchObject.radius,
-      remote: searchObject.remote,
-      travelPercentage: searchObject.travelPercentage,
-    });
+    // Create the complete search data with user info from props
+    const completeSearchData = {
+      ...data,
+      user: searchObject.user, // Preserve the user data from props
+    };
+
+    // Update the searchObject state for future use
+    setSearchObject(completeSearchData);
+
+    // Use the complete search data directly
+    let results = await fetch("/api/jobs/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(completeSearchData),
+    }).then((res) => res.json());
     setLoading(false);
     return res;
   }
@@ -84,7 +80,13 @@ export default function UsaJobsSearch({
       router.push("/ally/job-search/no-results");
     }
     setSearchResults(results);
-  }
+
+  };
+
+  const onError = (errors: any) => {
+    console.error("Form validation errors:", errors);
+  };
+
 
   let allyStatements = [
     "Let's search for the job you want. Put in as much or as little information as you wish.",
@@ -156,8 +158,10 @@ export default function UsaJobsSearch({
             onChange={onChange}
             value={searchObject.travelPercentage}
           />
-          <SubmitButton type="submit">Submit</SubmitButton>
-        </BaseForm>
+
+          <SubmitButton>Submit</SubmitButton>
+        </form>
+
       </div>
     </div>
   );
