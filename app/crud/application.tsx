@@ -232,9 +232,7 @@ export const getApplicationAssociations = async <T extends AssociationType>({
             school
             schoolCity
             schoolState
-            title
             type
-            userConfirmed
             userId
           `;
         case "PastJob":
