@@ -23,7 +23,7 @@ export async function updateExistingEducationTypes(
       query: listQuery,
       authMode: "userPool",
     });
-
+    // console.log("Fetched Education records:", listResult.data.listEducations.items);
     if (!("data" in listResult) || !listResult.data?.listEducations?.items) {
       throw new Error("Failed to fetch Education records");
     }
@@ -57,8 +57,15 @@ export async function updateExistingEducationTypes(
     const results = [];
     const batchSize = 25; // Process in batches to avoid overwhelming the API
 
-    for (let i = 0; i < listResult.data.length; i += batchSize) {
-      const batch = listResult.data.slice(i, i + batchSize);
+    for (
+      let i = 0;
+      i < listResult.data.listEducations.items.length;
+      i += batchSize
+    ) {
+      const batch = listResult.data.listEducations.items.slice(
+        i,
+        i + batchSize
+      );
 
       const batchPromises = batch.map(async (education: any) => {
         try {
