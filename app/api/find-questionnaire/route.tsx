@@ -35,9 +35,8 @@ export async function POST(req: NextRequest) {
         },
       });
     } else {
-      // Use Playwright to scrape the questionnaire content
       const questionnaireContent =
-        await scrapeQuestionnaireWithPlaywright(questionnaireLink);
+        await scrapeQuestionnaireWithBrowserless(questionnaireLink);
 
       const response = {
         questionnaireLink: questionnaireLink,
@@ -58,81 +57,64 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// New function to scrape questionnaire content using Playwright
-async function scrapeQuestionnaireWithPlaywright(
+async function scrapeQuestionnaireWithBrowserless(
   url: string
 ): Promise<string | null> {
   try {
-    // Dynamic import to avoid bundling issues in Next.js
-    const { chromium } = await import("playwright");
+    const BROWSERLESS_TOKEN = process.env.BROWSERLESS_TOKEN;
+
+    if (!BROWSERLESS_TOKEN) {
+      throw new Error("BROWSERLESS_TOKEN environment variable is not set");
+    }
 
     console.log(`Scraping questionnaire content from: ${url}`);
 
-    const browser = await chromium.launch({
-      headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-        "--window-size=1920,1080",
-      ],
-    });
-
-    const page = await browser.newPage();
-    await page.setViewportSize({ width: 1920, height: 1080 });
-
-    // Navigate to the questionnaire page
-    await page.goto(url, { waitUntil: "networkidle" });
-
-    // Try common selectors for questionnaire content
-    const selectors = [
-      "div[id*='question']",
-      "div[class*='question']",
-      "form[id*='questionnaire']",
-      "div[class*='assessment']",
-      ".questionnaire-content",
-      "#assessment-questions",
-      "body",
-    ];
-
-    // Wait for content to load using multiple selectors
-    let elementFound = false;
-    for (const selector of selectors) {
-      try {
-        await page.waitForSelector(selector, { timeout: 5000 });
-        elementFound = true;
-        console.log(`Found questionnaire element with selector: ${selector}`);
-        break;
-      } catch (error) {
-        console.log(`Selector ${selector} not found, trying next...`);
-        continue;
+    // Simplified request body that matches Browserless API requirements
+    const response = await fetch(
+      `https://production-sfo.browserless.io/content?token=${BROWSERLESS_TOKEN}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: url,
+          waitForTimeout: 10000, // Wait 10 seconds for content to load
+          // Remove the problematic options and use simpler approach
+          rejectResourceTypes: ["image", "stylesheet", "font"],
+        }),
       }
-    }
-
-    if (!elementFound) {
-      console.log("No specific selectors found, waiting for body...");
-      await page.waitForSelector("body", { timeout: 10000 });
-    }
-
-    // Extra wait for dynamic content
-    await page.waitForTimeout(5000);
-
-    // Get text content and clean it up for AI analysis
-    const rawText = (await page.locator("body").textContent()) || "";
-    const content = cleanTextForAI(rawText);
-
-    await browser.close();
-
-    console.log(
-      `Successfully scraped ${content.length} characters from questionnaire`
     );
-    return content;
+
+    console.log("Browserless response status:", response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Browserless error response:", errorText);
+      throw new Error(
+        `Browserless request failed: ${response.status} - ${errorText}`
+      );
+    }
+
+    const content = await response.text();
+    console.log(`Raw content length: ${content.length}`);
+
+    if (!content || content.length < 100) {
+      console.warn("Received very little content, might be a loading issue");
+      return null;
+    }
+
+    const cleanedContent = cleanTextForAI(content);
+    console.log(
+      `Successfully scraped ${cleanedContent.length} characters from questionnaire`
+    );
+
+    return cleanedContent;
   } catch (error) {
-    console.error("Failed to scrape questionnaire with Playwright:", error);
+    console.error("Failed to scrape questionnaire with Browserless:", error);
     return null;
   }
 }
-
 // Helper function to clean text for AI analysis
 function cleanTextForAI(text: string): string {
   return (
