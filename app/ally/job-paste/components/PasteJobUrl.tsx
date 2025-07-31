@@ -2,12 +2,11 @@ import {
   GenericFieldWithLabel,
   SubmitButton,
 } from "@/app/components/forms/Inputs";
-import { set, z } from "zod";
-import { useState, useEffect } from "react";
+import { z } from "zod";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import processUSAJob from "@/app/utils/processUSAJob";
 import { formatJobDescriptionFromTextFetch } from "@/app/utils/usaJobsFormatting";
-import { createAndSaveApplication } from "@/app/crud/application";
 import { useApplication } from "@/app/providers/applicationContext";
 import { navigateToNextIncompleteStep } from "@/app/utils/nextStepNavigation";
 import { useAuthenticator } from "@aws-amplify/ui-react";
@@ -16,6 +15,7 @@ import { useRouter } from "next/navigation";
 import JobNotFound from "./JobNotFound";
 import QuestionnaireNotFound from "./QuestionnaireNotFound";
 import createApplication from "@/app/utils/createApplication";
+import { usaJobObjectExtractor } from "@/app/components/aiProcessing/usaJobObjectExtractor";
 const stringFieldSchema = z.object({
   value: z.string(),
 });
@@ -47,9 +47,11 @@ export default function PastJobUrl() {
         );
         console.log("Job data fetched:", jobRes);
 
-        const formattedJobDescription = formatJobDescriptionFromTextFetch({
-          job: jobRes.data[0],
-        });
+        const formattedJobDescription = await formatJobDescriptionFromTextFetch(
+          {
+            job: jobRes.data[0],
+          }
+        );
         console.log("Formatted job description:", formattedJobDescription);
 
         const jobResult = await processUSAJob(formattedJobDescription);
