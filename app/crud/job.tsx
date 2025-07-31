@@ -75,7 +75,8 @@ export async function createOrGetJob(jobData: {
     // If no existing job was found, create a new one
 
     // Extract fields we don't want to include in the create operation
-    const { createdAt, id, updatedAt, ...filteredJobData } = jobData as any;
+    const { createdAt, id, updatedAt, topics, ...filteredJobData } =
+      jobData as any;
 
     // Create the GraphQL mutation query
     const mutation = `

@@ -6,7 +6,6 @@ import { z } from "zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import processUSAJob from "@/app/utils/processUSAJob";
-import { formatJobDescriptionFromTextFetch } from "@/app/utils/usaJobsFormatting";
 import { useApplication } from "@/app/providers/applicationContext";
 import { navigateToNextIncompleteStep } from "@/app/utils/nextStepNavigation";
 import { useAuthenticator } from "@aws-amplify/ui-react";
@@ -16,6 +15,7 @@ import JobNotFound from "./JobNotFound";
 import QuestionnaireNotFound from "./QuestionnaireNotFound";
 import createApplication from "@/app/utils/createApplication";
 import { usaJobObjectExtractor } from "@/app/components/aiProcessing/usaJobObjectExtractor";
+import { JobType } from "@/app/utils/responseSchemas";
 const stringFieldSchema = z.object({
   value: z.string(),
 });
@@ -41,18 +41,14 @@ export default function PastJobUrl() {
       const jobId = matchResult ? matchResult[1] : null;
 
       if (jobId) {
-        console.log("Job ID extracted from URL:", jobId);
         const jobRes = await fetch(`/api/jobs/${jobId}`).then((res) =>
           res.json()
         );
         console.log("Job data fetched:", jobRes);
 
-        const formattedJobDescription = await formatJobDescriptionFromTextFetch(
-          {
-            job: jobRes.data[0],
-          }
-        );
-        console.log("Formatted job description:", formattedJobDescription);
+        const formattedJobDescription = (await usaJobObjectExtractor({
+          jobObject: jobRes.data[0],
+        })) as JobType;
 
         const jobResult = await processUSAJob(formattedJobDescription);
         console.log("Job processing result:", jobResult);

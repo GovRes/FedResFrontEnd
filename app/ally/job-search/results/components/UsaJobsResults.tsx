@@ -70,25 +70,29 @@ export default function UsaJobsResults({
         // Create or get the job
         const jobResult = await processUSAJob(formattedJobDescription);
         console.log("Job processing result:", jobResult);
-        if (jobResult?.jobId) {
-          setJobResult(jobResult);
-          setQuestionnaireFound(jobResult?.questionnaireFound || false);
-          setJob(formattedJobDescription);
-          // Navigate to next step
-          createApplication({
+        if (jobResult?.questionnaireFound && jobResult?.jobId) {
+          console.log("Creating application with questionnaire");
+          const newApplicationId = await createApplication({
             completeStep,
             jobId: jobResult.jobId,
             userId: user.userId,
-            setLoading,
+            setLoading: setLoading,
             setApplicationId,
           });
-          navigateToNextIncompleteStep({
-            steps,
-            router,
-            currentStepId: "usa-jobs",
-            applicationId,
-            completeStep,
-          });
+
+          if (newApplicationId) {
+            console.log("Navigating to next step");
+            // Use a small delay to ensure context updates have propagated
+            setTimeout(() => {
+              navigateToNextIncompleteStep({
+                steps,
+                router,
+                currentStepId: "usa-jobs",
+                applicationId: newApplicationId, // Use the new ID directly
+                completeStep,
+              });
+            }, 100);
+          }
         }
       } catch (error) {
         console.error("Error getting questionnaire URL:", error);

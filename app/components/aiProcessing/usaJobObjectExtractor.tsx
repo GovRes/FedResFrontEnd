@@ -12,13 +12,17 @@ export const usaJobObjectExtractor = async ({
 }) => {
   const userMessage: ChatCompletionUserMessageParam = {
     role: "user",
-    content: `Usa Jobs API response: ${jobObject}. `,
+    content: `USA Jobs API response: ${JSON.stringify(jobObject, null, 2)}`,
   };
+
+  console.log(20, "Job object to extract:", jobObject);
+
   const messagesForJobObjectExtractor: (
     | ChatCompletionUserMessageParam
     | ChatCompletionSystemMessageParam
   )[] = [userMessage, usaJobObjectExtractorPrompt];
-  let res = await await fetch("/api/ai-format-usa-job", {
+
+  let res = await fetch("/api/ai-format-usa-job", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ messages: messagesForJobObjectExtractor }),

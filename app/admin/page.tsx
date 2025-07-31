@@ -1,6 +1,6 @@
 "use client";
 
-import { updateExistingEducationTypes } from "../crud/batchUpdate";
+import { deleteAllModelRecords } from "../crud/genericDeleteAll";
 import SeedRoles from "./components/SeedRoles";
 
 export default function AdminPage() {
@@ -8,8 +8,10 @@ export default function AdminPage() {
     <div>
       <h1>System Administration</h1>
       <SeedRoles />
-      <button onClick={async () => await updateExistingEducationTypes()}>
-        Update education types
+      <button
+        onClick={async () => await deleteAllModelRecords("Application", true)}
+      >
+        Delete all Application records
       </button>
     </div>
   );

@@ -10,8 +10,9 @@ export const usaJobObjectExtractorPrompt: ChatCompletionSystemMessageParam = {
       qualificationsSummary: a summary of the qualifications required for the job, which may be a long text;
       requiredDocuments: the documents required for the job, which may be a long text;
       title: the job title;
-      usaJobsId: the job's USAJobs ID, which is a number represented as a string;
+      usaJobsId: this will be a number identified as usajobsControlNumber. Convert it to a string if necessary.
 
+      IT IS IMPERATIVE THAT YOU DO NOT INVENT INFORMATION. If you are not sure, leave it blank or null.
         Here is the mapping of agency codes to full names:
       ${JSON.stringify(agencies, null, 2)}
   `,
