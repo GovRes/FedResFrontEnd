@@ -67,15 +67,15 @@ export const jobSearchZodSchema = z.object({
   user: userZodSchema.nullish(),
 });
 export interface JobSearchObject {
-  keyword?: string | undefined;
-  locationName?: string | undefined;
-  radius?: number | undefined;
-  organization?: keyof typeof agencies | "" | undefined;
-  positionTitle?: string | undefined;
-  positionScheduleType?: string | undefined;
-  remote?: boolean | undefined;
-  travelPercentage?: string | undefined;
-  user?: UserType;
+  keyword?: string | undefined | null;
+  locationName?: string | undefined | null;
+  radius?: number | undefined | null;
+  organization?: keyof typeof agencies | "" | undefined | null;
+  positionTitle?: string | undefined | null;
+  positionScheduleType?: string | undefined | null;
+  remote?: boolean | undefined | null;
+  travelPercentage?: string | undefined | null;
+  user?: UserType | null | undefined;
 }
 export const topicZodSchema = z.object({
   id: z.string(),

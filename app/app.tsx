@@ -1,5 +1,5 @@
 "use client";
-import "../lib/amplify-config";
+import "./ConfigureAmplify";
 import "@aws-amplify/ui-react/styles.css";
 import Header from "./components/Header";
 import Footer from "./components/Footer";

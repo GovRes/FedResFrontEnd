@@ -28,7 +28,9 @@ export default function PastJobDetailsPage() {
             let updateRes = await updatePastJobWithQualifications(
               item.id!,
               item,
-              item.qualifications
+              Array.isArray(item.qualifications)
+                ? item.qualifications
+                : undefined
             );
           })
         );

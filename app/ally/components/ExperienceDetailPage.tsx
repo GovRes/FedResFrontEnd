@@ -206,7 +206,7 @@ export default function ExperienceDetailPage({
     <EditableParagraphProvider>
       <ChatLayout
         additionalContext={[pastJob]}
-        items={pastJob.qualifications}
+        items={pastJob.qualifications ?? []}
         currentStepId={currentStepId}
         saveFunction={saveQualification}
         onComplete={handleComplete}
@@ -227,7 +227,7 @@ export default function ExperienceDetailPage({
         sidebarTitle={`Qualifications from ${pastJob.title} at ${pastJob.organization} that might apply to ${job?.title}`}
         heading={`${pastJob.title} at ${pastJob.organization} - Applicable Work Experience`}
         isNestedView={true}
-        parentId={pastJob.id}
+        parentId={pastJob.id!}
         nestedItemsKey="qualifications"
         isEditMode={isEditingMode}
       />

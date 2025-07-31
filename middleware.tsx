@@ -1,9 +1,13 @@
-// middleware.ts
+// middleware.tsx
 import { NextRequest, NextResponse } from "next/server";
-
 import { fetchAuthSession } from "aws-amplify/auth/server";
+import { createServerRunner } from "@aws-amplify/adapter-nextjs";
+import outputs from "./amplify_outputs.json";
 
-import { runWithAmplifyServerContext } from "./app/utils/amplify-utils";
+// Configure Amplify specifically for middleware/Edge Runtime
+const { runWithAmplifyServerContext } = createServerRunner({
+  config: outputs,
+});
 
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
@@ -29,17 +33,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - login
-     */
-    // "/((?!api|_next/static|_next/image|favicon.ico|login|).*)",
-    "/profile",
-    "/ally",
-  ],
+  matcher: ["/profile", "/ally"],
 };

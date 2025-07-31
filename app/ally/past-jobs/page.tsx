@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import InitialReview from "@/app/components/ally/InitialReview";
 import { PastJobType } from "@/app/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
-import { listUserModelRecords } from "@/app/crud/genericListForUser";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { useApplication } from "@/app/providers/applicationContext";
 import { fetchUserAssociations } from "@/app/crud/userAssociations";

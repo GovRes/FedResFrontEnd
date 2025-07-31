@@ -27,7 +27,9 @@ export async function batchUpdatePastJobsWithQualifications(
         const updatedPastJob = await updatePastJobWithQualifications(
           update.id,
           update,
-          update.qualifications
+          Array.isArray(update.qualifications)
+            ? update.qualifications
+            : undefined
         );
 
         results.push({

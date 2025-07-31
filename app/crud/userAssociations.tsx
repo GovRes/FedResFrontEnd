@@ -13,7 +13,7 @@ export type AssociationType =
  * Generic type for entity records
  */
 export type EntityRecord = {
-  id?: string;
+  id?: string | null | undefined;
   userId: string;
   [key: string]: any;
 };

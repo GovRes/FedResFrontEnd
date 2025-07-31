@@ -10,7 +10,7 @@ export type BaseItem = {
   title: string;
   description?: string;
   userConfirmed?: boolean;
-  paragraph?: string;
+  paragraph?: string | null;
   [key: string]: any;
 };
 
