@@ -52,8 +52,6 @@ export async function usaJobsTextFetch({
       const response = await instance.get(
         `HistoricJoa/AnnouncementText/${jobId}`
       );
-
-      console.log("Response from USA Jobs API:", response.data);
       return response.data;
     } catch (error) {
       lastError = error;
