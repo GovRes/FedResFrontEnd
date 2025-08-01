@@ -62,8 +62,16 @@ async function scrapeQuestionnaireWithBrowserless(
 ): Promise<string | null> {
   try {
     const BROWSERLESS_TOKEN = process.env.BROWSERLESS_TOKEN;
-
+    console.log("BROWSERLESS_TOKEN exists:", !!BROWSERLESS_TOKEN);
+    console.log(
+      "All env vars:",
+      Object.keys(process.env).filter((key) => key.includes("BROWSERLESS"))
+    );
     if (!BROWSERLESS_TOKEN) {
+      console.error(
+        "BROWSERLESS_TOKEN not found. Available env vars:",
+        Object.keys(process.env)
+      );
       throw new Error("BROWSERLESS_TOKEN environment variable is not set");
     }
 
