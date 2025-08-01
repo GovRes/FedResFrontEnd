@@ -13,7 +13,6 @@ export async function POST(req: NextRequest) {
   console.log("Extracted jobId:", jobId);
   try {
     // Fetch HTML content server-side to avoid CORS
-    console.log(`Fetching job page for ${jobId[1]}...`);
     const htmlContent = await fetchPageHTML(url);
 
     if (!htmlContent) {

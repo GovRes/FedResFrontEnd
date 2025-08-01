@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     console.error("Missing API key");
     return new Response("Missing API key", { status: 500 });
   }
-
+  console.log("format job request called");
   const client = new OpenAI({ apiKey });
   const data = await req.json();
 
