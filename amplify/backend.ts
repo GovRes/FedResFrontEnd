@@ -6,3 +6,11 @@ const backend = defineBackend({
   auth,
   data,
 });
+
+backend.addOutput({
+  custom: {
+    environment: {
+      BROWSERLESS_TOKEN: process.env.BROWSERLESS_TOKEN,
+    },
+  },
+});
