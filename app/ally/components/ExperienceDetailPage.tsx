@@ -5,9 +5,9 @@ import { EditableParagraphProvider } from "@/app/providers/editableParagraphCont
 import ChatLayout from "@/app/components/chat/ChatLayout";
 import { Loader } from "@/app/components/loader/Loader";
 import { useApplication } from "@/app/providers/applicationContext";
-import { getApplicationAssociations } from "@/app/crud/application";
-import { updatePastJobWithQualifications } from "@/app/crud/pastJob";
-import { PastJobType, QualificationType } from "@/app/utils/responseSchemas";
+import { getApplicationAssociations } from "@/lib/crud/application";
+import { updatePastJobWithQualifications } from "@/lib/crud/pastJob";
+import { PastJobType, QualificationType } from "@/lib/utils/responseSchemas";
 import { BaseItem } from "../../providers/chatContext";
 import { usePastJobDetailsStep } from "@/app/providers/useApplicationStep";
 

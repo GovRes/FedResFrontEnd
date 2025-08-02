@@ -1,5 +1,5 @@
-import { usaJobObjectExtractorPrompt } from "@/app/prompts/usaJobObjectExtractorPrompt";
-import { USAJobsPositionTextFetch } from "@/app/utils/responseSchemas";
+import { usaJobObjectExtractorPrompt } from "@/lib/prompts/usaJobObjectExtractorPrompt";
+import { USAJobsPositionTextFetch } from "@/lib/utils/responseSchemas";
 import {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,

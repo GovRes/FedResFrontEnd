@@ -4,7 +4,7 @@ import { use } from "react";
 import {
   volunteersAssistantName,
   volunteersAssistantInstructions,
-} from "@/app/prompts/volunteersWriterPrompt";
+} from "@/lib/prompts/volunteersWriterPrompt";
 
 import ExperienceDetailPage from "../../components/ExperienceDetailPage";
 

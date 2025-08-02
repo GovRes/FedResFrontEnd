@@ -1,4 +1,4 @@
-import { PastJobType, pastJobZodSchema } from "@/app/utils/responseSchemas";
+import { PastJobType, pastJobZodSchema } from "@/lib/utils/responseSchemas";
 import BaseForm from "../../../components/forms/BaseForm";
 import {
   SubmitButton,

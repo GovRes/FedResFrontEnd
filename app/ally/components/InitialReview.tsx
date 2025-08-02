@@ -1,15 +1,15 @@
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AwardType,
   EducationType,
   PastJobType,
-} from "@/app/utils/responseSchemas";
+} from "@/lib/utils/responseSchemas";
 import ReviewItemsList from "./ReviewItemsList";
-import { associateItemsWithApplication } from "@/app/crud/application";
+import { associateItemsWithApplication } from "@/lib/crud/application";
 import { useApplication } from "@/app/providers/applicationContext";
-import { Loader } from "../loader/Loader";
+import { Loader } from "@/app/components/loader/Loader";
 import SkipItems from "./SkipItems";
-import { navigateToNextIncompleteStep } from "@/app/utils/nextStepNavigation";
+import { navigateToNextIncompleteStep } from "@/lib/utils/nextStepNavigation";
 import { useRouter } from "next/navigation";
 
 export default function InitialReview<

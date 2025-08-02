@@ -3,8 +3,8 @@ import {
   agencies,
   positionScheduleType,
   travelPercentage,
-} from "@/app/utils/usaJobsCodes";
-import { JobSearchObject } from "@/app/utils/responseSchemas";
+} from "@/lib/utils/usaJobsCodes";
+import { JobSearchObject } from "@/lib/utils/responseSchemas";
 import NavigationLink from "@/app/components/loader/NavigationLink";
 import { useRouter } from "next/navigation";
 import { useLoading } from "@/app/providers/loadingContext";

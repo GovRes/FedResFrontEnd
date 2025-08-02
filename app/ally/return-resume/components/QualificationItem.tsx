@@ -1,4 +1,4 @@
-import { QualificationType } from "@/app/utils/responseSchemas";
+import { QualificationType } from "@/lib/utils/responseSchemas";
 import styles from "../resume.module.css";
 export default function qualificationItem({
   qualification,

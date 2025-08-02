@@ -1,4 +1,4 @@
-import { QualificationType, PastJobType } from "@/app/utils/responseSchemas";
+import { QualificationType, PastJobType } from "@/lib/utils/responseSchemas";
 import QualificationItem from "./QualificationItem";
 import styles from "../resume.module.css";
 

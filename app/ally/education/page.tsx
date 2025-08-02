@@ -1,10 +1,10 @@
 "use client";
-import { EducationType } from "@/app/utils/responseSchemas";
+import { EducationType } from "@/lib/utils/responseSchemas";
 import { useEffect, useState } from "react";
-import InitialReview from "@/app/components/ally/InitialReview";
+import InitialReview from "@/app/ally/components/InitialReview";
 import { Loader } from "@/app/components/loader/Loader";
 import { useAuthenticator } from "@aws-amplify/ui-react";
-import { listUserModelRecords } from "@/app/crud/genericListForUser";
+import { listUserModelRecords } from "@/lib/crud/genericListForUser";
 
 export default function EducationPage({}) {
   const [localEducations, setLocalEducations] = useState<EducationType[]>([]);

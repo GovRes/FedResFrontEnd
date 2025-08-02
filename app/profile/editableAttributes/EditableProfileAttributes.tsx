@@ -6,11 +6,11 @@ import {
   academicLevels,
   agencies,
   federalEmploymentStatus,
-} from "@/app/utils/usaJobsCodes";
+} from "@/lib/utils/usaJobsCodes";
 import EditableAttributeBooleanField from "./EditableAttributeBooleanField";
 import EditableAttributeEmailField from "./EditableAttributeEmailField";
 import { useState } from "react";
-import { UserType } from "@/app/utils/userAttributeUtils";
+import { UserType } from "@/lib/utils/userAttributeUtils";
 
 export default function EditableProfileAttributes({
   attributes,

@@ -1,9 +1,9 @@
 "use client";
 import { useApplication } from "@/app/providers/applicationContext";
 
-import { navigateToNextIncompleteStep } from "@/app/utils/nextStepNavigation";
+import { navigateToNextIncompleteStep } from "@/lib/utils/nextStepNavigation";
 import { useRouter } from "next/navigation";
-import createApplication from "@/app/utils/createApplication";
+import createApplication from "@/lib/utils/createApplication";
 export default function questionnaireNotFound({
   jobResult,
   userId,
@@ -41,18 +41,15 @@ export default function questionnaireNotFound({
       </button>
       <button
         onClick={async () => {
-          // Use jobResult.jobId instead of job.data[0].id
           if (jobResult && jobResult.jobId) {
-            console.log("Button clicked, creating application");
-            const result = await await createApplication({
+            const result = await createApplication({
               completeStep,
               jobId: jobResult.jobId,
               userId: userId,
               setLoading: setLoading,
               setApplicationId,
             });
-            console.log("Create application result:", result);
-            if (result?.success) {
+            if (result) {
               navigateToNextIncompleteStep({
                 steps,
                 router,

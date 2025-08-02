@@ -1,8 +1,8 @@
 "use client";
 import { use, useEffect, useState } from "react";
 import { Loader } from "@/app/components/loader/Loader";
-import { fetchModelRecord } from "@/app/crud/genericFetch";
-import { JobType } from "@/app/utils/responseSchemas";
+import { fetchModelRecord } from "@/lib/crud/genericFetch";
+import { JobType } from "@/lib/utils/responseSchemas";
 import TopicAccordionItem from "./components/TopicAccordionItem";
 
 export default function EditableFederalJobRecord({
@@ -19,7 +19,6 @@ export default function EditableFederalJobRecord({
       setLoading(true);
       try {
         const jobData = await fetchModelRecord("Job", id);
-        console.log(jobData);
         const topics = jobData.topics.items;
         setJob({ ...jobData, topics });
       } catch (err) {

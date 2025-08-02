@@ -3,7 +3,7 @@ import {
   AwardType,
   EducationType,
   PastJobType,
-} from "@/app/utils/responseSchemas";
+} from "@/lib/utils/responseSchemas";
 import { useContext, useEffect, useState } from "react";
 import PastJobItem from "./components/PastJobItem";
 import EducationExperienceItem from "./components/EducationItem";
@@ -12,7 +12,7 @@ import styles from "./resume.module.css";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { Loader } from "@/app/components/loader/Loader";
 import AwardItem from "./components/AwardItem";
-import { getApplicationAssociations } from "@/app/crud/application";
+import { getApplicationAssociations } from "@/lib/crud/application";
 import { useApplication } from "@/app/providers/applicationContext";
 import { set } from "zod";
 

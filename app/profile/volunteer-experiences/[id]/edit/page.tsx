@@ -1,9 +1,9 @@
 "use client";
 import { Loader } from "@/app/components/loader/Loader";
-import { updateModelRecord } from "@/app/crud/genericUpdate";
-import { fetchModelRecord } from "@/app/crud/genericFetch";
+import { updateModelRecord } from "@/lib/crud/genericUpdate";
+import { fetchModelRecord } from "@/lib/crud/genericFetch";
 import PastJobForm from "@/app/profile/components/components/PastJobForm";
-import { PastJobType, pastJobZodSchema } from "@/app/utils/responseSchemas";
+import { PastJobType, pastJobZodSchema } from "@/lib/utils/responseSchemas";
 import { useEffect, useState } from "react";
 import { use } from "react";
 import { useRouter } from "next/navigation";

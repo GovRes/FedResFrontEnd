@@ -2,12 +2,12 @@
 import { useEffect, useState } from "react";
 import { Loader } from "@/app/components/loader/Loader";
 import { useApplication } from "@/app/providers/applicationContext";
-import { jobDescriptionKeywordFinder } from "@/app/components/aiProcessing/jobDescriptionKeywordFinder";
-import { topicsCategorizer } from "@/app/components/aiProcessing/topicCategorizer";
-import { TopicType } from "@/app/utils/responseSchemas";
-import { createOrFindSimilarTopics } from "@/app/crud/topic";
+import { jobDescriptionKeywordFinder } from "@/lib/aiProcessing/jobDescriptionKeywordFinder";
+import { topicsCategorizer } from "@/lib/aiProcessing/topicCategorizer";
+import { TopicType } from "@/lib/utils/responseSchemas";
+import { createOrFindSimilarTopics } from "@/lib/crud/topic";
 import TopicLI from "./components/TopicLI";
-import { navigateToNextIncompleteStep } from "@/app/utils/nextStepNavigation";
+import { navigateToNextIncompleteStep } from "@/lib/utils/nextStepNavigation";
 import { useRouter } from "next/navigation";
 export default function ExtractKeywords() {
   const { job, setJob, steps } = useApplication();

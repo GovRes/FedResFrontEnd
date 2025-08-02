@@ -1,10 +1,10 @@
 "use client";
 import { useState } from "react";
 import PastJobForm from "../../components/components/PastJobForm";
-import { PastJobType, pastJobZodSchema } from "@/app/utils/responseSchemas";
+import { PastJobType, pastJobZodSchema } from "@/lib/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
 import { useRouter } from "next/navigation";
-import { createModelRecord } from "@/app/crud/genericCreate";
+import { createModelRecord } from "@/lib/crud/genericCreate";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { z } from "zod";
 

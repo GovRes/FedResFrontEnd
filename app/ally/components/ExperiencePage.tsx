@@ -5,10 +5,10 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader } from "@/app/components/loader/Loader";
 import { useApplication } from "@/app/providers/applicationContext";
-import { getApplicationAssociations } from "@/app/crud/application";
-import { PastJobType } from "@/app/utils/responseSchemas";
-import styles from "@/app/components/ally/ally.module.css";
-import { navigateToNextIncompleteStep } from "@/app/utils/nextStepNavigation";
+import { getApplicationAssociations } from "@/lib/crud/application";
+import { PastJobType } from "@/lib/utils/responseSchemas";
+import styles from "@/app/ally/components/ally.module.css";
+import { navigateToNextIncompleteStep } from "@/lib/utils/nextStepNavigation";
 import { useLoading } from "@/app/providers/loadingContext";
 
 export default function ExperiencePage({

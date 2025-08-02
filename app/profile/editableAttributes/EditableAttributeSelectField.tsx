@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { UserType } from "@/app/utils/userAttributeUtils";
+import { UserType } from "@/lib/utils/userAttributeUtils";
 import SubmitCancelButtonArray from "../../components/editableAttributes/SubmitCancelButtonArray";
 import EditButton from "../../components/editableAttributes/EditButton";
 import EditableAttributeContainer from "../../components/editableAttributes/EditableAttributeContainer";

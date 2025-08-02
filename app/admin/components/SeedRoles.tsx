@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { SeedRolesButton } from "./SeedRolesButton";
-import type { SeedResult } from "@/app/utils/seedRoles";
+import type { SeedResult } from "@/lib/utils/seedRoles";
 import { useRole } from "@/lib/hooks/usePermissions";
 
 export default function SeedRoles() {

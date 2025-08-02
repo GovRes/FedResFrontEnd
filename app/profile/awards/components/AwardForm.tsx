@@ -1,5 +1,5 @@
 "use client";
-import { AwardType, awardZodSchema } from "@/app/utils/responseSchemas";
+import { AwardType, awardZodSchema } from "@/lib/utils/responseSchemas";
 import BaseForm from "@/app/components/forms/BaseForm";
 import {
   SubmitButton,

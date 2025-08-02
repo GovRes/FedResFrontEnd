@@ -6,13 +6,13 @@ import {
   EducationType,
   QualificationType,
   PastJobType,
-} from "@/app/utils/responseSchemas";
+} from "@/lib/utils/responseSchemas";
 import {
   fetchUserAssociations,
   AssociationType,
-} from "@/app/crud/userAssociations";
+} from "@/lib/crud/userAssociations";
 import { Loader } from "../../components/loader/Loader";
-import { pascalToDashed } from "@/app/utils/stringBuilders";
+import { pascalToDashed } from "@/lib/utils/stringBuilders";
 
 // Define a type that represents all possible item types
 

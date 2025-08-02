@@ -3,21 +3,21 @@ import { useAuthenticator } from "@aws-amplify/ui-react";
 import * as pdfjsLib from "pdfjs-dist";
 import { Uploader } from "@/app/components/forms/Uploader";
 import type { Schema } from "../../../../amplify/data/resource";
-import { batchCreateModelRecords } from "@/app/crud/genericCreate";
-import { listUserModelRecords } from "@/app/crud/genericListForUser";
+import { batchCreateModelRecords } from "@/lib/crud/genericCreate";
+import { listUserModelRecords } from "@/lib/crud/genericListForUser";
 import {
   AwardType,
   EducationType,
   PastJobType,
-} from "@/app/utils/responseSchemas";
-import { ResumeType } from "@/app/utils/responseSchemas";
+} from "@/lib/utils/responseSchemas";
+import { ResumeType } from "@/lib/utils/responseSchemas";
 import { useEffect, useState } from "react";
-import { getFileUrl } from "@/app/utils/client-utils";
+import { getFileUrl } from "@/lib/utils/client-utils";
 import pdfToText from "react-pdftotext";
-import { genericExtractor } from "@/app/components/aiProcessing/genericExtractor";
-import { educationExtractorPrompt } from "@/app/prompts/educationExtractorPrompt";
-import { pastJobsExtractorPrompt } from "@/app/prompts/pastJobsExtractorPrompt";
-import { awardsExtractorPrompt } from "@/app/prompts/awardsExtractorPrompt";
+import { genericExtractor } from "@/lib/aiProcessing/genericExtractor";
+import { educationExtractorPrompt } from "@/lib/prompts/educationExtractorPrompt";
+import { pastJobsExtractorPrompt } from "@/lib/prompts/pastJobsExtractorPrompt";
+import { awardsExtractorPrompt } from "@/lib/prompts/awardsExtractorPrompt";
 
 const client = generateClient<Schema>();
 

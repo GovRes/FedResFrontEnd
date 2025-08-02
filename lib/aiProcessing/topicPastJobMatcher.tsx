@@ -1,6 +1,6 @@
-import { topicPastJobMatcherPrompt } from "@/app/prompts/topicPastJobMatcherPrompt";
-import { TopicType, PastJobType } from "@/app/utils/responseSchemas";
-import { sendMessages } from "@/app/utils/api";
+import { topicPastJobMatcherPrompt } from "@/lib/prompts/topicPastJobMatcherPrompt";
+import { TopicType, PastJobType } from "@/lib/utils/responseSchemas";
+import { sendMessages } from "@/lib/utils/api";
 import {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,

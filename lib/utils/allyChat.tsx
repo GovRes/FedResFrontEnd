@@ -1,4 +1,4 @@
-import styles from "../components/ally/ally.module.css";
+import styles from "@/app/ally/components/ally.module.css";
 export function delayAllyChat({
   allyStatements,
 }: {

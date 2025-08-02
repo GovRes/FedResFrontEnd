@@ -5,13 +5,13 @@ import {
   EducationType,
   QualificationType,
   PastJobType,
-} from "@/app/utils/responseSchemas";
+} from "@/lib/utils/responseSchemas";
 import { GrEdit, GrTrash } from "react-icons/gr";
 import {
   generateHeadingText,
   pascalToDashed,
-} from "@/app/utils/stringBuilders";
-import { deleteModelRecord } from "@/app/crud/genericDelete";
+} from "@/lib/utils/stringBuilders";
+import { deleteModelRecord } from "@/lib/crud/genericDelete";
 import { useRouter } from "next/navigation";
 import NavigationLink from "@/app/components/loader/NavigationLink";
 import { useLoading } from "@/app/providers/loadingContext";

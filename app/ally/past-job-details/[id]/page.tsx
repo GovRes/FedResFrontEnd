@@ -5,7 +5,7 @@ import ExperienceDetailPage from "../../components/ExperienceDetailPage";
 import {
   pastJobsAssistantName,
   pastJobsAssistantInstructions,
-} from "@/app/prompts/pastJobsWriterPrompt";
+} from "@/lib/prompts/pastJobsWriterPrompt";
 
 export default function JobDetailPage({
   params,

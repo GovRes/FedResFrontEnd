@@ -1,9 +1,9 @@
 "use client";
-import { fetchModelRecord } from "@/app/crud/genericFetch";
+import { fetchModelRecord } from "@/lib/crud/genericFetch";
 import { GrEdit } from "react-icons/gr";
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
-import { EducationType } from "@/app/utils/responseSchemas";
+import { EducationType } from "@/lib/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
 import EducationItem from "@/app/ally/return-resume/components/EducationItem";
 export default function AwardPage({

@@ -3,7 +3,7 @@ import styles from "./editableAttributeStyles.module.css";
 import {
   updateUserTypeAttribute,
   UserType,
-} from "@/app/utils/userAttributeUtils";
+} from "@/lib/utils/userAttributeUtils";
 import EditButton from "../../components/editableAttributes/EditButton";
 import SubmitCancelButtonArray from "../../components/editableAttributes/SubmitCancelButtonArray";
 import EditableAttributeContainer from "../../components/editableAttributes/EditableAttributeContainer";

@@ -1,5 +1,5 @@
 import { ChatCompletionSystemMessageParam } from "openai/resources/index.mjs";
-import { agencies } from "@/app/utils/usaJobsCodes";
+import { agencies } from "@/lib/utils/usaJobsCodes";
 export const usaJobObjectExtractorPrompt: ChatCompletionSystemMessageParam = {
   role: "system",
   content: `Given a USA jobs object, extract the following details and return them in a JSON object:

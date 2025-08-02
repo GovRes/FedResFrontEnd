@@ -2,7 +2,7 @@
 
 import { GrTrash } from "react-icons/gr";
 import Link from "next/link";
-import { JobType } from "@/app/utils/responseSchemas";
+import { JobType } from "@/lib/utils/responseSchemas";
 
 export default function FederalJobItem({
   job,

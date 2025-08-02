@@ -1,4 +1,4 @@
-import { usaJobsTextFetch } from "@/app/utils/usaJobsTextFetch";
+import { usaJobsTextFetch } from "@/lib/utils/usaJobsTextFetch";
 
 export async function GET(
   request: Request,

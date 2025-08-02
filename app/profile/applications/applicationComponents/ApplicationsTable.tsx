@@ -1,5 +1,5 @@
 import styles from "../../resumes/resumeComponents/resumeStyles.module.css";
-import { ApplicationType } from "@/app/utils/responseSchemas";
+import { ApplicationType } from "@/lib/utils/responseSchemas";
 import ApplicationItem from "./ApplicationItem";
 
 export default function ApplicationsTable({

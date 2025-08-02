@@ -1,4 +1,4 @@
-import { AwardType } from "@/app/utils/responseSchemas";
+import { AwardType } from "@/lib/utils/responseSchemas";
 
 export default function AwardItem({ award }: { award: AwardType }) {
   return (

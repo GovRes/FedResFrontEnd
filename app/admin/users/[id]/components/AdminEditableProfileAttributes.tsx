@@ -7,7 +7,7 @@ import {
   academicLevels,
   agencies,
   federalEmploymentStatus,
-} from "@/app/utils/usaJobsCodes";
+} from "@/lib/utils/usaJobsCodes";
 import AdminEditableAttributeCheckboxField from "./AdminEditableAttributeCheckboxField";
 import { useRoles } from "@/lib/hooks/useRoles";
 import { Loader } from "@/app/components/loader/Loader";

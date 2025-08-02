@@ -1,9 +1,9 @@
 "use client";
 
-import { ApplicationType } from "@/app/utils/responseSchemas";
+import { ApplicationType } from "@/lib/utils/responseSchemas";
 import { GrTrash } from "react-icons/gr";
 import { useRouter } from "next/navigation";
-import { deleteApplication } from "@/app/crud/application";
+import { deleteApplication } from "@/lib/crud/application";
 import { broadcastApplicationReset } from "@/app/providers/applicationContext";
 
 export default function ApplicationItem({

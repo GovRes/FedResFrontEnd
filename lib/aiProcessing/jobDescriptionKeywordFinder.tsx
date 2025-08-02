@@ -1,7 +1,7 @@
-import { jobDescriptionKeywordFinderPrompt } from "@/app/prompts/jobDescriptionKeywordFinder";
-import { JobType } from "@/app/utils/responseSchemas";
-import { formatJobDescriptionForAI } from "@/app/utils/aiInteractionUtils";
-import { sendMessages } from "@/app/utils/api";
+import { jobDescriptionKeywordFinderPrompt } from "@/lib/prompts/jobDescriptionKeywordFinder";
+import { JobType } from "@/lib/utils/responseSchemas";
+import { formatJobDescriptionForAI } from "@/lib/utils/aiInteractionUtils";
+import { sendMessages } from "@/lib/utils/api";
 import {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,

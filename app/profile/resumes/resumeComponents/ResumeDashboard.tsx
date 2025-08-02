@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import ResumesTable from "./ResumesTable";
 import ResumeUploader from "./ResumeUploader";
 import { list } from "aws-amplify/storage";
-import { ResumeType } from "@/app/utils/responseSchemas";
+import { ResumeType } from "@/lib/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
 
 export default function ResumeDashboard() {

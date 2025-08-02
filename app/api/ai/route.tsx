@@ -11,7 +11,7 @@ import {
   topicZodSchema,
   topicsArrayZodSchema,
   pastJobsArrayZodSchema,
-} from "@/app/utils/responseSchemas";
+} from "@/lib/utils/responseSchemas";
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.OPENAI_API_KEY;

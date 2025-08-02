@@ -1,6 +1,6 @@
 import { GrFavorite } from "react-icons/gr";
 import { Result } from "./UsaJobsResults";
-import { formatSalary } from "@/app/utils/numberFormating";
+import { formatSalary } from "@/lib/utils/numberFormating";
 
 export default function UsaJobsResultsItem({
   job,

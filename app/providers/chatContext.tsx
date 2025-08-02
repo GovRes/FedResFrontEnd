@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useEditableParagraph } from "./editableParagraphContext";
-import { PastJobType } from "../utils/responseSchemas";
+import { PastJobType } from "../../lib/utils/responseSchemas";
 
 // Generic item type that can be extended by specific item types
 export type BaseItem = {

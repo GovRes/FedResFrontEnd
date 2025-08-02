@@ -1,5 +1,5 @@
 // utils/nextStepNavigation.ts
-import { StepsType } from "../utils/responseSchemas";
+import { StepsType } from "./responseSchemas";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
 /**

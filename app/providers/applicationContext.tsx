@@ -10,12 +10,15 @@ import React, {
   useMemo,
   useCallback,
 } from "react";
-import { JobType, StepsType } from "../utils/responseSchemas";
-import { getApplicationWithJob } from "../crud/application";
-import { completeSteps, applyStepDisablingLogic } from "../utils/stepUpdater";
-import { navigateToNextIncompleteStep } from "../utils/nextStepNavigation";
+import { JobType, StepsType } from "../../lib/utils/responseSchemas";
+import { getApplicationWithJob } from "../../lib/crud/application";
+import {
+  completeSteps,
+  applyStepDisablingLogic,
+} from "../../lib/utils/stepUpdater";
+import { navigateToNextIncompleteStep } from "../../lib/utils/nextStepNavigation";
 import { useRouter } from "next/navigation";
-import { getJobByApplicationId } from "../crud/job";
+import { getJobByApplicationId } from "../../lib/crud/job";
 import { useLoading } from "./loadingContext";
 
 // Combined interface for state + methods

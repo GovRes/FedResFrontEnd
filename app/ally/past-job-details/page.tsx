@@ -1,10 +1,10 @@
 "use client";
 import ExperiencePage from "@/app/ally/components/ExperiencePage";
-import { topicPastJobMatcher } from "@/app/components/aiProcessing/topicPastJobMatcher";
-import { getApplicationAssociations } from "@/app/crud/application";
-import { updatePastJobWithQualifications } from "@/app/crud/pastJob";
+import { topicPastJobMatcher } from "@/lib/aiProcessing/topicPastJobMatcher";
+import { getApplicationAssociations } from "@/lib/crud/application";
+import { updatePastJobWithQualifications } from "@/lib/crud/pastJob";
 import { useApplication } from "@/app/providers/applicationContext";
-import { PastJobType } from "@/app/utils/responseSchemas";
+import { PastJobType } from "@/lib/utils/responseSchemas";
 import { useEffect, useState } from "react";
 
 export default function PastJobDetailsPage() {

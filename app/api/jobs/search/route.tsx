@@ -1,4 +1,4 @@
-import { usaJobsSearch } from "@/app/utils/usaJobsSearch";
+import { usaJobsSearch } from "@/lib/utils/usaJobsSearch";
 
 export async function POST(request: Request) {
   const searchData = await request.json();

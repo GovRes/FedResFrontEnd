@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import { type NextRequest } from "next/server";
 import { zodResponseFormat } from "openai/helpers/zod";
 
-import { jobZodSchema } from "@/app/utils/responseSchemas";
+import { jobZodSchema } from "@/lib/utils/responseSchemas";
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.OPENAI_API_KEY;

@@ -5,17 +5,17 @@ import {
 import { z } from "zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import processUSAJob from "@/app/utils/processUSAJob";
+import processUSAJob from "@/lib/utils/processUSAJob";
 import { useApplication } from "@/app/providers/applicationContext";
-import { navigateToNextIncompleteStep } from "@/app/utils/nextStepNavigation";
+import { navigateToNextIncompleteStep } from "@/lib/utils/nextStepNavigation";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { useLoading } from "@/app/providers/loadingContext";
 import { useRouter } from "next/navigation";
 import JobNotFound from "./JobNotFound";
 import QuestionnaireNotFound from "./QuestionnaireNotFound";
-import createApplication from "@/app/utils/createApplication";
-import { usaJobObjectExtractor } from "@/app/components/aiProcessing/usaJobObjectExtractor";
-import { JobType } from "@/app/utils/responseSchemas";
+import createApplication from "@/lib/utils/createApplication";
+import { usaJobObjectExtractor } from "@/lib/aiProcessing/usaJobObjectExtractor";
+import { JobType } from "@/lib/utils/responseSchemas";
 const stringFieldSchema = z.object({
   value: z.string(),
 });

@@ -1,12 +1,12 @@
-import { topicsCategorizerPrompt } from "@/app/prompts/topicsCategorizer";
-import { JobType } from "@/app/utils/responseSchemas";
-import { sendMessages } from "@/app/utils/api";
-import { TopicType } from "@/app/utils/responseSchemas";
+import { topicsCategorizerPrompt } from "@/lib/prompts/topicsCategorizer";
+import { JobType } from "@/lib/utils/responseSchemas";
+import { sendMessages } from "@/lib/utils/api";
+import { TopicType } from "@/lib/utils/responseSchemas";
 import {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from "openai/resources/index.mjs";
-import { formatJobDescriptionForAI } from "@/app/utils/aiInteractionUtils";
+import { formatJobDescriptionForAI } from "@/lib/utils/aiInteractionUtils";
 
 export const topicsCategorizer = async ({
   job,

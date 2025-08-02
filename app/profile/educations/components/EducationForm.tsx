@@ -1,4 +1,4 @@
-import { EducationType, educationZodSchema } from "@/app/utils/responseSchemas";
+import { EducationType, educationZodSchema } from "@/lib/utils/responseSchemas";
 import BaseForm from "@/app/components/forms/BaseForm";
 import {
   SubmitButton,

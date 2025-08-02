@@ -4,7 +4,7 @@ import {
   EducationType,
   QualificationType,
   PastJobType,
-} from "@/app/utils/responseSchemas";
+} from "@/lib/utils/responseSchemas";
 import ExperienceItem from "./ExperienceItem";
 
 export default function ExperiencesTable({

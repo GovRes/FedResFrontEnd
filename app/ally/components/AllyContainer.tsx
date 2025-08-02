@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
-import AllyStepItem from "../../components/ally/AllyStepItem";
-import { StepsType } from "@/app/utils/responseSchemas";
+import AllyStepItem from "./AllyStepItem";
+import { StepsType } from "@/lib/utils/responseSchemas";
 import { useApplication } from "@/app/providers/applicationContext";
 
 export default function AllyContainer() {

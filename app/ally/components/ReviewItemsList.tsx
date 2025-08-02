@@ -7,12 +7,12 @@ import {
   AwardType,
   EducationType,
   PastJobType,
-} from "@/app/utils/responseSchemas";
-import { Checkboxes, SubmitButton } from "../forms/Inputs";
+} from "@/lib/utils/responseSchemas";
+import { Checkboxes, SubmitButton } from "@/app/components/forms/Inputs";
 import {
   generateHeadingText,
   pascalToSpaced,
-} from "@/app/utils/stringBuilders";
+} from "@/lib/utils/stringBuilders";
 import { useApplication } from "@/app/providers/applicationContext";
 
 // Create a dynamic schema based on the items

@@ -9,15 +9,15 @@ import {
   agencies,
   positionScheduleType,
   travelPercentage,
-} from "@/app/utils/usaJobsCodes";
+} from "@/lib/utils/usaJobsCodes";
 import {
   JobSearchObject,
   jobSearchZodSchema,
-} from "@/app/utils/responseSchemas";
+} from "@/lib/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
 
-import { delayAllyChat } from "@/app/utils/allyChat";
-import { usaJobsSearch } from "@/app/utils/usaJobsSearch";
+import { delayAllyChat } from "@/lib/utils/allyChat";
+import { usaJobsSearch } from "@/lib/utils/usaJobsSearch";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";

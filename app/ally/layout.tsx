@@ -8,8 +8,8 @@ import {
   ApplicationProvider,
   useApplication,
 } from "@/app/providers/applicationContext";
-import { getApplicationWithJob } from "@/app/crud/application";
-import { StepsType } from "@/app/utils/responseSchemas";
+import { getApplicationWithJob } from "@/lib/crud/application";
+import { StepsType } from "@/lib/utils/responseSchemas";
 import { defaultSteps } from "@/app/providers/applicationContext";
 import { Loader } from "../components/loader/Loader";
 

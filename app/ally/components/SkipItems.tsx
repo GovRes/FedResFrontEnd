@@ -1,7 +1,7 @@
 "use client";
 import { useApplication } from "@/app/providers/applicationContext";
-import { navigateToNextIncompleteStep } from "@/app/utils/nextStepNavigation";
-import { pascalToDashed, pascalToSpaced } from "@/app/utils/stringBuilders";
+import { navigateToNextIncompleteStep } from "@/lib/utils/nextStepNavigation";
+import { pascalToDashed, pascalToSpaced } from "@/lib/utils/stringBuilders";
 import NavigationLink from "@/app/components/loader/NavigationLink";
 import { useRouter } from "next/navigation";
 

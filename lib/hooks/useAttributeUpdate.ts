@@ -1,7 +1,7 @@
 import {
   updateUserTypeAttribute,
   UserType,
-} from "@/app/utils/userAttributeUtils";
+} from "@/lib/utils/userAttributeUtils";
 
 export function useAttributeUpdate(
   setAttributes: Function,

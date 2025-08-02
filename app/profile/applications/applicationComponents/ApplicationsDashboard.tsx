@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import ApplicationsTable from "./ApplicationsTable";
-import { ApplicationType } from "@/app/utils/responseSchemas";
+import { ApplicationType } from "@/lib/utils/responseSchemas";
 import { Loader } from "../../../components/loader/Loader";
-import { listUserApplications } from "@/app/crud/application";
+import { listUserApplications } from "@/lib/crud/application";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";

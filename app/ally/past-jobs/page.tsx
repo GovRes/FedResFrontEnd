@@ -1,11 +1,11 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import InitialReview from "@/app/components/ally/InitialReview";
-import { PastJobType } from "@/app/utils/responseSchemas";
+import InitialReview from "@/app/ally/components/InitialReview";
+import { PastJobType } from "@/lib/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { useApplication } from "@/app/providers/applicationContext";
-import { fetchUserAssociations } from "@/app/crud/userAssociations";
+import { fetchUserAssociations } from "@/lib/crud/userAssociations";
 export default function pastJobsPage() {
   const [localPastJobs, setLocalPastJobs] = useState<PastJobType[]>([]);
   const { job } = useApplication();

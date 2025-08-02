@@ -1,6 +1,6 @@
 "use client";
 
-import { deleteAllModelRecords } from "../crud/genericDeleteAll";
+import { deleteAllModelRecords } from "../../lib/crud/genericDeleteAll";
 import SeedRoles from "./components/SeedRoles";
 
 export default function AdminPage() {

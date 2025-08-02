@@ -1,9 +1,9 @@
 "use client";
 import { Loader } from "@/app/components/loader/Loader";
-import { fetchModelRecord } from "@/app/crud/genericFetch";
+import { fetchModelRecord } from "@/lib/crud/genericFetch";
 import EducationForm from "../../components/EducationForm";
-import { updateModelRecord } from "@/app/crud/genericUpdate";
-import { EducationType, educationZodSchema } from "@/app/utils/responseSchemas";
+import { updateModelRecord } from "@/lib/crud/genericUpdate";
+import { EducationType, educationZodSchema } from "@/lib/utils/responseSchemas";
 import { useEffect, useState } from "react";
 import { use } from "react";
 import { useRouter } from "next/navigation";

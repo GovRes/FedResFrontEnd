@@ -1,4 +1,4 @@
-import { sendMessages } from "@/app/utils/api";
+import { sendMessages } from "@/lib/utils/api";
 import {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,

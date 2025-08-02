@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { agencies } from "@/app/utils/usaJobsCodes";
-import { UserType, userZodSchema } from "@/app/utils/userAttributeUtils";
+import { agencies } from "@/lib/utils/usaJobsCodes";
+import { UserType, userZodSchema } from "@/lib/utils/userAttributeUtils";
 export type ApplicationType = {
   awards?: AwardType[];
   completedSteps: string[];
