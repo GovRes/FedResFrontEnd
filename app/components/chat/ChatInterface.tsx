@@ -68,7 +68,7 @@ export default function ChatInterface() {
   // Local state
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [threadId, setThreadId] = useState<string | null>(null);
   const [isInFeedbackMode, setIsInFeedbackMode] = useState(false);
@@ -145,7 +145,7 @@ export default function ChatInterface() {
 
     // Clear input and show loading
     setInput("");
-    setIsLoading(true);
+    setLoading(true);
     setError(null);
 
     try {
@@ -218,7 +218,7 @@ export default function ChatInterface() {
       console.error("Error sending message:", error);
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -347,7 +347,7 @@ export default function ChatInterface() {
             </div>
           ))}
 
-          {isLoading && (
+          {loading && (
             <div className={styles.allyChatContainer}>
               <strong>{assistantName}:</strong> <em>Thinking...</em>
             </div>
@@ -411,16 +411,16 @@ export default function ChatInterface() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Type your message here..."
-                  disabled={isLoading}
+                  disabled={loading}
                   className={styles.inputTextarea}
                 />
 
                 <button
                   type="submit"
-                  disabled={isLoading || !input.trim()}
+                  disabled={loading || !input.trim()}
                   className={styles.submitButton}
                 >
-                  {isLoading ? "Sending..." : "Send"}
+                  {loading ? "Sending..." : "Send"}
                 </button>
 
                 {renderPromptButtons()}

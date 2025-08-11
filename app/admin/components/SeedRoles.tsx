@@ -1,3 +1,4 @@
+"use client";
 import { useState } from "react";
 import { SeedRolesButton } from "./SeedRolesButton";
 import type { SeedResult } from "@/lib/utils/seedRoles";

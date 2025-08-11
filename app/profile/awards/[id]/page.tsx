@@ -1,7 +1,7 @@
 "use client";
+import Link from "next/link";
 import { fetchModelRecord } from "@/lib/crud/genericFetch";
 import { GrEdit } from "react-icons/gr";
-import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { AwardType } from "@/lib/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";

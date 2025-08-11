@@ -1,11 +1,11 @@
 "use client";
 import { fetchModelRecord } from "@/lib/crud/genericFetch";
-import { GrEdit } from "react-icons/gr";
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { EducationType } from "@/lib/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
 import EducationItem from "@/app/ally/return-resume/components/EducationItem";
+import { GrEdit } from "react-icons/gr";
 export default function AwardPage({
   params,
 }: {
@@ -32,7 +32,9 @@ export default function AwardPage({
       <div>
         <EducationItem education={education} />
         <Link href={`/profile/educations/${id}/edit`}>
-          <button>Edit Item</button>
+          <button>
+            <GrEdit />
+          </button>
         </Link>
       </div>
     );

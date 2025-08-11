@@ -1,5 +1,5 @@
 "use client";
-
+import Link from "next/link";
 import { StepsType } from "@/lib/utils/responseSchemas";
 import {
   IoCheckmarkCircle,
@@ -8,7 +8,6 @@ import {
 } from "react-icons/io5";
 import { usePathname } from "next/navigation";
 import styles from "./ally.module.css";
-import NavigationLink from "../../components/loader/NavigationLink";
 
 export default function AllyStepItem({ step }: { step: StepsType }) {
   const pathname = usePathname();
@@ -46,7 +45,7 @@ export default function AllyStepItem({ step }: { step: StepsType }) {
     );
   }
   return (
-    <NavigationLink
+    <Link
       href={`/ally${step.path}`}
       className={styles.stepItem}
       data-step-id={step.id}
@@ -67,6 +66,6 @@ export default function AllyStepItem({ step }: { step: StepsType }) {
           <IoEllipseOutline />
         )}
       </div>
-    </NavigationLink>
+    </Link>
   );
 }

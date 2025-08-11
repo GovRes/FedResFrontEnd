@@ -19,7 +19,6 @@ import {
 import { navigateToNextIncompleteStep } from "../../lib/utils/nextStepNavigation";
 import { useRouter } from "next/navigation";
 import { getJobByApplicationId } from "../../lib/crud/job";
-import { useLoading } from "./loadingContext";
 
 // Combined interface for state + methods
 interface ApplicationContextType {
@@ -150,7 +149,6 @@ export const ApplicationProvider = ({
   const [initialRedirectComplete, setInitialRedirectComplete] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const router = useRouter();
-  const { setIsLoading } = useLoading();
 
   // Refs to prevent infinite loops
   const dataLoadedRef = useRef(false);

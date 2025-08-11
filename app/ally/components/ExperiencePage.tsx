@@ -9,7 +9,6 @@ import { getApplicationAssociations } from "@/lib/crud/application";
 import { PastJobType } from "@/lib/utils/responseSchemas";
 import styles from "@/app/ally/components/ally.module.css";
 import { navigateToNextIncompleteStep } from "@/lib/utils/nextStepNavigation";
-import { useLoading } from "@/app/providers/loadingContext";
 
 export default function ExperiencePage({
   currentStepId,
@@ -26,7 +25,6 @@ export default function ExperiencePage({
   // Check if the past-job-details step is complete
   const isPastJobDetailsStepComplete =
     steps.find((step) => step.id === "past-job-details")?.completed || false;
-  const { setIsLoading } = useLoading();
 
   async function markCompleteAndNavigate() {
     console.log("Navigating to next step");
@@ -79,7 +77,6 @@ export default function ExperiencePage({
         );
         if (jobWithUnconfirmedQuals) {
           // Redirect to the job with unconfirmed qualifications
-          setIsLoading(true);
           router.push(`/ally/${currentStepId}/${jobWithUnconfirmedQuals.id}`);
         } else {
           // If the step is not complete but all qualifications are confirmed,
@@ -103,7 +100,6 @@ export default function ExperiencePage({
 
   // Function to navigate to a job's details page in edit mode
   const navigateToJobEdit = (jobId: string) => {
-    setIsLoading(true);
     router.push(`/ally/${currentStepId}/${jobId}?edit=true`);
   };
 
@@ -120,7 +116,6 @@ export default function ExperiencePage({
         <p>{error}</p>
         <button
           onClick={() => {
-            setIsLoading(true);
             router.push("/ally");
           }}
         >
@@ -195,7 +190,6 @@ export default function ExperiencePage({
           <p>No past jobs found. Please add some job experiences first.</p>
           <button
             onClick={() => {
-              setIsLoading(true);
               router.push("/ally");
             }}
           >

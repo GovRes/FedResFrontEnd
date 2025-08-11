@@ -32,7 +32,9 @@ export default function AwardPage({
       <div>
         <PastJobItem pastJob={volunteer} />
         <Link href={`/profile/volunteers/${id}/edit`}>
-          <button>Edit Item</button>
+          <button>
+            <GrEdit />
+          </button>
         </Link>
       </div>
     );
