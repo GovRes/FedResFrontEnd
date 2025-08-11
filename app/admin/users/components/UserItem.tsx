@@ -1,5 +1,3 @@
-"use client";
-
 import { UserType } from "@/lib/utils/userAttributeUtils";
 import { GrStarOutline, GrTrash } from "react-icons/gr";
 import Link from "next/link";

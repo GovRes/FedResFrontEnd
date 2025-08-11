@@ -1,3 +1,4 @@
+"use client";
 import { useEffect, useState } from "react";
 // import UserItem from "./UserItem";
 import { Loader } from "@/app/components/loader/Loader";

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import styles from "../../../ally.module.css";
 import {
   agencies,
@@ -5,16 +6,13 @@ import {
   travelPercentage,
 } from "@/lib/utils/usaJobsCodes";
 import { JobSearchObject } from "@/lib/utils/responseSchemas";
-import NavigationLink from "@/app/components/loader/NavigationLink";
 import { useRouter } from "next/navigation";
-import { useLoading } from "@/app/providers/loadingContext";
 export default function UsaJobsNoResults({
   searchObject,
 }: {
   searchObject: JobSearchObject;
 }) {
   const router = useRouter();
-  const { setIsLoading } = useLoading();
   return (
     <div className={styles.noResultsContainer}>
       Unfortunately, your search returned no results. Here is what you searched:
@@ -57,8 +55,7 @@ export default function UsaJobsNoResults({
           <div>
             Additionally, we filtered based on the following information you
             provided in your profile. To change any of these, please{" "}
-            <NavigationLink href="/profile">update your profile</NavigationLink>{" "}
-            and search again.
+            <Link href="/profile">update your profile</Link> and search again.
           </div>
           <ul>
             {searchObject.user.veteran && <li>You are a veteran</li>}
@@ -71,7 +68,6 @@ export default function UsaJobsNoResults({
       )}
       <button
         onClick={() => {
-          setIsLoading(true);
           router.push("/ally/job-search");
         }}
         className={styles.backButton}

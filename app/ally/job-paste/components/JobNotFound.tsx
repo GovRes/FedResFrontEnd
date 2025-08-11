@@ -1,5 +1,4 @@
 "use client";
-import { useLoading } from "@/app/providers/loadingContext";
 import { useRouter } from "next/navigation";
 export default function JobNotFound({
   setSearchSent,
@@ -10,7 +9,6 @@ export default function JobNotFound({
   setQuestionnaireFound: React.Dispatch<React.SetStateAction<boolean>>;
   setJobResult: React.Dispatch<React.SetStateAction<any | null>>;
 }) {
-  const { setIsLoading } = useLoading();
   const router = useRouter();
   return (
     <div>
@@ -29,7 +27,6 @@ export default function JobNotFound({
       </button>
       <button
         onClick={() => {
-          setIsLoading(true);
           router.push("/ally/job-search/");
         }}
       >

@@ -1,8 +1,8 @@
 "use client";
+import Link from "next/link";
 import { useApplication } from "@/app/providers/applicationContext";
 import { navigateToNextIncompleteStep } from "@/lib/utils/nextStepNavigation";
 import { pascalToDashed, pascalToSpaced } from "@/lib/utils/stringBuilders";
-import NavigationLink from "@/app/components/loader/NavigationLink";
 import { useRouter } from "next/navigation";
 
 export default function SkipItems({
@@ -32,11 +32,11 @@ export default function SkipItems({
   return (
     <div>
       <div>You don't have any {pascalToSpaced(itemType)}s.</div>
-      <NavigationLink href={`/profile/${pascalToDashed(itemType)}s`}>
+      <Link href={`/profile/${pascalToDashed(itemType)}s`}>
         <button>
           Add {pascalToSpaced(itemType)}s and then come back here to continue
         </button>
-      </NavigationLink>
+      </Link>
       <button onClick={skipItems}>Skip {pascalToSpaced(itemType)}s</button>
     </div>
   );

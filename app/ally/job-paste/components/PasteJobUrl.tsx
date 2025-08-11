@@ -1,3 +1,4 @@
+"use client";
 import {
   GenericFieldWithLabel,
   SubmitButton,
@@ -9,7 +10,6 @@ import processUSAJob from "@/lib/utils/processUSAJob";
 import { useApplication } from "@/app/providers/applicationContext";
 import { navigateToNextIncompleteStep } from "@/lib/utils/nextStepNavigation";
 import { useAuthenticator } from "@aws-amplify/ui-react";
-import { useLoading } from "@/app/providers/loadingContext";
 import { useRouter } from "next/navigation";
 import JobNotFound from "./JobNotFound";
 import QuestionnaireNotFound from "./QuestionnaireNotFound";
@@ -23,7 +23,6 @@ const stringFieldSchema = z.object({
 export default function PastJobUrl() {
   const { applicationId, job, steps, setJob, setApplicationId, completeStep } =
     useApplication();
-  const { setIsLoading } = useLoading();
   const { user } = useAuthenticator();
   const [loading, setLoading] = useState(false);
   const [questionnaireFound, setQuestionnaireFound] = useState(false);

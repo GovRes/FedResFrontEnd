@@ -1,7 +1,5 @@
-"use client";
-
-import { GrTrash } from "react-icons/gr";
 import Link from "next/link";
+import { GrTrash } from "react-icons/gr";
 import { JobType } from "@/lib/utils/responseSchemas";
 
 export default function FederalJobItem({

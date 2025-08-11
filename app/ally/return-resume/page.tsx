@@ -4,7 +4,7 @@ import {
   EducationType,
   PastJobType,
 } from "@/lib/utils/responseSchemas";
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import PastJobItem from "./components/PastJobItem";
 import EducationExperienceItem from "./components/EducationItem";
 import { fetchUserAttributes } from "aws-amplify/auth";
@@ -14,7 +14,6 @@ import { Loader } from "@/app/components/loader/Loader";
 import AwardItem from "./components/AwardItem";
 import { getApplicationAssociations } from "@/lib/crud/application";
 import { useApplication } from "@/app/providers/applicationContext";
-import { set } from "zod";
 
 export default function ReturnResume() {
   interface UserAttributes {

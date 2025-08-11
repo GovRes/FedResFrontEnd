@@ -1,4 +1,3 @@
-"use client";
 import ExperienceDashboard from "../components/ExperienceDashboard";
 
 export default function EducationPage() {

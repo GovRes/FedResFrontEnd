@@ -1,3 +1,4 @@
+"use client";
 import { PastJobType, pastJobZodSchema } from "@/lib/utils/responseSchemas";
 import BaseForm from "../../../components/forms/BaseForm";
 import {

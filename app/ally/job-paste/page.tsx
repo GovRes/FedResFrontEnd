@@ -1,4 +1,3 @@
-"use client";
 import PastJobUrl from "./components/PasteJobUrl";
 
 export default function JobPastePage() {

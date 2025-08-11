@@ -1,5 +1,4 @@
 "use client";
-
 import { deleteAllModelRecords } from "../../lib/crud/genericDeleteAll";
 import SeedRoles from "./components/SeedRoles";
 

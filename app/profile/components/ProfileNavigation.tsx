@@ -1,6 +1,4 @@
 import Link from "next/link";
-import styles from "../profileStyles.module.css";
-
 type NavItem = {
   id: string;
   label: string;

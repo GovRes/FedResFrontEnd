@@ -1,4 +1,4 @@
-import React, { useState, FormEvent, ReactNode } from "react";
+import React, { FormEvent, ReactNode } from "react";
 
 export default function BaseForm({
   onSubmit,
@@ -7,7 +7,9 @@ export default function BaseForm({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   children: ReactNode;
 }) {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  return <form role="form"onSubmit={onSubmit}>{children}</form>;
+  return (
+    <form role="form" onSubmit={onSubmit}>
+      {children}
+    </form>
+  );
 }

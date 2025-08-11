@@ -1,3 +1,4 @@
+"use client";
 import { useEffect, useState } from "react";
 import ApplicationsTable from "./ApplicationsTable";
 import { ApplicationType } from "@/lib/utils/responseSchemas";
