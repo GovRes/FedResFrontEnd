@@ -1,26 +1,24 @@
 import { generateClient } from "aws-amplify/api";
 
+interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  statusCode: number;
+}
+
 /**
- * Creates a new Job record or retrieves an existing one with the same usaJobsId
+ * Retrieves a job by its usaJobsId
  *
- * @param {Object} jobData - The job data to create
- * @returns {Promise<Object>} - The created or retrieved job record
- * @throws {Error} - If creation fails
+ * @param {string} usaJobsId - The usaJobsId to search for
+ * @returns {Promise<ApiResponse>} - The API response with status code and data/error
  */
-export async function createOrGetJob(jobData: {
-  agencyDescription?: string;
-  department: string;
-  duties?: string;
-  evaluationCriteria?: string;
-  qualificationsSummary?: string;
-  requiredDocuments?: string;
-  title: string;
-  usaJobsId: string;
-}) {
+export async function getJobByUsaJobsId(
+  usaJobsId: string
+): Promise<ApiResponse> {
   const client = generateClient();
 
   try {
-    // First, check if a job with this usaJobsId already exists
     const query = `
       query GetJobByUsaJobsId($usaJobsId: String!) {
         listJobs(filter: {usaJobsId: {eq: $usaJobsId}}) {
@@ -39,6 +37,7 @@ export async function createOrGetJob(jobData: {
             topics {
                 items {
                 id
+                jobId
                 keywords
                 title
                 }
@@ -49,27 +48,68 @@ export async function createOrGetJob(jobData: {
       }
     `;
 
-    const existingJobResult = await client.graphql({
+    const result = await client.graphql({
       query,
       variables: {
-        usaJobsId: jobData.usaJobsId,
+        usaJobsId,
       },
       authMode: "userPool",
     });
 
     // Check if we found a job with that usaJobsId
-    if (
-      "data" in existingJobResult &&
-      existingJobResult.data?.listJobs?.items?.length > 0
-    ) {
+    if ("data" in result && result.data?.listJobs?.items?.length > 0) {
       // Flatten the topics.items into a topics array
-      const existingJob = existingJobResult.data.listJobs.items[0];
+      const job = result.data.listJobs.items[0];
       const flattenedJob = {
-        ...existingJob,
-        topics: existingJob.topics?.items || [],
+        ...job,
+        topics: job.topics?.items || [],
       };
 
-      return flattenedJob;
+      return {
+        success: true,
+        data: flattenedJob,
+        statusCode: 200,
+      };
+    }
+
+    return {
+      success: false,
+      error: `Job with usaJobsId: ${usaJobsId} not found`,
+      statusCode: 404,
+    };
+  } catch (error) {
+    console.error("Error in getJobByUsaJobsId:", error);
+    return {
+      success: false,
+      error: "Failed to fetch job by usaJobsId",
+      statusCode: 500,
+    };
+  }
+}
+/**
+ * Creates a new Job record or retrieves an existing one with the same usaJobsId
+ *
+ * @param {Object} jobData - The job data to create
+ * @returns {Promise<ApiResponse>} - The API response with created or retrieved job record
+ */
+export async function createOrGetJob(jobData: {
+  agencyDescription?: string;
+  department?: string;
+  duties?: string;
+  evaluationCriteria?: string;
+  qualificationsSummary?: string;
+  requiredDocuments?: string;
+  title: string;
+  usaJobsId: string;
+}): Promise<ApiResponse> {
+  const client = generateClient();
+
+  try {
+    // First, check if a job with this usaJobsId already exists
+    const existingJobResult = await getJobByUsaJobsId(jobData.usaJobsId);
+
+    if (existingJobResult.success && existingJobResult.data) {
+      return existingJobResult;
     }
 
     // If no existing job was found, create a new one
@@ -93,6 +133,14 @@ export async function createOrGetJob(jobData: {
           questionnaire
           requiredDocuments
           title
+          topics {
+                items {
+                id
+                jobId
+                keywords
+                title
+                }
+            }
           usaJobsId
         }
       }
@@ -109,20 +157,31 @@ export async function createOrGetJob(jobData: {
 
     // Verify successful creation
     if ("data" in createResult && createResult.data?.createJob) {
-      return createResult.data.createJob;
+      return {
+        success: true,
+        data: createResult.data.createJob,
+        statusCode: 201,
+      };
     } else {
-      throw new Error("Failed to create Job record");
+      return {
+        success: false,
+        error: "Failed to create Job record",
+        statusCode: 500,
+      };
     }
   } catch (error) {
     console.error("Error in createOrGetJob:", error);
-    throw error;
+    return {
+      success: false,
+      error: "Failed to create or retrieve Job record",
+      statusCode: 500,
+    };
   }
 }
-
 /**
  * Example usage:
  *
- * const job = await createOrGetJob({
+ * const jobResult = await createOrGetJob({
  *   agencyDescription: "Department of Example",
  *   department: "Example Agency",
  *   duties: "Various duties...",
@@ -132,9 +191,16 @@ export async function createOrGetJob(jobData: {
  *   title: "Software Engineer",
  *   usaJobsId: "ABC12345"
  * });
+ *
+ * if (jobResult.success) {
+ *   console.log("Job:", jobResult.data);
+ * } else {
+ *   console.error(`Error ${jobResult.statusCode}:`, jobResult.error);
+ * }
  */
-
-export async function getJobByApplicationId(applicationId: string) {
+export async function getJobByApplicationId(
+  applicationId: string
+): Promise<ApiResponse> {
   const client = generateClient();
 
   try {
@@ -151,7 +217,7 @@ export async function getJobByApplicationId(applicationId: string) {
     const applicationResult = await client.graphql({
       query: getApplicationQuery,
       variables: {
-        applicationId: applicationId, // Fixed: now using applicationId as defined in the query
+        applicationId: applicationId,
       },
       authMode: "userPool",
     });
@@ -179,11 +245,12 @@ export async function getJobByApplicationId(applicationId: string) {
               title
               topics {
                 items {
-                  id
-                  keywords
-                  title
+                id
+                jobId
+                keywords
+                title
                 }
-              }
+            }
               usaJobsId
             }
           }
@@ -192,7 +259,7 @@ export async function getJobByApplicationId(applicationId: string) {
       const jobResult = await client.graphql({
         query: getJobQuery,
         variables: {
-          jobId: jobId, // Fixed: variable name now matches the query definition
+          jobId: jobId,
         },
         authMode: "userPool",
       });
@@ -205,13 +272,25 @@ export async function getJobByApplicationId(applicationId: string) {
           topics: job.topics?.items || [],
         };
 
-        return flattenedJob;
+        return {
+          success: true,
+          data: flattenedJob,
+          statusCode: 200,
+        };
       }
     }
 
-    return null;
+    return {
+      success: false,
+      error: `Job not found for application ID: ${applicationId}`,
+      statusCode: 404,
+    };
   } catch (error) {
     console.error("Error in getJobByApplicationId:", error);
-    throw error;
+    return {
+      success: false,
+      error: "Failed to fetch job by application ID",
+      statusCode: 500,
+    };
   }
 }

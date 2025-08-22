@@ -1,5 +1,5 @@
 "use client";
-import ApplicationDashboard from "../profile/applications/applicationComponents/ApplicationsDashboard";
+import ApplicationDashboard from "../profile/applications/components/ApplicationsDashboard";
 import { useApplication } from "../providers/applicationContext";
 import { useRouter } from "next/navigation";
 

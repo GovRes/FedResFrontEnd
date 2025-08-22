@@ -7,7 +7,7 @@ import styles from "./ally.module.css";
 import {
   AwardType,
   EducationType,
-  PastJobType,
+  SimplePastJobType,
 } from "@/lib/utils/responseSchemas";
 import { Checkboxes, SubmitButton } from "@/app/components/forms/Inputs";
 import {
@@ -27,8 +27,12 @@ type ReviewFormData = {
   excludedItems?: (string | number)[];
 };
 
+interface ItemWithId {
+  id: string | null | undefined;
+}
+
 export default function ReviewItemsList<
-  T extends AwardType | EducationType | PastJobType,
+  T extends AwardType | EducationType | SimplePastJobType,
 >({
   itemType,
   localItems,
@@ -40,10 +44,14 @@ export default function ReviewItemsList<
 }) {
   const { job } = useApplication();
   const [itemOptions, setItemOptions] = useState(
-    localItems.map((item) => ({
-      id: item.id!,
-      name: generateHeadingText(item),
-    }))
+    localItems
+      .filter(
+        (item): item is T & { id: string } => "id" in item && item.id != null
+      )
+      .map((item) => ({
+        id: item.id,
+        name: generateHeadingText(item),
+      }))
   );
 
   const itemIds = localItems?.map((item) => item.id!);
@@ -63,10 +71,12 @@ export default function ReviewItemsList<
 
   useEffect(() => {
     setItemOptions(
-      localItems.map((item) => ({
-        id: item.id!,
-        name: generateHeadingText(item),
-      }))
+      localItems
+        .filter((item) => item.id != null)
+        .map((item) => ({
+          id: item.id!,
+          name: generateHeadingText(item),
+        }))
     );
   }, [localItems]);
 

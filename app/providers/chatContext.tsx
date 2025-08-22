@@ -165,24 +165,12 @@ export function ChatProvider({
   const saveItem = async (item: BaseItem) => {
     try {
       const updatedItems = items.map((i) => (i.id === item.id ? item : i));
+      console.log(168, updatedItems);
       setItems(updatedItems);
 
-      // If we're in a nested view, we need to update the parent item
-      if (nestedItemsKey && parentId) {
-        // Find the parent item
-        const parentItem = items.find((i) => i.id === parentId);
-        if (parentItem) {
-          // Update the nested items
-          parentItem[nestedItemsKey] = parentItem[nestedItemsKey].map(
-            (ni: BaseItem) => (ni.id === item.id ? item : ni)
-          );
-          // Save the parent item
-          await saveFunction(parentItem);
-        }
-      } else {
-        // Save directly
-        await saveFunction(item);
-      }
+      // Always use the saveFunction - it now handles nested logic in the parent component
+      console.log(186, "saving item", item);
+      await saveFunction(item);
 
       // If we were editing this item, finish editing
       if (isEditingExistingParagraph && itemBeingEdited === item.id) {
@@ -195,19 +183,20 @@ export function ChatProvider({
       return Promise.reject(error);
     }
   };
-
   // Save paragraph to the current item
   const saveParagraph = async () => {
     if (!paragraphData || !currentItem)
       return Promise.reject("No paragraph data or current item");
-
+    console.log("saving paragraph for item:", currentItem.id);
     const updatedItem = {
       ...currentItem,
       paragraph: paragraphData,
       userConfirmed: true,
     };
+    console.log("Updated item:", updatedItem);
 
-    await saveItem(updatedItem);
+    const res = await saveItem(updatedItem);
+    console.log(res);
 
     // Only clear paragraph data if we're not in edit mode
     if (!isEditingExistingParagraph) {

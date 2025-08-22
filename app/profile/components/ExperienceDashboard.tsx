@@ -48,22 +48,24 @@ export default function ExperienceDashboard({
           associationType = "PastJob";
         }
         // Use the explicit type parameter for fetchUserAssociations
-        const itemsRes =
+        const { data: itemsRes } =
           await fetchUserAssociations<ExperienceItemType>(associationType);
         if (experienceType === "Volunteer") {
           // If the experienceType is "Volunteer", we need to filter the items
           // to only include those that are of type "Volunteer"
-          const filteredItems = itemsRes.filter(
-            (item): item is PastJobType =>
-              "type" in item && item.type === "Volunteer"
-          );
+          const filteredItems =
+            itemsRes?.filter(
+              (item): item is PastJobType =>
+                "type" in item && item.type === "Volunteer"
+            ) || [];
           setItems(filteredItems);
           return;
         } else if (experienceType === "PastJob") {
-          const filteredItems = itemsRes.filter(
-            (item): item is PastJobType =>
-              "type" in item && item.type === "PastJob"
-          );
+          const filteredItems =
+            itemsRes?.filter(
+              (item): item is PastJobType =>
+                "type" in item && item.type === "PastJob"
+            ) || [];
           const sortedItems = filteredItems.sort((a, b) =>
             a.organization > b.organization ? 1 : -1
           );
@@ -71,7 +73,7 @@ export default function ExperienceDashboard({
           return;
         }
         // Now itemsRes should match the expected type for setItems
-        setItems(itemsRes);
+        setItems(itemsRes || []);
       } catch (error) {
         console.error("Error fetching user items:", error);
       } finally {

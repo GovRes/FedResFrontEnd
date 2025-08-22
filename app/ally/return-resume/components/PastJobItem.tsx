@@ -21,6 +21,7 @@ export default function PastJobItem({ pastJob }: { pastJob: PastJobType }) {
       year: "numeric",
     })}`;
   }
+  console.log(pastJob);
   return (
     <div className={styles.jobItem}>
       <div className={styles.jobItemBasicInfo}>

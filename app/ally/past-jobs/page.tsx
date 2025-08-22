@@ -18,9 +18,9 @@ export default function pastJobsPage() {
       if (!user) return;
       setLoading(true);
       // Fetch past jobs
-      let res = await fetchUserAssociations("PastJob");
-      if (res.length > 0) {
-        const filteredJobs = res.filter(
+      let { data } = await fetchUserAssociations("PastJob");
+      if (data && data.length > 0) {
+        const filteredJobs = data?.filter(
           (job) => job.type === "PastJob"
         ) as PastJobType[];
         setLocalPastJobs(filteredJobs);
@@ -29,7 +29,7 @@ export default function pastJobsPage() {
     }
 
     fetchAndMatch();
-  }, [JSON.stringify(user), job?.topics]);
+  }, [user?.userId, job?.topics]);
 
   if (loading) {
     return <Loader text="fetching your saved jobs" />;

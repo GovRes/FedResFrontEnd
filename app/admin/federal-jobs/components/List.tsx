@@ -14,9 +14,15 @@ export default function FederalJobsList() {
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      const federalJobs = await listModelRecords("Job");
-      setFederalJobs(federalJobs.items);
-      setLoading(false);
+      const { data } = await listModelRecords("Job");
+      if (data && data.items && data.items.length > 0) {
+        setFederalJobs(data.items);
+        setLoading(false);
+      } else {
+        setLoading(false);
+        console.log("No federal jobs found");
+        return;
+      }
     }
     fetchData();
   }, []);

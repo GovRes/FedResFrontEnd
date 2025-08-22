@@ -5,6 +5,7 @@ import { GrTrash } from "react-icons/gr";
 import { useRouter } from "next/navigation";
 import { deleteApplication } from "@/lib/crud/application";
 import { broadcastApplicationReset } from "@/app/providers/applicationContext";
+import Link from "next/link";
 
 export default function ApplicationItem({
   application,
@@ -49,7 +50,11 @@ export default function ApplicationItem({
   return (
     <tr>
       <td className="tableData" role="cell">
-        Application for {application.job.title} at {application.job.department}
+        <Link href={`/profile/applications/${application.id}`}>
+          {" "}
+          Application for {application.job.title} at{" "}
+          {application.job.department}
+        </Link>
       </td>
       <td>{application.status}</td>
       <td className="tableData" role="cell">

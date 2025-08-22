@@ -18,9 +18,9 @@ export default function EditableFederalJobRecord({
     async function fetchData() {
       setLoading(true);
       try {
-        const jobData = await fetchModelRecord("Job", id);
-        const topics = jobData.topics.items;
-        setJob({ ...jobData, topics });
+        const { data } = await fetchModelRecord("Job", id);
+        const topics = data.topics.items;
+        setJob({ ...data, topics });
       } catch (err) {
         console.error("Error loading federal job", err);
       } finally {

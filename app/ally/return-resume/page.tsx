@@ -52,7 +52,11 @@ export default function ReturnResume() {
     async function loadApplicationAssociations() {
       setLoading(true);
       try {
-        const [awardRes, educationRes, pastJobRes] = await Promise.all([
+        const [
+          { data: awardRes },
+          { data: educationRes },
+          { data: pastJobRes },
+        ] = await Promise.all([
           getApplicationAssociations({
             applicationId,
             associationType: "Award",

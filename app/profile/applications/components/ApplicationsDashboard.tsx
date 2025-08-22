@@ -21,7 +21,7 @@ export default function ApplicationDashboard() {
     async function getUserApplications() {
       setLoading(true);
       try {
-        const applicationsRes = await listUserApplications({
+        const { data: applicationsRes } = await listUserApplications({
           userId: user.userId,
         });
         setApplications(applicationsRes);

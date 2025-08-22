@@ -3,67 +3,473 @@ import { v4 as uuidv4 } from "uuid";
 import { updateModelRecord } from "./genericUpdate";
 import { QualificationType, PastJobType } from "../utils/responseSchemas";
 
+interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  statusCode: number;
+}
+
+export type PastJobBatchUpdateType = {
+  pastJobId: string;
+  pastJobData: PastJobType;
+  qualifications?: QualificationType[];
+};
+
+type BatchResult = {
+  pastJobId: string;
+  success: boolean;
+  data?: any;
+  error?: string;
+};
+
+type BatchSummary = {
+  total: number;
+  successful: number;
+  failed: number;
+  errors: { pastJobId: string; error: string }[] | null;
+};
+
+/**
+ * Fetch a single PastJob record with all its qualifications and related data
+ *
+ * @param {string} pastJobId - The ID of the PastJob to fetch
+ * @returns {Promise<ApiResponse<Object>>} - API response with the PastJob data including qualifications
+ */
+export async function fetchPastJobWithQualifications(
+  pastJobId: string
+): Promise<ApiResponse<any>> {
+  // Validate input
+  if (!pastJobId || typeof pastJobId !== "string" || pastJobId.trim() === "") {
+    return {
+      success: false,
+      error: "Invalid pastJobId: pastJobId must be a non-empty string",
+      statusCode: 400,
+    };
+  }
+
+  const client = generateClient();
+
+  try {
+    const getPastJobQuery = `
+      query GetPastJob($id: ID!) {
+        getPastJob(id: $id) {
+          id
+          title
+          organization
+          organizationAddress
+          startDate
+          endDate
+          hours
+          gsLevel
+          responsibilities
+          supervisorName
+          supervisorPhone
+          supervisorMayContact
+          type
+          userId
+          createdAt
+          updatedAt
+          user {
+            id
+            email
+            givenName
+            familyName
+          }
+          qualifications {
+            items {
+              id
+              qualificationId
+              qualification {
+                id
+                title
+                description
+                paragraph
+                question
+                userConfirmed
+                topicId
+                topic {
+                  id
+                  title
+                  keywords
+                  description
+                  evidence
+                  jobId
+                  job {
+                    id
+                    title
+                    department
+                    usaJobsId
+                  }
+                }
+                userId
+                createdAt
+                updatedAt
+              }
+              pastJob {
+                id
+                title
+              }
+            }
+          }
+          applications {
+            items {
+              id
+              applicationId
+              application {
+                id
+                status
+                completedSteps
+                jobId
+                job {
+                  id
+                  title
+                  department
+                  usaJobsId
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await client.graphql({
+      query: getPastJobQuery,
+      variables: {
+        id: pastJobId,
+      },
+      authMode: "userPool",
+    });
+
+    // Check if the result is a GraphQLResult type with data
+    if ("data" in result && result.data?.getPastJob) {
+      const pastJob = result.data.getPastJob;
+
+      // Transform the data to a more convenient format
+      const transformedData = {
+        ...pastJob,
+        qualifications:
+          pastJob.qualifications?.items?.map((item: any) => ({
+            id: item.qualification?.id,
+            title: item.qualification?.title,
+            description: item.qualification?.description,
+            paragraph: item.qualification?.paragraph,
+            question: item.qualification?.question,
+            userConfirmed: item.qualification?.userConfirmed,
+            topicId: item.qualification?.topicId,
+            topic: item.qualification?.topic,
+            userId: item.qualification?.userId,
+            createdAt: item.qualification?.createdAt,
+            updatedAt: item.qualification?.updatedAt,
+            relationshipId: item.id, // The PastJobQualification join table ID
+          })) || [],
+        applications:
+          pastJob.applications?.items?.map((item: any) => ({
+            id: item.application?.id,
+            status: item.application?.status,
+            completedSteps: item.application?.completedSteps,
+            jobId: item.application?.jobId,
+            job: item.application?.job,
+            relationshipId: item.id, // The PastJobApplication join table ID
+          })) || [],
+      };
+
+      return {
+        success: true,
+        data: transformedData,
+        statusCode: 200,
+      };
+    } else {
+      return {
+        success: false,
+        error: `PastJob with ID: ${pastJobId} not found`,
+        statusCode: 404,
+      };
+    }
+  } catch (error) {
+    console.error("Error fetching PastJob with qualifications:", error);
+    return {
+      success: false,
+      error: `Failed to fetch PastJob with qualifications: ${error instanceof Error ? error.message : String(error)}`,
+      statusCode: 500,
+    };
+  }
+}
+
+/**
+ * Fetch multiple PastJob records with their qualifications for a specific user
+ *
+ * @param {string} userId - The ID of the user whose PastJobs to fetch
+ * @param {number} limit - Optional limit on the number of results (default: 100)
+ * @param {string} nextToken - Optional pagination token for fetching next page
+ * @returns {Promise<ApiResponse<{items: Object[], nextToken?: string}>>} - API response with array of PastJob data
+ */
+export async function fetchUserPastJobsWithQualifications(
+  userId: string,
+  limit: number = 100,
+  nextToken?: string
+): Promise<ApiResponse<{ items: any[]; nextToken?: string }>> {
+  // Validate input
+  if (!userId || typeof userId !== "string" || userId.trim() === "") {
+    return {
+      success: false,
+      error: "Invalid userId: userId must be a non-empty string",
+      statusCode: 400,
+    };
+  }
+
+  if (limit <= 0 || limit > 1000) {
+    return {
+      success: false,
+      error: "Invalid limit: limit must be between 1 and 1000",
+      statusCode: 400,
+    };
+  }
+
+  const client = generateClient();
+
+  try {
+    const listPastJobsQuery = `
+      query ListPastJobs($filter: ModelPastJobFilterInput, $limit: Int, $nextToken: String) {
+        listPastJobs(filter: $filter, limit: $limit, nextToken: $nextToken) {
+          items {
+            id
+            title
+            organization
+            organizationAddress
+            startDate
+            endDate
+            hours
+            gsLevel
+            responsibilities
+            supervisorName
+            supervisorPhone
+            supervisorMayContact
+            type
+            userId
+            createdAt
+            updatedAt
+            qualifications {
+              items {
+                id
+                qualificationId
+                qualification {
+                  id
+                  title
+                  description
+                  paragraph
+                  question
+                  userConfirmed
+                  topicId
+                  topic {
+                    id
+                    title
+                    keywords
+                    description
+                    evidence
+                    jobId
+                    job {
+                      id
+                      title
+                      department
+                    }
+                  }
+                  applicationId
+                  userId
+                }
+              }
+            }
+            applications {
+              items {
+                id
+                applicationId
+                application {
+                  id
+                  status
+                  jobId
+                  job {
+                    id
+                    title
+                    department
+                  }
+                }
+              }
+            }
+          }
+          nextToken
+        }
+      }
+    `;
+
+    const result = await client.graphql({
+      query: listPastJobsQuery,
+      variables: {
+        filter: {
+          userId: { eq: userId },
+        },
+        limit,
+        nextToken,
+      },
+      authMode: "userPool",
+    });
+
+    if ("data" in result && result.data?.listPastJobs) {
+      const { items, nextToken: responseNextToken } = result.data.listPastJobs;
+
+      // Transform the data to a more convenient format
+      const transformedItems =
+        items?.map((pastJob: any) => ({
+          ...pastJob,
+          qualifications:
+            pastJob.qualifications?.items?.map((item: any) => ({
+              id: item.qualification?.id,
+              title: item.qualification?.title,
+              description: item.qualification?.description,
+              paragraph: item.qualification?.paragraph,
+              question: item.qualification?.question,
+              userConfirmed: item.qualification?.userConfirmed,
+              topicId: item.qualification?.topicId,
+              topic: item.qualification?.topic,
+              userId: item.qualification?.userId,
+              relationshipId: item.id,
+            })) || [],
+          applications:
+            pastJob.applications?.items?.map((item: any) => ({
+              id: item.application?.id,
+              status: item.application?.status,
+              jobId: item.application?.jobId,
+              job: item.application?.job,
+              relationshipId: item.id,
+            })) || [],
+        })) || [];
+
+      return {
+        success: true,
+        data: {
+          items: transformedItems,
+          nextToken: responseNextToken,
+        },
+        statusCode: 200,
+      };
+    } else {
+      return {
+        success: false,
+        error: `No PastJobs found for user: ${userId}`,
+        statusCode: 404,
+      };
+    }
+  } catch (error) {
+    console.error("Error fetching user PastJobs with qualifications:", error);
+    return {
+      success: false,
+      error: `Failed to fetch PastJobs for user: ${error instanceof Error ? error.message : String(error)}`,
+      statusCode: 500,
+    };
+  }
+}
+
 /**
  * Batch version to update multiple PastJob records including their qualifications
  *
- * @param {Array<Object>} pastJobUpdates - Array of objects containing pastJob update information
- * @param {string} pastJobUpdates[].pastJobId - The ID of the PastJob to update
- * @param {Object} pastJobUpdates[].pastJobData - The PastJob data to update
- * @param {Array} pastJobUpdates[].qualifications - Array of qualification objects to associate with the PastJob
- * @returns {Promise<Array<Object>>} - Array of updated PastJob data with relationships
+ * @param {Array<PastJobType>} pastJobUpdates - Array of PastJob objects to update
+ * @returns {Promise<ApiResponse<{results: BatchResult[], summary: BatchSummary}>>} - API response with batch update results
  */
 export async function batchUpdatePastJobsWithQualifications(
   pastJobUpdates: Array<PastJobType>
-) {
-  const client = generateClient();
-  const results = [];
-  const errors = [];
+): Promise<ApiResponse<{ results: BatchResult[]; summary: BatchSummary }>> {
+  // Validate input
+  if (!Array.isArray(pastJobUpdates) || pastJobUpdates.length === 0) {
+    return {
+      success: false,
+      error: "Invalid pastJobUpdates: must be a non-empty array",
+      statusCode: 400,
+    };
+  }
+
+  // Validate that all updates have IDs
+  const updatesWithoutIds = pastJobUpdates.filter((update) => !update.id);
+  if (updatesWithoutIds.length > 0) {
+    return {
+      success: false,
+      error: `${updatesWithoutIds.length} past job updates are missing required id field`,
+      statusCode: 400,
+    };
+  }
+
+  const results: BatchResult[] = [];
+  const errors: { pastJobId: string; error: string }[] = [];
 
   // Process each update in sequence to avoid overwhelming the API
   for (const update of pastJobUpdates) {
-    if (update.id) {
-      try {
-        // Use the existing single-job update function for each job
-        const updatedPastJob = await updatePastJobWithQualifications(
-          update.id,
-          update,
-          Array.isArray(update.qualifications)
-            ? update.qualifications
-            : undefined
-        );
+    try {
+      // Use the existing single-job update function for each job
+      const updateResult = await updatePastJobWithQualifications(
+        update.id!,
+        update,
+        Array.isArray(update.qualifications) ? update.qualifications : undefined
+      );
 
+      if (updateResult.success && updateResult.data) {
         results.push({
-          pastJobId: update.id,
+          pastJobId: update.id!,
           success: true,
-          data: updatedPastJob,
+          data: updateResult.data,
         });
-      } catch (error) {
-        console.error(`Error updating PastJob ${update.id}:`, error);
+      } else {
+        const errorMsg = updateResult.error || "Failed to update past job";
         errors.push({
-          pastJobId: update.id,
-          success: false,
-          error: error instanceof Error ? error.message : String(error),
+          pastJobId: update.id!,
+          error: errorMsg,
         });
-
-        // Add to results array with error information
         results.push({
-          pastJobId: update.id,
+          pastJobId: update.id!,
           success: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: errorMsg,
         });
       }
+    } catch (error) {
+      console.error(`Error updating PastJob ${update.id}:`, error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      errors.push({
+        pastJobId: update.id!,
+        error: errorMsg,
+      });
+      results.push({
+        pastJobId: update.id!,
+        success: false,
+        error: errorMsg,
+      });
     }
   }
 
-  // Return comprehensive results including both successful updates and failures
+  // Determine overall success
+  const successfulCount = results.filter((r) => r.success).length;
+  const hasSuccessful = successfulCount > 0;
+  const allFailed = errors.length === pastJobUpdates.length;
+
+  const summary: BatchSummary = {
+    total: pastJobUpdates.length,
+    successful: successfulCount,
+    failed: errors.length,
+    errors: errors.length > 0 ? errors : null,
+  };
+
+  if (allFailed) {
+    return {
+      success: false,
+      error: `Failed to update all ${pastJobUpdates.length} past job records`,
+      statusCode: 500,
+    };
+  }
+
   return {
-    results,
-    summary: {
-      total: pastJobUpdates.length,
-      successful: results.filter((r) => r.success).length,
-      failed: errors.length,
-      errors: errors.length > 0 ? errors : null,
-    },
+    success: hasSuccessful,
+    data: { results, summary },
+    statusCode: hasSuccessful ? 200 : 500,
+    ...(errors.length > 0 && {
+      error: `${errors.length} of ${pastJobUpdates.length} past job updates failed`,
+    }),
   };
 }
 
@@ -71,24 +477,53 @@ export async function batchUpdatePastJobsWithQualifications(
  * Batch version to update multiple PastJob records with parallel processing
  * Use with caution as it may cause API rate limiting issues
  *
- * @param {Array<Object>} pastJobUpdates - Array of objects containing pastJob update information
- * @param {string} pastJobUpdates[].pastJobId - The ID of the PastJob to update
- * @param {Object} pastJobUpdates[].pastJobData - The PastJob data to update
- * @param {Array} pastJobUpdates[].qualifications - Array of qualification objects to associate with the PastJob
+ * @param {Array<PastJobBatchUpdateType>} pastJobUpdates - Array of objects containing pastJob update information
  * @param {number} batchSize - Optional maximum number of parallel operations (default: 3)
- * @returns {Promise<Array<Object>>} - Array of updated PastJob data with relationships
+ * @returns {Promise<ApiResponse<{results: BatchResult[], summary: BatchSummary}>>} - API response with batch update results
  */
-export type PastJobBatchUpdateType = {
-  pastJobId: string;
-  pastJobData: PastJobType;
-  qualifications?: QualificationType[];
-};
 export async function parallelBatchUpdatePastJobsWithQualifications(
   pastJobUpdates: PastJobBatchUpdateType[],
   batchSize = 3
-) {
-  const results = [];
-  const errors: { pastJobId: string; success: boolean; error: string }[] = [];
+): Promise<ApiResponse<{ results: BatchResult[]; summary: BatchSummary }>> {
+  // Validate input
+  if (!Array.isArray(pastJobUpdates) || pastJobUpdates.length === 0) {
+    return {
+      success: false,
+      error: "Invalid pastJobUpdates: must be a non-empty array",
+      statusCode: 400,
+    };
+  }
+
+  // Validate batch size
+  if (batchSize <= 0 || batchSize > 50) {
+    return {
+      success: false,
+      error: "Invalid batchSize: must be between 1 and 50",
+      statusCode: 400,
+    };
+  }
+
+  // Validate structure of updates
+  const invalidUpdates = pastJobUpdates.filter(
+    (update) =>
+      !update ||
+      typeof update !== "object" ||
+      !update.pastJobId ||
+      typeof update.pastJobId !== "string" ||
+      !update.pastJobData ||
+      typeof update.pastJobData !== "object"
+  );
+
+  if (invalidUpdates.length > 0) {
+    return {
+      success: false,
+      error: `${invalidUpdates.length} updates have invalid structure (missing pastJobId or pastJobData)`,
+      statusCode: 400,
+    };
+  }
+
+  const results: BatchResult[] = [];
+  const errors: { pastJobId: string; error: string }[] = [];
 
   // Process updates in batches to avoid overwhelming the API
   for (let i = 0; i < pastJobUpdates.length; i += batchSize) {
@@ -99,29 +534,41 @@ export async function parallelBatchUpdatePastJobsWithQualifications(
       try {
         const { pastJobId, pastJobData, qualifications } = update;
 
-        const updatedPastJob = await updatePastJobWithQualifications(
+        const updateResult = await updatePastJobWithQualifications(
           pastJobId,
           pastJobData,
           qualifications
         );
 
-        return {
-          pastJobId,
-          success: true,
-          data: updatedPastJob,
-        };
+        if (updateResult.success && updateResult.data) {
+          return {
+            pastJobId,
+            success: true,
+            data: updateResult.data,
+          };
+        } else {
+          const errorMsg = updateResult.error || "Failed to update past job";
+          errors.push({
+            pastJobId,
+            error: errorMsg,
+          });
+          return {
+            pastJobId,
+            success: false,
+            error: errorMsg,
+          };
+        }
       } catch (error) {
         console.error(`Error updating PastJob ${update.pastJobId}:`, error);
+        const errorMsg = error instanceof Error ? error.message : String(error);
         errors.push({
           pastJobId: update.pastJobId,
-          success: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: errorMsg,
         });
-
         return {
           pastJobId: update.pastJobId,
           success: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: errorMsg,
         };
       }
     });
@@ -131,15 +578,33 @@ export async function parallelBatchUpdatePastJobsWithQualifications(
     results.push(...batchResults);
   }
 
-  // Return comprehensive results including both successful updates and failures
+  // Determine overall success
+  const successfulCount = results.filter((r) => r.success).length;
+  const hasSuccessful = successfulCount > 0;
+  const allFailed = errors.length === pastJobUpdates.length;
+
+  const summary: BatchSummary = {
+    total: pastJobUpdates.length,
+    successful: successfulCount,
+    failed: errors.length,
+    errors: errors.length > 0 ? errors : null,
+  };
+
+  if (allFailed) {
+    return {
+      success: false,
+      error: `Failed to update all ${pastJobUpdates.length} past job records`,
+      statusCode: 500,
+    };
+  }
+
   return {
-    results,
-    summary: {
-      total: pastJobUpdates.length,
-      successful: results.filter((r) => r.success).length,
-      failed: errors.length,
-      errors: errors.length > 0 ? errors : null,
-    },
+    success: hasSuccessful,
+    data: { results, summary },
+    statusCode: hasSuccessful ? 200 : 500,
+    ...(errors.length > 0 && {
+      error: `${errors.length} of ${pastJobUpdates.length} past job updates failed`,
+    }),
   };
 }
 
@@ -170,13 +635,39 @@ function areQualificationsSimilar(qual1: any, qual2: any): boolean {
  * @param {string} pastJobId - The ID of the PastJob to update
  * @param {Object} pastJobData - The PastJob data to update
  * @param {Array} qualifications - Array of qualification objects to associate with the PastJob
- * @returns {Promise<Object>} - The updated PastJob data with relationships
+ * @returns {Promise<ApiResponse<Object>>} - API response with the updated PastJob data
  */
 export async function updatePastJobWithQualifications(
   pastJobId: string,
   pastJobData: any,
   qualifications?: Array<any>
-) {
+): Promise<ApiResponse<any>> {
+  // Validate inputs
+  if (!pastJobId || typeof pastJobId !== "string" || pastJobId.trim() === "") {
+    return {
+      success: false,
+      error: "Invalid pastJobId: pastJobId must be a non-empty string",
+      statusCode: 400,
+    };
+  }
+
+  if (!pastJobData || typeof pastJobData !== "object") {
+    return {
+      success: false,
+      error: "Invalid pastJobData: pastJobData must be a non-null object",
+      statusCode: 400,
+    };
+  }
+
+  // Validate qualifications if provided
+  if (qualifications && !Array.isArray(qualifications)) {
+    return {
+      success: false,
+      error: "Invalid qualifications: qualifications must be an array",
+      statusCode: 400,
+    };
+  }
+
   const client = generateClient();
 
   try {
@@ -187,11 +678,18 @@ export async function updatePastJobWithQualifications(
     const qualificationsToUse = qualifications || qualificationsFromData || [];
 
     // 1. Update the basic PastJob record first
-    const updatedPastJob = await updateModelRecord(
+    const updateResult = await updateModelRecord(
       "PastJob",
       pastJobId,
       cleanPastJobData
     );
+    if (!updateResult.success) {
+      return {
+        success: false,
+        error: `Failed to update PastJob: ${updateResult.error}`,
+        statusCode: updateResult.statusCode,
+      };
+    }
 
     if (qualificationsToUse && qualificationsToUse.length > 0) {
       // 2. Fetch existing qualification relationships
@@ -373,10 +871,6 @@ export async function updatePastJobWithQualifications(
               },
               authMode: "userPool",
             });
-          } else {
-            console.log(
-              `Join entry already exists for qualification ${qualification.id}`
-            );
           }
         } catch (error) {
           console.error(
@@ -413,29 +907,40 @@ export async function updatePastJobWithQualifications(
           createdAt
           updatedAt
           qualifications {
-            items {
-              id
-              qualificationId
-              qualification {
+              items {
                 id
-                title
-                description
-                paragraph
-                question
-                userConfirmed
-                topicId
-                topic {
+                qualificationId
+                qualification {
                   id
                   title
-                  keywords
                   description
-                  evidence
-                 
+                  paragraph
+                  question
+                  userConfirmed
+                  userId
+                  applications {
+                    items {
+                      id
+                      applicationId
+                      qualificationId
+                      application {
+                        id
+                        createdAt
+                        updatedAt
+                      }
+                    }
+                  }
+                  topic {
+                    id
+                    title
+                    jobId
+                    keywords
+                    description
+                    evidence
+                  }
                 }
-                userId
               }
             }
-          }
         }
       }
     `;
@@ -449,15 +954,109 @@ export async function updatePastJobWithQualifications(
     });
 
     // Check if the result is a GraphQLResult type with data
-    if ("data" in result) {
-      const pastJob = result.data?.getPastJob;
-      const qualificationCount = pastJob?.qualifications?.items?.length || 0;
-      return pastJob;
+    if ("data" in result && result.data?.getPastJob) {
+      return {
+        success: true,
+        data: result.data.getPastJob,
+        statusCode: 200,
+      };
+    } else {
+      return {
+        success: false,
+        error: `PastJob with ID: ${pastJobId} not found after update`,
+        statusCode: 404,
+      };
     }
-
-    return null;
   } catch (error) {
     console.error("Error updating PastJob with qualifications:", error);
-    throw error;
+    return {
+      success: false,
+      error: `Failed to update PastJob with qualifications: ${error instanceof Error ? error.message : String(error)}`,
+      statusCode: 500,
+    };
   }
 }
+
+/**
+ * Example usage:
+ *
+ * // Fetch single PastJob with qualifications
+ * const fetchResult = await fetchPastJobWithQualifications("pastJob123");
+ * if (fetchResult.success && fetchResult.data) {
+ *   console.log("PastJob with qualifications:", fetchResult.data);
+ *   console.log("Number of qualifications:", fetchResult.data.qualifications.length);
+ * } else {
+ *   console.error(`Error ${fetchResult.statusCode}:`, fetchResult.error);
+ * }
+ *
+ * // Fetch all PastJobs for a user
+ * const userJobsResult = await fetchUserPastJobsWithQualifications("user123", 50);
+ * if (userJobsResult.success && userJobsResult.data) {
+ *   console.log(`Found ${userJobsResult.data.items.length} past jobs`);
+ *   if (userJobsResult.data.nextToken) {
+ *     console.log("More results available, use nextToken for pagination");
+ *   }
+ * }
+ *
+ * // Update single PastJob with qualifications
+ * const updateResult = await updatePastJobWithQualifications(
+ *   "pastJob123",
+ *   {
+ *     title: "Senior Software Engineer",
+ *     organization: "Tech Corp",
+ *     userId: "user123"
+ *   },
+ *   [
+ *     {
+ *       title: "React Development",
+ *       description: "Expert in React framework",
+ *       userConfirmed: true
+ *     }
+ *   ]
+ * );
+ *
+ * if (updateResult.success && updateResult.data) {
+ *   console.log("Updated PastJob:", updateResult.data);
+ * } else {
+ *   console.error(`Error ${updateResult.statusCode}:`, updateResult.error);
+ * }
+ *
+ * // Batch update PastJobs (sequential)
+ * const batchResult = await batchUpdatePastJobsWithQualifications([
+ *   {
+ *     id: "pastJob1",
+ *     title: "Software Engineer",
+ *     userId: "user123",
+ *     qualifications: [...]
+ *   },
+ *   {
+ *     id: "pastJob2",
+ *     title: "Web Developer",
+ *     userId: "user123",
+ *     qualifications: [...]
+ *   }
+ * ]);
+ *
+ * if (batchResult.success && batchResult.data) {
+ *   const { results, summary } = batchResult.data;
+ *   console.log(`Batch update: ${summary.successful}/${summary.total} successful`);
+ *   if (summary.errors) {
+ *     console.warn("Some updates failed:", summary.errors);
+ *   }
+ * } else {
+ *   console.error(`Error ${batchResult.statusCode}:`, batchResult.error);
+ * }
+ *
+ * // Parallel batch update (for larger batches)
+ * const parallelResult = await parallelBatchUpdatePastJobsWithQualifications([
+ *   {
+ *     pastJobId: "pastJob1",
+ *     pastJobData: { title: "Software Engineer", userId: "user123" },
+ *     qualifications: [...]
+ *   }
+ * ], 5);
+ *
+ * if (parallelResult.success && parallelResult.data) {
+ *   console.log("Parallel update results:", parallelResult.data.summary);
+ * }
+ */

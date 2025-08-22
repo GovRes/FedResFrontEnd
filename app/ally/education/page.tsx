@@ -15,14 +15,14 @@ export default function EducationPage({}) {
     async function getEducation() {
       if (!user) return;
       setLoading(true);
-      let res = await listUserModelRecords("Education", user.userId);
-      if (res.items.length > 0) {
-        setLocalEducations(res.items);
+      let { data } = await listUserModelRecords("Education", user.userId);
+      if (data && data.items.length > 0) {
+        setLocalEducations(data.items);
       }
       setLoading(false);
     }
     getEducation();
-  }, [JSON.stringify(user)]);
+  }, [user?.userId]);
   if (loading) {
     return <Loader text="Loading education" />;
   }

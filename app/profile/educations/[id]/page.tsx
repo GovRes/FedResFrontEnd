@@ -18,8 +18,8 @@ export default function AwardPage({
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      const educationData = await fetchModelRecord("Education", id);
-      setEducation(educationData);
+      const { data } = await fetchModelRecord("Education", id);
+      setEducation(data);
       setLoading(false);
     }
     fetchData();

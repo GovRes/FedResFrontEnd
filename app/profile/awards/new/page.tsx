@@ -26,8 +26,8 @@ export default function NewAwardPage() {
         userId: user.userId,
       };
 
-      const res = await createModelRecord("Award", completeAwardData);
-      router.push(`/profile/awards/${res.id}`);
+      const { data } = await createModelRecord("Award", completeAwardData);
+      router.push(`/profile/awards/${data.id}`);
     } catch (error) {
       console.error("Error creating award:", error);
       setLoading(false);

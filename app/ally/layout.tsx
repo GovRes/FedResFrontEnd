@@ -44,7 +44,7 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
 
       if (applicationId) {
         try {
-          const applicationRes = await getApplicationWithJob({
+          const { data: applicationRes } = await getApplicationWithJob({
             id: applicationId,
           });
 

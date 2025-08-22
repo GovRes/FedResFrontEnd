@@ -1,5 +1,5 @@
 "use client";
-import { deleteAllModelRecords } from "../../lib/crud/genericDeleteAll";
+import { deleteAllModelRecords } from "../../lib/crud/genericDelete";
 import SeedRoles from "./components/SeedRoles";
 
 export default function AdminPage() {
@@ -7,10 +7,13 @@ export default function AdminPage() {
     <div>
       <h1>System Administration</h1>
       <SeedRoles />
+      <em> tk make cascading delete for join tables </em>
       <button
-        onClick={async () => await deleteAllModelRecords("Application", true)}
+        onClick={async () =>
+          await deleteAllModelRecords("PastJobQualification", true)
+        }
       >
-        Delete all Application records
+        Delete all Qualification records
       </button>
     </div>
   );

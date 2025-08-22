@@ -8,17 +8,17 @@ import {
 
 export const topicPastJobMatcher = async ({
   pastJobs,
-  topics,
+  topic,
 }: {
-  topics: TopicType[];
+  topic: TopicType;
   pastJobs: PastJobType[];
 }) => {
   const userMessage: ChatCompletionUserMessageParam = {
     role: "user",
     content: `user's past jobs: ${JSON.stringify(
       pastJobs
-    )}. Topically organized keywords for job listing: ${JSON.stringify(
-      topics
+    )}. Topic with keywords keywords from job listing: ${JSON.stringify(
+      topic
     )}.`,
   };
   const messagesForTopicPastJobMatcher: (
@@ -31,6 +31,7 @@ export const topicPastJobMatcher = async ({
       messages: messagesForTopicPastJobMatcher,
       name: "pastJobs",
     });
+    console.log("response from topic matcher 34", res);
     // Parse and validate the response
     return res.pastJobs;
   } catch (error) {

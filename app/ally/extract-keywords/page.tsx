@@ -38,17 +38,24 @@ export default function ExtractKeywords() {
       setTopics(job.topics);
     } else {
       async function categorizeTopics() {
+        console.log("Categorizing topics from keywords:", keywords);
         if (job && job.id) {
           setLoading(true);
           const topicRes = await topicsCategorizer({
             job,
             keywords,
           });
-          await createOrFindSimilarTopics({ jobId: job.id, topics: topicRes });
+          console.log("Categorized topics:", topicRes);
+          const createTopicRes = await createOrFindSimilarTopics({
+            jobId: job.id,
+            topics: topicRes,
+          });
+          console.log("Saved topics to backend", createTopicRes);
           setJob({
             ...job,
             topics: topicRes,
           });
+
           setLoading(false);
         }
       }

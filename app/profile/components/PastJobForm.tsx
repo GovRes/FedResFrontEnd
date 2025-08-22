@@ -1,17 +1,17 @@
 "use client";
 import { PastJobType, pastJobZodSchema } from "@/lib/utils/responseSchemas";
-import BaseForm from "../../../components/forms/BaseForm";
+import BaseForm from "../../components/forms/BaseForm";
 import {
   SubmitButton,
   GenericFieldWithLabel,
   ToggleWithLabel,
-} from "../../../components/forms/Inputs";
+} from "../../components/forms/Inputs";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 // Create a form-specific schema without userId and qualifications (handled by parent)
-const pastJobFormSchema = pastJobZodSchema.omit({
+const pastJobFormSchema = (pastJobZodSchema as z.ZodObject<any>).omit({
   userId: true,
   id: true,
   qualifications: true,

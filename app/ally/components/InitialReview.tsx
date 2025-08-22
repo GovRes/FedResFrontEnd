@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
   AwardType,
   EducationType,
-  PastJobType,
+  SimplePastJobType,
 } from "@/lib/utils/responseSchemas";
 import ReviewItemsList from "./ReviewItemsList";
 import { associateItemsWithApplication } from "@/lib/crud/application";
@@ -13,7 +13,7 @@ import { navigateToNextIncompleteStep } from "@/lib/utils/nextStepNavigation";
 import { useRouter } from "next/navigation";
 
 export default function InitialReview<
-  T extends AwardType | EducationType | PastJobType,
+  T extends AwardType | EducationType | SimplePastJobType,
 >({
   currentStepId,
   localItems,
@@ -28,7 +28,7 @@ export default function InitialReview<
     | "PastJob"
     | "VolunteerExperience"
     | "Resume";
-  setLocalItems: Function;
+  setLocalItems: (items: T[]) => void;
 }) {
   const [items, setItems] = useState<T[]>(localItems);
   useEffect(() => {
@@ -48,7 +48,9 @@ export default function InitialReview<
       if (selectedItems.length > 0) {
         await associateItemsWithApplication({
           applicationId,
-          items: selectedItems as unknown as { id: string }[],
+          items: selectedItems.filter((item) => item.id != null) as {
+            id: string;
+          }[],
           associationType:
             itemType === "VolunteerExperience" ? "PastJob" : itemType,
         });
@@ -72,7 +74,7 @@ export default function InitialReview<
   return (
     <ReviewItemsList
       itemType={itemType}
-      localItems={items} // Use local state for rendering
+      localItems={items}
       onSubmit={onSubmit}
     />
   );
