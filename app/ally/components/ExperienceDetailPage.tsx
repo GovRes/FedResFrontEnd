@@ -162,9 +162,6 @@ export default function ExperienceDetailPage({
           "errors" in detailedError
         ) {
           console.error("GraphQL Errors:", detailedError.errors);
-          detailedError.errors.forEach((err: any, index: number) => {
-            console.error(`GraphQL Error ${index + 1}:`, err.message);
-          });
         }
         throw detailedError;
       }

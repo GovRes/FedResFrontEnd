@@ -134,11 +134,6 @@ export async function updateModelRecord(
     // Add this detailed error logging:
     if (error && typeof error === "object" && "errors" in error) {
       console.error("GraphQL Errors:", error.errors);
-      error.errors.forEach((err: any, index: number) => {
-        console.error(`GraphQL Error ${index + 1}:`, err.message);
-        if (err.locations) console.error("Error locations:", err.locations);
-        if (err.path) console.error("Error path:", err.path);
-      });
     }
     // Check if it's a "not found" error
     const errorMessage = error instanceof Error ? error.message : String(error);
