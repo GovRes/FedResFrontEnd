@@ -1,12 +1,12 @@
 "use client";
-import { fetchModelRecord } from "@/lib/crud/genericFetch";
 import { GrEdit } from "react-icons/gr";
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { PastJobType } from "@/lib/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
 import PastJobItem from "@/app/ally/return-resume/components/PastJobItem";
-export default function AwardPage({
+import { fetchPastJobWithQualifications } from "@/lib/crud/pastJob";
+export default function PastJobPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -18,8 +18,8 @@ export default function AwardPage({
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      const pastJobData = await fetchModelRecord("PastJob", id);
-      setPastJob(pastJobData);
+      const { data } = await fetchPastJobWithQualifications(id);
+      setPastJob(data);
       setLoading(false);
     }
     fetchData();

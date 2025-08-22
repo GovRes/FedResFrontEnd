@@ -20,6 +20,12 @@ import { navigateToNextIncompleteStep } from "../../lib/utils/nextStepNavigation
 import { useRouter } from "next/navigation";
 import { getJobByApplicationId } from "../../lib/crud/job";
 
+// Processing status interface
+interface ProcessingStatus {
+  pastJobsProcessed: boolean;
+  volunteerProcessed: boolean;
+}
+
 // Combined interface for state + methods
 interface ApplicationContextType {
   // State properties
@@ -27,12 +33,15 @@ interface ApplicationContextType {
   steps: StepsType[];
   applicationId: string;
   initialRedirectComplete: boolean;
+  processingStatus: ProcessingStatus;
   resetApplication: () => void;
   setJob: (value: JobType) => void;
   setSteps: (value: StepsType[]) => void;
   setApplicationId: (value: string) => void;
   setInitialRedirectComplete: (value: boolean) => void;
   completeStep: (stepId: string, appId?: string) => Promise<void>;
+  markProcessingComplete: (type: "pastJobs" | "volunteer") => void;
+  isProcessingComplete: (type: "pastJobs" | "volunteer") => boolean;
 }
 
 // Default steps array
@@ -148,16 +157,75 @@ export const ApplicationProvider = ({
   const [applicationId, setApplicationIdState] = useState(initialAppId || "");
   const [initialRedirectComplete, setInitialRedirectComplete] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  // Processing status tracking
+  const [processingStatus, setProcessingStatus] = useState<ProcessingStatus>({
+    pastJobsProcessed: false,
+    volunteerProcessed: false,
+  });
+
   const router = useRouter();
 
   // Refs to prevent infinite loops
   const dataLoadedRef = useRef(false);
   const applicationLoadingRef = useRef(false);
 
+  // Map to track processing status per application ID
+  const processingMapRef = useRef<Map<string, ProcessingStatus>>(new Map());
+
   // Wrap setApplicationId in useCallback to prevent unnecessary re-renders
   const setApplicationId = useCallback((id: string) => {
     setApplicationIdState(id);
   }, []);
+
+  // Function to mark processing as complete for a specific type
+  const markProcessingComplete = useCallback(
+    (type: "pastJobs" | "volunteer") => {
+      if (!applicationId) return;
+
+      // Update the current state
+      setProcessingStatus((prev) => ({
+        ...prev,
+        [type === "pastJobs" ? "pastJobsProcessed" : "volunteerProcessed"]:
+          true,
+      }));
+
+      // Update the persistent map
+      const currentStatus = processingMapRef.current.get(applicationId) || {
+        pastJobsProcessed: false,
+        volunteerProcessed: false,
+      };
+
+      const updatedStatus = {
+        ...currentStatus,
+        [type === "pastJobs" ? "pastJobsProcessed" : "volunteerProcessed"]:
+          true,
+      };
+
+      processingMapRef.current.set(applicationId, updatedStatus);
+
+      // Store in sessionStorage for persistence
+      if (typeof window !== "undefined") {
+        const storageKey = `processing_${applicationId}`;
+        sessionStorage.setItem(storageKey, JSON.stringify(updatedStatus));
+      }
+    },
+    [applicationId]
+  );
+
+  // Function to check if processing is complete for a specific type
+  const isProcessingComplete = useCallback(
+    (type: "pastJobs" | "volunteer") => {
+      if (!applicationId) return false;
+
+      const status =
+        processingMapRef.current.get(applicationId) || processingStatus;
+      return type === "pastJobs"
+        ? status.pastJobsProcessed
+        : status.volunteerProcessed;
+    },
+    [applicationId, processingStatus]
+  );
 
   // Wrap resetApplication in useCallback
   const resetApplication = useCallback(() => {
@@ -165,14 +233,82 @@ export const ApplicationProvider = ({
     setJob(undefined);
     setSteps(defaultSteps);
     setInitialRedirectComplete(false);
+    setProcessingStatus({
+      pastJobsProcessed: false,
+      volunteerProcessed: false,
+    });
 
     if (typeof window !== "undefined") {
       sessionStorage.removeItem("applicationId");
+
+      // Clean up processing status from sessionStorage for current application
+      if (applicationId) {
+        sessionStorage.removeItem(`processing_${applicationId}`);
+      }
+
+      // Optional: Clean up all processing entries (more thorough cleanup)
+      // This removes processing status for all applications
+      Object.keys(sessionStorage).forEach((key) => {
+        if (key.startsWith("processing_")) {
+          sessionStorage.removeItem(key);
+        }
+      });
     }
 
+    // Clear processing map
+    processingMapRef.current.clear();
     dataLoadedRef.current = false;
     applicationLoadingRef.current = false;
-  }, [setApplicationId]);
+  }, [setApplicationId, applicationId]);
+
+  // Load processing status when applicationId changes
+  useEffect(() => {
+    if (!applicationId) {
+      setProcessingStatus({
+        pastJobsProcessed: false,
+        volunteerProcessed: false,
+      });
+      return;
+    }
+
+    // Check if we have the status in our map first
+    const mapStatus = processingMapRef.current.get(applicationId);
+    if (mapStatus) {
+      setProcessingStatus(mapStatus);
+      return;
+    }
+
+    // Load from sessionStorage
+    if (typeof window !== "undefined") {
+      const storageKey = `processing_${applicationId}`;
+      const storedStatus = sessionStorage.getItem(storageKey);
+
+      if (storedStatus) {
+        try {
+          const parsedStatus = JSON.parse(storedStatus) as ProcessingStatus;
+          setProcessingStatus(parsedStatus);
+          processingMapRef.current.set(applicationId, parsedStatus);
+        } catch (error) {
+          console.error("Error parsing stored processing status:", error);
+          // Reset to default if parsing fails
+          const defaultStatus = {
+            pastJobsProcessed: false,
+            volunteerProcessed: false,
+          };
+          setProcessingStatus(defaultStatus);
+          processingMapRef.current.set(applicationId, defaultStatus);
+        }
+      } else {
+        // No stored status, use defaults
+        const defaultStatus = {
+          pastJobsProcessed: false,
+          volunteerProcessed: false,
+        };
+        setProcessingStatus(defaultStatus);
+        processingMapRef.current.set(applicationId, defaultStatus);
+      }
+    }
+  }, [applicationId]);
 
   // Get current step synchronously from URL
   const getCurrentStepId = () => {
@@ -278,12 +414,12 @@ export const ApplicationProvider = ({
 
     async function loadJobData() {
       try {
-        const jobRes = await getJobByApplicationId(applicationId);
-        if (jobRes) {
+        const { data } = await getJobByApplicationId(applicationId);
+        if (data) {
           // Only update if the job actually changed
           setJob((prevJob) => {
-            if (!prevJob || prevJob.id !== jobRes.id) {
-              return jobRes;
+            if (!prevJob || prevJob.id !== data.id) {
+              return data;
             }
             return prevJob;
           });
@@ -338,7 +474,7 @@ export const ApplicationProvider = ({
 
     async function loadApplicationData() {
       try {
-        const applicationRes = await getApplicationWithJob({
+        const { data: applicationRes } = await getApplicationWithJob({
           id: applicationId,
         });
 
@@ -477,6 +613,7 @@ export const ApplicationProvider = ({
       applicationId,
       job,
       steps: stepsWithDisabling, // Use memoized steps with disabling logic applied
+      processingStatus,
       resetApplication,
       setApplicationId,
       setJob,
@@ -484,15 +621,20 @@ export const ApplicationProvider = ({
       initialRedirectComplete,
       setInitialRedirectComplete,
       completeStep,
+      markProcessingComplete,
+      isProcessingComplete,
     }),
     [
       applicationId,
       job,
       stepsWithDisabling,
+      processingStatus,
       resetApplication,
       setApplicationId,
       initialRedirectComplete,
       completeStep,
+      markProcessingComplete,
+      isProcessingComplete,
     ]
   );
 

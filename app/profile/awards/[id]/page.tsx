@@ -16,8 +16,8 @@ export default function AwardPage({
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      const awardData = await fetchModelRecord("Award", id);
-      setAward(awardData);
+      const { data } = await fetchModelRecord("Award", id);
+      setAward(data);
       setLoading(false);
     }
     fetchData();

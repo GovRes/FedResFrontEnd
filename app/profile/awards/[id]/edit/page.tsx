@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import AwardForm from "../../components/AwardForm";
-import { AwardType, awardZodSchema } from "@/lib/utils/responseSchemas";
+import { awardZodSchema } from "@/lib/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
 import { useRouter } from "next/navigation";
 import { createModelRecord } from "@/lib/crud/genericCreate";
@@ -9,7 +9,10 @@ import { useAuthenticator } from "@aws-amplify/ui-react";
 import { z } from "zod";
 
 // Create the form schema and type
-const awardFormSchema = awardZodSchema.omit({ userId: true, id: true });
+const awardFormSchema = (awardZodSchema as z.ZodObject<any>).omit({
+  userId: true,
+  id: true,
+});
 type AwardFormData = z.infer<typeof awardFormSchema>;
 
 export default function NewAwardPage() {
@@ -21,13 +24,13 @@ export default function NewAwardPage() {
     setLoading(true);
     try {
       // Combine form data with user ID
-      const completeAwardData: Omit<AwardType, "id"> = {
+      const completeAwardData = {
         ...formData,
         userId: user.userId,
       };
 
-      const res = await createModelRecord("Award", completeAwardData);
-      router.push(`/profile/awards/${res.id}`);
+      const { data } = await createModelRecord("Award", completeAwardData);
+      router.push(`/profile/awards/${data.id}`);
     } catch (error) {
       console.error("Error creating award:", error);
       setLoading(false);

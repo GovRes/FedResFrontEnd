@@ -1,9 +1,7 @@
 "use client";
+import createApplicationAndNavigate from "@/app/ally/components/createApplicationAndNav";
 import { useApplication } from "@/app/providers/applicationContext";
-
-import { navigateToNextIncompleteStep } from "@/lib/utils/nextStepNavigation";
 import { useRouter } from "next/navigation";
-import createApplication from "@/lib/utils/createApplication";
 export default function questionnaireNotFound({
   jobId,
   returnToSearch,
@@ -15,29 +13,20 @@ export default function questionnaireNotFound({
   userId: string;
   setLoading: (loading: boolean) => void;
 }) {
-  const router = useRouter();
   console.log(jobId);
-  const { completeStep, steps, setApplicationId } = useApplication();
+  const { steps, setApplicationId, completeStep } = useApplication();
+  const router = useRouter();
   async function makeApplication() {
     if (jobId) {
-      const result = await createApplication({
-        completeStep,
+      await createApplicationAndNavigate({
         jobId,
-        userId: userId,
-        setLoading: setLoading,
+        userId,
+        setLoading,
+        steps,
         setApplicationId,
+        completeStep,
+        router,
       });
-      if (result) {
-        navigateToNextIncompleteStep({
-          steps,
-          router,
-          currentStepId: "usa-jobs",
-          applicationId: result.id,
-          completeStep: completeStep,
-        });
-      } else {
-        console.error("Failed to create application:", result?.error);
-      }
     }
   }
   return (

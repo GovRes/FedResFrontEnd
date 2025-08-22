@@ -4,19 +4,41 @@ export async function POST(req: NextRequest) {
   const data = await req.json();
   const { url } = data;
   console.log("Received URL:", url);
+
   if (!url) {
     return new Response("Missing url", { status: 400 });
+  }
+
+  // Validate URL format
+  try {
+    new URL(url);
+  } catch (error) {
+    console.error("Invalid URL format:", url);
+    return new Response("Invalid URL format", { status: 400 });
   }
 
   //extract the jobId from the URL
   const jobId = url.match(/\/job\/(\d+)/);
   console.log("Extracted jobId:", jobId);
+
   try {
     // Fetch HTML content server-side to avoid CORS
     const htmlContent = await fetchPageHTML(url);
 
     if (!htmlContent) {
-      return new Response("Failed to fetch job page HTML", { status: 500 });
+      console.error("Failed to fetch job page HTML");
+      const response = {
+        questionnaireLink: false,
+        jobId: jobId ? jobId[1] : null,
+        error:
+          "Failed to fetch job page - the page may be unavailable or blocked",
+      };
+      return new Response(JSON.stringify(response), {
+        status: 200, // Return 200 but with error info
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
     }
 
     // Extract questionnaire link from HTML
@@ -51,8 +73,18 @@ export async function POST(req: NextRequest) {
       });
     }
   } catch (error) {
-    console.error(`Error fetching job page ${jobId}:`, error);
-    return new Response("Internal server error", { status: 500 });
+    console.error(`Error processing job page ${jobId}:`, error);
+    const response = {
+      questionnaireLink: false,
+      jobId: jobId ? jobId[1] : null,
+      error: "Internal server error - unable to process the job page",
+    };
+    return new Response(JSON.stringify(response), {
+      status: 200, // Return 200 but with error info for client handling
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
   }
 }
 
@@ -90,6 +122,8 @@ async function scrapeQuestionnaireWithBrowserless(
           // Remove the problematic options and use simpler approach
           rejectResourceTypes: ["image", "stylesheet", "font"],
         }),
+        // Add timeout for Browserless requests too
+        signal: AbortSignal.timeout(30000), // 30 second timeout
       }
     );
 
@@ -122,6 +156,7 @@ async function scrapeQuestionnaireWithBrowserless(
     return null;
   }
 }
+
 // Helper function to clean text for AI analysis
 function cleanTextForAI(text: string): string {
   return (
@@ -155,12 +190,25 @@ function extractQuestionnaireLink(html: string): string | null {
     // ApplicationManager links (alternative federal application system)
     /https?:\/\/[^"'\s]*applicationmanager\.gov[^"'\s]*/gi,
 
+    // Monster Government Jobs questionnaire links
+    /https?:\/\/jobs\.monstergovt\.com\/[^"'\s]*previewVacancyQuestions[^"'\s]*/gi,
+    /https?:\/\/jobs\.monstergovt\.com\/[^"'\s]*\/vacancy\/[^"'\s]*[Qq]uestion[^"'\s]*/gi,
+
+    // Other job portal questionnaire patterns
+    /https?:\/\/[^"'\s]*\.gov[^"'\s]*previewVacancyQuestions[^"'\s]*/gi,
+    /https?:\/\/[^"'\s]*\.gov[^"'\s]*vacancy[^"'\s]*[Qq]uestion[^"'\s]*/gi,
+
     // Generic patterns for questionnaire/assessment links
     /href=["']([^"']*(?:questionnaire|assessment)[^"']*)["']/gi,
     /href=["']([^"']*ViewQuestionnaire[^"']*)["']/gi,
+    /href=["']([^"']*previewVacancyQuestions[^"']*)["']/gi,
 
     // Links containing "apply" and job/position numbers
     /href=["']([^"']*apply[^"']*\/(?:Application|ViewQuestionnaire)\/\d+[^"']*)["']/gi,
+
+    // Generic job portal patterns with orgId and jnum parameters
+    /https?:\/\/[^"'\s]*\.(?:gov|com)[^"'\s]*\/[^"'\s]*vacancy[^"'\s]*orgId=\d+[^"'\s]*/gi,
+    /https?:\/\/[^"'\s]*\.(?:gov|com)[^"'\s]*jnum=\d+[^"'\s]*/gi,
   ];
 
   for (const pattern of patterns) {
@@ -187,6 +235,7 @@ function extractQuestionnaireLink(html: string): string | null {
   const textPatterns = [
     /(?:questionnaire|assessment)\s+(?:link|url):\s*(https?:\/\/[^\s]+)/gi,
     /(?:complete|view)\s+(?:the\s+)?(?:questionnaire|assessment).*?(https?:\/\/[^\s]+)/gi,
+    /(?:preview|view)\s+(?:vacancy\s+)?questions.*?(https?:\/\/[^\s]+)/gi,
   ];
 
   for (const pattern of textPatterns) {
@@ -199,9 +248,11 @@ function extractQuestionnaireLink(html: string): string | null {
 
   // Search for common button/link text patterns
   const buttonPatterns = [
-    /<[^>]*(?:button|link|a)[^>]*[^>]*>.*?(?:apply|questionnaire|assessment).*?<\/[^>]*>/gi,
+    /<[^>]*(?:button|link|a)[^>]*[^>]*>.*?(?:apply|questionnaire|assessment|preview.*questions).*?<\/[^>]*>/gi,
     /"Apply"[^>]*href=["']([^"']+)["']/gi,
     /"Start.*?Application"[^>]*href=["']([^"']+)["']/gi,
+    /"Preview.*?Questions?"[^>]*href=["']([^"']+)["']/gi,
+    /"View.*?Questions?"[^>]*href=["']([^"']+)["']/gi,
   ];
 
   for (const pattern of buttonPatterns) {
@@ -209,7 +260,13 @@ function extractQuestionnaireLink(html: string): string | null {
     if (matches) {
       for (const match of matches) {
         const urlMatch = match.match(/href=["']([^"']+)["']/);
-        if (urlMatch && urlMatch[1].includes("apply")) {
+        if (
+          urlMatch &&
+          (urlMatch[1].includes("apply") ||
+            urlMatch[1].includes("question") ||
+            urlMatch[1].includes("questionnaire") ||
+            urlMatch[1].includes("previewVacancyQuestions"))
+        ) {
           console.log(
             `Found potential questionnaire link in button: ${urlMatch[1]}`
           );
@@ -223,40 +280,99 @@ function extractQuestionnaireLink(html: string): string | null {
   return null;
 }
 
-// Helper function to fetch job page HTML server-side
+// Helper function to fetch job page HTML server-side with retry logic
 async function fetchPageHTML(url: string): Promise<string | null> {
-  try {
-    console.log(`240, Fetching HTML for ${url}`);
+  const maxRetries = 3;
+  const retryDelay = 1000; // 1 second
 
-    const response = await fetch(`${url}`, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        Accept:
-          "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5",
-        "Accept-Encoding": "gzip, deflate, br",
-        DNT: "1",
-        Connection: "keep-alive",
-        "Upgrade-Insecure-Requests": "1",
-        "Sec-Fetch-Dest": "document",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-Site": "none",
-      },
-    });
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`Attempt ${attempt}/${maxRetries}: Fetching HTML for ${url}`);
 
-    if (!response.ok) {
-      console.error(
-        `Failed to fetch page ${url} ${response.status} ${response.statusText}`
+      // Create AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          Accept:
+            "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+          "Accept-Language": "en-US,en;q=0.5",
+          "Accept-Encoding": "gzip, deflate, br",
+          DNT: "1",
+          Connection: "keep-alive",
+          "Upgrade-Insecure-Requests": "1",
+          "Sec-Fetch-Dest": "document",
+          "Sec-Fetch-Mode": "navigate",
+          "Sec-Fetch-Site": "none",
+          // Add cache control to avoid stale responses
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
+      });
+
+      // Clear the timeout since request completed
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        console.error(
+          `Attempt ${attempt}: Failed to fetch page ${url} - ${response.status} ${response.statusText}`
+        );
+
+        // Don't retry for client errors (4xx), but retry for server errors (5xx)
+        if (response.status >= 400 && response.status < 500) {
+          console.error("Client error - not retrying");
+          return null;
+        }
+
+        // Retry for server errors
+        if (attempt === maxRetries) {
+          return null;
+        }
+        continue;
+      }
+
+      const html = await response.text();
+      console.log(
+        `Successfully fetched ${html.length} characters for page on attempt ${attempt}`
       );
-      return null;
-    }
+      return html;
+    } catch (error: any) {
+      console.error(`Attempt ${attempt}: Error fetching page:`, {
+        message: error.message,
+        code: error.code,
+        cause: error.cause?.code || "unknown",
+      });
 
-    const html = await response.text();
-    console.log(`Successfully fetched ${html.length} characters for page`);
-    return html;
-  } catch (error) {
-    console.error(`Error fetching page:`, error);
-    return null;
+      // Handle specific error types
+      if (error.name === "AbortError") {
+        console.error(`Attempt ${attempt}: Request timed out`);
+      } else if (error.code === "ETIMEDOUT" || error.code === "ECONNRESET") {
+        console.error(`Attempt ${attempt}: Network timeout/connection reset`);
+      } else if (error.code === "ENOTFOUND") {
+        console.error(
+          `Attempt ${attempt}: DNS lookup failed - domain not found`
+        );
+        return null; // Don't retry DNS failures
+      } else if (error.code === "ECONNREFUSED") {
+        console.error(`Attempt ${attempt}: Connection refused by server`);
+      }
+
+      // If this was the last attempt, give up
+      if (attempt === maxRetries) {
+        console.error(`All ${maxRetries} attempts failed for ${url}`);
+        return null;
+      }
+
+      // Wait before retrying (exponential backoff)
+      const delay = retryDelay * Math.pow(2, attempt - 1);
+      console.log(`Waiting ${delay}ms before retry...`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
   }
+
+  return null;
 }

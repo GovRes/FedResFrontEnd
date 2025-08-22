@@ -2,7 +2,7 @@
 import { Loader } from "@/app/components/loader/Loader";
 import { updateModelRecord } from "@/lib/crud/genericUpdate";
 import { fetchModelRecord } from "@/lib/crud/genericFetch";
-import PastJobForm from "@/app/profile/components/components/PastJobForm";
+import PastJobForm from "@/app/profile/components/PastJobForm";
 import { PastJobType, pastJobZodSchema } from "@/lib/utils/responseSchemas";
 import { useEffect, useState } from "react";
 import { use } from "react";
@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { z } from "zod";
 
 // Create the form schema and type
-const pastJobFormSchema = pastJobZodSchema.omit({
+const pastJobFormSchema = (pastJobZodSchema as z.ZodObject<any>).omit({
   userId: true,
   id: true,
   qualifications: true,
@@ -32,6 +32,18 @@ export default function EditVolunteerPage({
     try {
       // Combine form data with existing volunteer data (id, userId, qualifications)
       const completeVolunteerData: PastJobType = {
+        endDate: volunteerData!.endDate,
+        gsLevel: volunteerData!.gsLevel,
+        hours: volunteerData!.hours,
+        organization: volunteerData!.organization,
+        organizationAddress: volunteerData!.organizationAddress,
+        responsibilities: volunteerData!.responsibilities,
+        startDate: volunteerData!.startDate,
+        supervisorMayContact: volunteerData!.supervisorMayContact,
+        supervisorName: volunteerData!.supervisorName,
+        supervisorPhone: volunteerData!.supervisorPhone,
+        title: volunteerData!.title,
+        type: volunteerData!.type,
         ...formData,
         id: volunteerData!.id,
         userId: volunteerData!.userId,
@@ -50,8 +62,8 @@ export default function EditVolunteerPage({
     async function fetchData() {
       setLoading(true);
       try {
-        const fetchedVolunteerData = await fetchModelRecord("PastJob", id);
-        setVolunteerData(fetchedVolunteerData);
+        const { data } = await fetchModelRecord("PastJob", id);
+        setVolunteerData(data);
       } catch (error) {
         console.error("Error fetching volunteer experience:", error);
       }

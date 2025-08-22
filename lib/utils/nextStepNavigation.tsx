@@ -52,6 +52,7 @@ export const navigateToNextIncompleteStep = async ({
   currentStepId: string;
   completeStep: (stepId: string, applicationId?: string) => Promise<void>;
 }): Promise<boolean> => {
+  console.log("navigate to next called with application id", applicationId);
   await completeStep(currentStepId, applicationId);
   const nextStep = findNextIncompleteStep(steps, currentStepId);
   if (nextStep) {

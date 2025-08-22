@@ -1,5 +1,12 @@
 import { generateClient } from "aws-amplify/api";
 
+interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  statusCode: number;
+}
+
 /**
  * The supported entity types that can be fetched for a user
  */
@@ -23,12 +30,36 @@ export type EntityRecord = {
  *
  * @param {AssociationType} associationType - The type of association to fetch
  * @param {number} limit - Maximum number of records to fetch (default: 1000)
- * @returns {Promise<EntityRecord[]>} - Array of association objects belonging to the logged-in user
+ * @returns {Promise<ApiResponse<T[]>>} - API response with array of association objects belonging to the logged-in user
  */
 export async function fetchUserAssociations<T extends EntityRecord>(
   associationType: AssociationType,
   limit: number = 1000
-): Promise<T[]> {
+): Promise<ApiResponse<T[]>> {
+  // Validate associationType
+  const validTypes: AssociationType[] = [
+    "Award",
+    "Education",
+    "PastJob",
+    "Qualification",
+  ];
+  if (!validTypes.includes(associationType)) {
+    return {
+      success: false,
+      error: `Invalid association type: ${associationType}. Must be one of: ${validTypes.join(", ")}`,
+      statusCode: 400,
+    };
+  }
+
+  // Validate limit
+  if (limit <= 0 || limit > 10000) {
+    return {
+      success: false,
+      error: "Invalid limit: limit must be between 1 and 10000",
+      statusCode: 400,
+    };
+  }
+
   const client = generateClient();
   const queryName = `list${associationType}s`;
 
@@ -57,13 +88,25 @@ export async function fetchUserAssociations<T extends EntityRecord>(
 
     // Explicit type checking for the response
     if ("data" in result && result.data?.[queryName]?.items) {
-      return result.data[queryName].items as T[];
+      return {
+        success: true,
+        data: result.data[queryName].items as T[],
+        statusCode: 200,
+      };
     } else {
-      return [] as T[];
+      return {
+        success: true,
+        data: [] as T[],
+        statusCode: 200,
+      };
     }
   } catch (error) {
     console.error(`Error fetching user ${associationType}s:`, error);
-    throw error;
+    return {
+      success: false,
+      error: `Failed to fetch user ${associationType}s: ${error instanceof Error ? error.message : String(error)}`,
+      statusCode: 500,
+    };
   }
 }
 
@@ -74,14 +117,68 @@ export async function fetchUserAssociations<T extends EntityRecord>(
  * @param {Object} inputData - The data for the new entity
  * @param {Object} identifierFields - The fields to use for checking if the entity exists
  * @param {string} userId - The user ID to associate with the new entity
- * @returns {Promise<EntityRecord>} - The existing or newly created entity
+ * @returns {Promise<ApiResponse<T>>} - API response with the existing or newly created entity
  */
 export async function createIfNotExists<T extends EntityRecord>(
   associationType: AssociationType,
   inputData: Omit<T, "id" | "createdAt" | "updatedAt">,
   identifierFields: string[],
   userId: string
-): Promise<T> {
+): Promise<ApiResponse<T>> {
+  // Validate associationType
+  const validTypes: AssociationType[] = [
+    "Award",
+    "Education",
+    "PastJob",
+    "Qualification",
+  ];
+  if (!validTypes.includes(associationType)) {
+    return {
+      success: false,
+      error: `Invalid association type: ${associationType}. Must be one of: ${validTypes.join(", ")}`,
+      statusCode: 400,
+    };
+  }
+
+  // Validate inputData
+  if (!inputData || typeof inputData !== "object") {
+    return {
+      success: false,
+      error: "Invalid inputData: inputData must be a non-null object",
+      statusCode: 400,
+    };
+  }
+
+  // Validate identifierFields
+  if (!Array.isArray(identifierFields) || identifierFields.length === 0) {
+    return {
+      success: false,
+      error: "Invalid identifierFields: must be a non-empty array",
+      statusCode: 400,
+    };
+  }
+
+  // Validate userId
+  if (!userId || typeof userId !== "string" || userId.trim() === "") {
+    return {
+      success: false,
+      error: "Invalid userId: userId must be a non-empty string",
+      statusCode: 400,
+    };
+  }
+
+  // Validate that all identifier fields exist in inputData
+  const missingFields = identifierFields.filter(
+    (field) => !(field in inputData)
+  );
+  if (missingFields.length > 0) {
+    return {
+      success: false,
+      error: `Missing identifier fields in inputData: ${missingFields.join(", ")}`,
+      statusCode: 400,
+    };
+  }
+
   const client = generateClient();
   const listQueryName = `list${associationType}s`;
   const createQueryName = `create${associationType}`;
@@ -123,7 +220,11 @@ export async function createIfNotExists<T extends EntityRecord>(
       existingResult.data?.[listQueryName]?.items &&
       existingResult.data[listQueryName].items.length > 0
     ) {
-      return existingResult.data[listQueryName].items[0] as T;
+      return {
+        success: true,
+        data: existingResult.data[listQueryName].items[0] as T,
+        statusCode: 200,
+      };
     }
 
     // Entity doesn't exist, create it
@@ -151,13 +252,25 @@ export async function createIfNotExists<T extends EntityRecord>(
 
     // Return the created entity
     if ("data" in createResult && createResult.data?.[createQueryName]) {
-      return createResult.data[createQueryName] as T;
+      return {
+        success: true,
+        data: createResult.data[createQueryName] as T,
+        statusCode: 201,
+      };
     } else {
-      throw new Error(`Failed to create ${associationType}`);
+      return {
+        success: false,
+        error: `Failed to create ${associationType}: No data returned`,
+        statusCode: 500,
+      };
     }
   } catch (error) {
     console.error(`Error in createIfNotExists for ${associationType}:`, error);
-    throw error;
+    return {
+      success: false,
+      error: `Failed to create or find ${associationType}: ${error instanceof Error ? error.message : String(error)}`,
+      statusCode: 500,
+    };
   }
 }
 
@@ -168,29 +281,87 @@ export async function createIfNotExists<T extends EntityRecord>(
  * @param {Object[]} entitiesInput - Array of entity data objects
  * @param {string[]} identifierFields - Fields to use for checking if entities exist
  * @param {string} userId - The user ID to associate with new entities
- * @returns {Promise<Object[]>} - The array of existing or newly created entities
+ * @returns {Promise<ApiResponse<{created: T[], existing: T[], failed: {input: any, error: string}[]}>>} - API response with results breakdown
  */
 export async function createAndSaveEntities<T extends EntityRecord>(
   associationType: AssociationType,
   entitiesInput: Omit<T, "id" | "createdAt" | "updatedAt">[],
   identifierFields: string[],
   userId: string
-): Promise<T[]> {
-  const results: T[] = [];
+): Promise<
+  ApiResponse<{
+    created: T[];
+    existing: T[];
+    failed: { input: any; error: string }[];
+  }>
+> {
+  // Validate entitiesInput
+  if (!Array.isArray(entitiesInput) || entitiesInput.length === 0) {
+    return {
+      success: false,
+      error: "Invalid entitiesInput: must be a non-empty array",
+      statusCode: 400,
+    };
+  }
+
+  const created: T[] = [];
+  const existing: T[] = [];
+  const failed: { input: any; error: string }[] = [];
 
   // Process each entity in the input array
   for (const entityInput of entitiesInput) {
-    const result = await createIfNotExists<T>(
-      associationType,
-      entityInput,
-      identifierFields,
-      userId
-    );
+    try {
+      const result = await createIfNotExists<T>(
+        associationType,
+        entityInput,
+        identifierFields,
+        userId
+      );
 
-    results.push(result);
+      if (result.success && result.data) {
+        if (result.statusCode === 201) {
+          // Entity was created
+          created.push(result.data);
+        } else {
+          // Entity already existed
+          existing.push(result.data);
+        }
+      } else {
+        failed.push({
+          input: entityInput,
+          error: result.error || `Failed to process ${associationType}`,
+        });
+      }
+    } catch (error) {
+      console.error(`Error processing entity:`, error);
+      failed.push({
+        input: entityInput,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
-  return results;
+  // Determine overall success status
+  const hasResults = created.length + existing.length > 0;
+  const hasFailed = failed.length > 0;
+  const allFailed = failed.length === entitiesInput.length;
+
+  if (allFailed) {
+    return {
+      success: false,
+      error: `Failed to process all ${entitiesInput.length} ${associationType} entities`,
+      statusCode: 500,
+    };
+  }
+
+  return {
+    success: hasResults,
+    data: { created, existing, failed },
+    statusCode: hasResults ? 200 : 500,
+    ...(hasFailed && {
+      error: `${failed.length} of ${entitiesInput.length} ${associationType} entities failed to process`,
+    }),
+  };
 }
 
 /**
@@ -200,13 +371,54 @@ export async function createAndSaveEntities<T extends EntityRecord>(
  * @param parentId - The ID of the parent entity
  * @param childType - The type of the child entity
  * @param childId - The ID of the child entity
+ * @returns {Promise<ApiResponse<{id: string}>>} - API response with the created relationship ID
  */
 export async function createRelationship(
   parentType: AssociationType,
   parentId: string,
   childType: AssociationType,
   childId: string
-): Promise<void> {
+): Promise<ApiResponse<{ id: string }>> {
+  // Validate inputs
+  const validTypes: AssociationType[] = [
+    "Award",
+    "Education",
+    "PastJob",
+    "Qualification",
+  ];
+
+  if (!validTypes.includes(parentType)) {
+    return {
+      success: false,
+      error: `Invalid parent type: ${parentType}. Must be one of: ${validTypes.join(", ")}`,
+      statusCode: 400,
+    };
+  }
+
+  if (!validTypes.includes(childType)) {
+    return {
+      success: false,
+      error: `Invalid child type: ${childType}. Must be one of: ${validTypes.join(", ")}`,
+      statusCode: 400,
+    };
+  }
+
+  if (!parentId || typeof parentId !== "string" || parentId.trim() === "") {
+    return {
+      success: false,
+      error: "Invalid parentId: parentId must be a non-empty string",
+      statusCode: 400,
+    };
+  }
+
+  if (!childId || typeof childId !== "string" || childId.trim() === "") {
+    return {
+      success: false,
+      error: "Invalid childId: childId must be a non-empty string",
+      statusCode: 400,
+    };
+  }
+
   const client = generateClient();
 
   // Determine the join table type
@@ -230,7 +442,7 @@ export async function createRelationship(
   }Id`;
 
   try {
-    await client.graphql({
+    const result = await client.graphql({
       query: createRelationshipMutation,
       variables: {
         input: {
@@ -240,12 +452,30 @@ export async function createRelationship(
       },
       authMode: "userPool",
     });
+
+    if ("data" in result && result.data?.[createMutationName]?.id) {
+      return {
+        success: true,
+        data: { id: result.data[createMutationName].id },
+        statusCode: 201,
+      };
+    } else {
+      return {
+        success: false,
+        error: `Failed to create relationship between ${parentType} and ${childType}: No data returned`,
+        statusCode: 500,
+      };
+    }
   } catch (error) {
     console.error(
       `Error creating relationship between ${parentType} and ${childType}:`,
       error
     );
-    throw error;
+    return {
+      success: false,
+      error: `Failed to create relationship between ${parentType} and ${childType}: ${error instanceof Error ? error.message : String(error)}`,
+      statusCode: 500,
+    };
   }
 }
 
@@ -263,7 +493,6 @@ function getFieldsForType(associationType: AssociationType): string {
   const typeSpecificFields: Record<AssociationType, string[]> = {
     Award: ["title", "date"],
     Education: ["degree", "major", "school", "date", "type", "gpa"],
-    // Resume: ["fileName"],
     PastJob: [
       "title",
       "organization",
@@ -286,3 +515,59 @@ function getFieldsForType(associationType: AssociationType): string {
   const fields = [...commonFields, ...typeSpecificFields[associationType]];
   return fields.join("\n            ");
 }
+
+/**
+ * Example usage:
+ *
+ * // Fetch user associations
+ * const associationsResult = await fetchUserAssociations<EntityRecord>("Education", 100);
+ * if (associationsResult.success && associationsResult.data) {
+ *   console.log("User education records:", associationsResult.data);
+ * } else {
+ *   console.error(`Error ${associationsResult.statusCode}:`, associationsResult.error);
+ * }
+ *
+ * // Create or find existing entity
+ * const createResult = await createIfNotExists<EntityRecord>(
+ *   "Education",
+ *   {
+ *     degree: "Bachelor of Science",
+ *     major: "Computer Science",
+ *     school: "University of Example",
+ *     userId: "user123"
+ *   },
+ *   ["degree", "school"],
+ *   "user123"
+ * );
+ * if (createResult.success && createResult.data) {
+ *   console.log("Education record:", createResult.data);
+ *   console.log("Was created:", createResult.statusCode === 201);
+ * } else {
+ *   console.error(`Error ${createResult.statusCode}:`, createResult.error);
+ * }
+ *
+ * // Create multiple entities
+ * const batchResult = await createAndSaveEntities<EntityRecord>(
+ *   "Award",
+ *   [
+ *     { title: "Best Employee", date: "2023-01-01", userId: "user123" },
+ *     { title: "Innovation Award", date: "2023-06-01", userId: "user123" }
+ *   ],
+ *   ["title", "date"],
+ *   "user123"
+ * );
+ * if (batchResult.success && batchResult.data) {
+ *   const { created, existing, failed } = batchResult.data;
+ *   console.log(`Created: ${created.length}, Existing: ${existing.length}, Failed: ${failed.length}`);
+ * } else {
+ *   console.error(`Error ${batchResult.statusCode}:`, batchResult.error);
+ * }
+ *
+ * // Create relationship
+ * const relationshipResult = await createRelationship("Education", "edu123", "Qualification", "qual456");
+ * if (relationshipResult.success && relationshipResult.data) {
+ *   console.log("Relationship created with ID:", relationshipResult.data.id);
+ * } else {
+ *   console.error(`Error ${relationshipResult.statusCode}:`, relationshipResult.error);
+ * }
+ */

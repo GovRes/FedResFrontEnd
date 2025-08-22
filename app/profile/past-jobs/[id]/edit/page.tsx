@@ -2,7 +2,7 @@
 import { Loader } from "@/app/components/loader/Loader";
 import { updateModelRecord } from "@/lib/crud/genericUpdate";
 import { fetchModelRecord } from "@/lib/crud/genericFetch";
-import PastJobForm from "@/app/profile/components/components/PastJobForm";
+import PastJobForm from "@/app/profile/components/PastJobForm";
 import { PastJobType, pastJobZodSchema } from "@/lib/utils/responseSchemas";
 import { useEffect, useState } from "react";
 import { use } from "react";
@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { z } from "zod";
 
 // Create the form schema and type
-const pastJobFormSchema = pastJobZodSchema.omit({
+const pastJobFormSchema = (pastJobZodSchema as z.ZodObject<any>).omit({
   userId: true,
   id: true,
   qualifications: true,
@@ -32,6 +32,18 @@ export default function EditPastJobPage({
     try {
       // Combine form data with existing past job data (id, userId, qualifications)
       const completePastJobData: PastJobType = {
+        endDate: pastJobData!.endDate,
+        gsLevel: pastJobData!.gsLevel,
+        hours: pastJobData!.hours,
+        organization: pastJobData!.organization,
+        organizationAddress: pastJobData!.organizationAddress,
+        responsibilities: pastJobData!.responsibilities,
+        startDate: pastJobData!.startDate,
+        supervisorMayContact: pastJobData!.supervisorMayContact,
+        supervisorName: pastJobData!.supervisorName,
+        supervisorPhone: pastJobData!.supervisorPhone,
+        title: pastJobData!.title,
+        type: pastJobData!.type,
         ...formData,
         id: pastJobData!.id,
         userId: pastJobData!.userId,
@@ -50,8 +62,8 @@ export default function EditPastJobPage({
     async function fetchData() {
       setLoading(true);
       try {
-        const fetchedPastJobData = await fetchModelRecord("PastJob", id);
-        setPastJobData(fetchedPastJobData);
+        const { data } = await fetchModelRecord("PastJob", id);
+        setPastJobData(data);
       } catch (error) {
         console.error("Error fetching past job:", error);
       }

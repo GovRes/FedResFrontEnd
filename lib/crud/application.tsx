@@ -3,21 +3,36 @@ import {
   AwardType,
   EducationType,
   PastJobType,
+  QualificationType,
   ResumeType,
 } from "../utils/responseSchemas";
 import { generateClient } from "aws-amplify/api";
 
+interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  statusCode: number;
+}
+
 /**
  * Types for different associations - updated to match responseSchemas
  */
-type AssociationType = "Award" | "Education" | "PastJob" | "Resume";
+type AssociationType =
+  | "Award"
+  | "Education"
+  | "PastJob"
+  | "Qualification"
+  | "Resume";
 
 type AssociationTypeMap = {
   Award: AwardType;
   Education: EducationType;
   PastJob: PastJobType;
+  Qualification: QualificationType;
   Resume: ResumeType;
 };
+
 export const associateItemsWithApplication = async ({
   applicationId,
   items,
@@ -26,15 +41,24 @@ export const associateItemsWithApplication = async ({
   applicationId: string;
   items: { id: string }[] | string[];
   associationType: AssociationType;
-}) => {
+}): Promise<ApiResponse> => {
+  console.log(items, associationType);
   try {
     const session = await fetchAuthSession();
     if (!session.tokens) {
-      throw new Error("No valid authentication session found");
+      return {
+        success: false,
+        error: "No valid authentication session found",
+        statusCode: 401,
+      };
     }
   } catch (error) {
     console.error("No user is signed in");
-    return;
+    return {
+      success: false,
+      error: "User not authenticated",
+      statusCode: 401,
+    };
   }
 
   const client = generateClient();
@@ -42,15 +66,18 @@ export const associateItemsWithApplication = async ({
   try {
     // Validate required parameters
     if (!applicationId || !items || items.length === 0) {
-      throw new Error(
-        `applicationId and non-empty ${associationType} items array are required`
-      );
+      return {
+        success: false,
+        error: `applicationId and non-empty ${associationType} items array are required`,
+        statusCode: 400,
+      };
     }
 
     // Map to get the item IDs whether we received objects with IDs or just ID strings
     const itemIds = items.map((item) =>
       typeof item === "string" ? item : item.id
     );
+    console.log(62, itemIds);
 
     // Build the mutation name based on the associationType
     const mutationName = `create${associationType}Application`;
@@ -60,44 +87,138 @@ export const associateItemsWithApplication = async ({
       associationType.charAt(0).toLowerCase() + associationType.slice(1)
     }Id`;
 
-    // Create connections one at a time to avoid complex filter expressions
-    const createdConnections = [];
+    // STEP 1: Check for existing associations first
+    const listQueryName = `list${associationType}Applications`;
 
-    for (const itemId of itemIds) {
-      const input = {
-        [itemIdFieldName]: itemId,
-        applicationId,
-      };
-
-      const response = await client.graphql({
-        query: `
-          mutation Create${associationType}Application($input: Create${associationType}ApplicationInput!) {
-            ${mutationName}(input: $input) {
-              id
-              ${itemIdFieldName}
-              applicationId
-            }
+    const existingAssociationsQuery = `
+      query List${associationType}Applications($filter: Model${associationType}ApplicationFilterInput) {
+        ${listQueryName}(filter: $filter) {
+          items {
+            ${itemIdFieldName}
+            applicationId
           }
-        `,
-        variables: { input },
-        authMode: "userPool",
-      });
+        }
+      }
+    `;
 
-      if ("data" in response) {
-        createdConnections.push(response.data[mutationName]);
-      } else {
-        throw new Error(
-          `Unexpected response format from GraphQL operation for ${associationType}`
+    const existingResponse = await client.graphql({
+      query: existingAssociationsQuery,
+      variables: {
+        filter: {
+          applicationId: { eq: applicationId },
+        },
+      },
+      authMode: "userPool",
+    });
+
+    // Get existing item IDs that are already associated
+    const existingItemIds = new Set();
+    if (
+      "data" in existingResponse &&
+      existingResponse.data[listQueryName]?.items
+    ) {
+      existingResponse.data[listQueryName].items.forEach((item: any) => {
+        existingItemIds.add(item[itemIdFieldName]);
+      });
+    }
+
+    // STEP 2: Filter out items that are already associated
+    const newItemIds = itemIds.filter((itemId) => !existingItemIds.has(itemId));
+
+    if (newItemIds.length === 0) {
+      console.log(
+        `All ${associationType} items are already associated with this application`
+      );
+      return {
+        success: true,
+        data: [],
+        statusCode: 200,
+      };
+    }
+
+    console.log(
+      `Creating ${newItemIds.length} new associations out of ${itemIds.length} total items`
+    );
+
+    // STEP 3: Create connections for new items only
+    const createdConnections = [];
+    const errors = [];
+
+    for (const itemId of newItemIds) {
+      try {
+        const input = {
+          [itemIdFieldName]: itemId,
+          applicationId,
+        };
+
+        const response = await client.graphql({
+          query: `
+            mutation Create${associationType}Application($input: Create${associationType}ApplicationInput!) {
+              ${mutationName}(input: $input) {
+                ${itemIdFieldName}
+                applicationId
+              }
+            }
+          `,
+          variables: { input },
+          authMode: "userPool",
+        });
+
+        if ("data" in response && response.data[mutationName]) {
+          createdConnections.push(response.data[mutationName]);
+          console.log(
+            `Successfully created association for ${associationType} ${itemId}`
+          );
+        } else {
+          errors.push(
+            `Failed to create association for ${associationType} ${itemId}: Unexpected response format`
+          );
+        }
+      } catch (error) {
+        console.error(
+          `Error creating association for ${associationType} ${itemId}:`,
+          error
+        );
+        errors.push(
+          `Failed to create association for ${associationType} ${itemId}: ${error instanceof Error ? error.message : String(error)}`
         );
       }
     }
-    return createdConnections;
+
+    // STEP 4: Return results
+    if (errors.length > 0 && createdConnections.length === 0) {
+      // All failed
+      return {
+        success: false,
+        error: `Failed to create any associations: ${errors.join("; ")}`,
+        statusCode: 500,
+      };
+    } else if (errors.length > 0) {
+      // Partial success
+      return {
+        success: true,
+        data: createdConnections,
+        statusCode: 207, // Multi-status
+        error: `Some associations failed: ${errors.join("; ")}`,
+      };
+    } else {
+      // All successful
+      return {
+        success: true,
+        data: createdConnections,
+        statusCode: 201,
+      };
+    }
   } catch (error) {
     console.error(
       `Error associating ${associationType} with Application:`,
       error
     );
-    throw error;
+    return {
+      success: false,
+      error: `Failed to associate ${associationType} with Application: ${error instanceof Error ? error.message : String(error)}`,
+      statusCode: 500,
+    };
   }
 };
 
@@ -107,22 +228,34 @@ export const createAndSaveApplication = async ({
 }: {
   jobId: string;
   userId: string;
-}) => {
+}): Promise<ApiResponse> => {
   try {
     const session = await fetchAuthSession();
     if (!session.tokens) {
-      throw new Error("No valid authentication session found");
+      return {
+        success: false,
+        error: "No valid authentication session found",
+        statusCode: 401,
+      };
     }
   } catch (error) {
     console.error("No user is signed in");
-    // Redirect to login page
-    return;
+    return {
+      success: false,
+      error: "User not authenticated",
+      statusCode: 401,
+    };
   }
+
   const client = generateClient();
   try {
     // Validate required parameters
     if (!jobId || !userId) {
-      throw new Error("jobId and userId are required parameters");
+      return {
+        success: false,
+        error: "jobId and userId are required parameters",
+        statusCode: 400,
+      };
     }
 
     // Create the Application input object
@@ -153,14 +286,28 @@ export const createAndSaveApplication = async ({
 
     // Return the created Application
     if ("data" in response) {
-      return response.data.createApplication;
+      return {
+        success: true,
+        data: response.data.createApplication,
+        statusCode: 201,
+      };
     }
-    throw new Error("Unexpected response format from GraphQL operation");
+
+    return {
+      success: false,
+      error: "Unexpected response format from GraphQL operation",
+      statusCode: 500,
+    };
   } catch (error) {
     console.error("Error creating Application:", error);
-    throw error;
+    return {
+      success: false,
+      error: "Failed to create Application",
+      statusCode: 500,
+    };
   }
 };
+
 function deduplicateById<T extends { id: string }>(items: T[]): T[] {
   const seen = new Set<string>();
   return items.filter((item) => {
@@ -178,8 +325,7 @@ function deduplicateById<T extends { id: string }>(items: T[]): T[] {
  * @param {Object} params - The function parameters
  * @param {string} params.applicationId - The ID of the application
  * @param {AssociationType} params.associationType - The type of association to fetch
- * @returns {Promise<T[]>} - Array of associated items with duplicates removed
- * @throws {Error} - If fetching fails or required parameters are missing
+ * @returns {Promise<ApiResponse<T[]>>} - Array of associated items with duplicates removed
  */
 export const getApplicationAssociations = async <T extends AssociationType>({
   applicationId,
@@ -187,15 +333,24 @@ export const getApplicationAssociations = async <T extends AssociationType>({
 }: {
   applicationId: string;
   associationType: T;
-}): Promise<AssociationTypeMap[T][] | undefined> => {
+}): Promise<ApiResponse<AssociationTypeMap[T][]>> => {
+  console.log(337, applicationId, associationType);
   try {
     const session = await fetchAuthSession();
     if (!session.tokens) {
-      throw new Error("No valid authentication session found");
+      return {
+        success: false,
+        error: "No valid authentication session found",
+        statusCode: 401,
+      };
     }
   } catch (error) {
     console.error("No user is signed in");
-    return;
+    return {
+      success: false,
+      error: "User not authenticated",
+      statusCode: 401,
+    };
   }
 
   const client = generateClient();
@@ -203,7 +358,11 @@ export const getApplicationAssociations = async <T extends AssociationType>({
   try {
     // Validate required parameters
     if (!applicationId) {
-      throw new Error("applicationId is required");
+      return {
+        success: false,
+        error: "applicationId is required",
+        statusCode: 400,
+      };
     }
 
     // Build the query name based on the associationType
@@ -257,6 +416,18 @@ export const getApplicationAssociations = async <T extends AssociationType>({
                   question
                   userConfirmed
                   userId
+                  applications {
+                    items {
+                      id
+                      applicationId
+                      qualificationId
+                      application {
+                        id
+                        createdAt
+                        updatedAt
+                      }
+                    }
+                  }
                   topic {
                     id
                     title
@@ -279,10 +450,44 @@ export const getApplicationAssociations = async <T extends AssociationType>({
             fileName
             userId
           `;
+        case "Qualification":
+          return `
+            title
+            description
+            paragraph
+            question
+            userConfirmed
+            topic {
+              id
+              title
+              jobId
+              keywords
+              description
+              evidence
+            }
+            pastJob {
+              id
+              title
+              organization
+              startDate
+              endDate
+            }
+            userId
+          `;
         default:
           return "";
       }
     };
+
+    // Get the composite key field name for this join table
+    const getJoinTableKeyFields = () => {
+      const itemIdFieldName = `${
+        associationType.charAt(0).toLowerCase() + associationType.slice(1)
+      }Id`;
+      return [itemIdFieldName, "applicationId"];
+    };
+
+    const keyFields = getJoinTableKeyFields();
 
     // Execute the query to get the junction table entries
     const junctionResponse = await client.graphql({
@@ -290,12 +495,7 @@ export const getApplicationAssociations = async <T extends AssociationType>({
         query List${associationType}Applications($filter: Model${associationType}ApplicationFilterInput) {
           ${queryName}(filter: $filter) {
             items {
-              id
-              applicationId
-              ${
-                associationType.charAt(0).toLowerCase() +
-                associationType.slice(1)
-              }Id
+              ${keyFields.join("\n              ")}
               ${
                 associationType.charAt(0).toLowerCase() +
                 associationType.slice(1)
@@ -332,7 +532,7 @@ export const getApplicationAssociations = async <T extends AssociationType>({
 
       // Special handling for PastJob and Volunteer to transform the data structure
       if (associationType === "PastJob") {
-        return uniqueItems.map((item: any) => {
+        const transformedItems = uniqueItems.map((item: any) => {
           // Convert hours to string if it's a number to match schema
           const hours =
             item.hours !== undefined ? String(item.hours) : undefined;
@@ -354,6 +554,10 @@ export const getApplicationAssociations = async <T extends AssociationType>({
                   question: qual.question,
                   userConfirmed: qual.userConfirmed || false,
                   userId: qual.userId || item.userId,
+                  // Extract applicationIds from the qualification's applications junction table
+                  applicationIds: (qual.applications?.items || [])
+                    .map((appJunction: any) => appJunction.applicationId)
+                    .filter(Boolean), // Filter out any null/undefined values
                   topic: qual.topic
                     ? {
                         id: qual.topic.id || "",
@@ -375,34 +579,72 @@ export const getApplicationAssociations = async <T extends AssociationType>({
             ),
           };
         }) as AssociationTypeMap[T][];
+
+        return {
+          success: true,
+          data: transformedItems,
+          statusCode: 200,
+        };
       }
 
-      return uniqueItems as AssociationTypeMap[T][];
+      return {
+        success: true,
+        data: uniqueItems as AssociationTypeMap[T][],
+        statusCode: 200,
+      };
     }
 
-    throw new Error(
-      `Unexpected response format from GraphQL operation for ${associationType}`
-    );
+    return {
+      success: false,
+      error: `Unexpected response format from GraphQL operation for ${associationType}`,
+      statusCode: 500,
+    };
   } catch (error) {
     console.error(
       `Error fetching ${associationType} associations for Application:`,
       error
     );
-    throw error;
+    return {
+      success: false,
+      error: `Failed to fetch ${associationType} associations for Application`,
+      statusCode: 500,
+    };
   }
 };
-export const getApplicationWithJob = async ({ id }: { id: string }) => {
+
+export const getApplicationWithJob = async ({
+  id,
+}: {
+  id: string;
+}): Promise<ApiResponse> => {
   try {
     const session = await fetchAuthSession();
     if (!session.tokens) {
-      throw new Error("No valid authentication session found");
+      return {
+        success: false,
+        error: "No valid authentication session found",
+        statusCode: 401,
+      };
     }
   } catch (error) {
     console.error("No user is signed in");
-    return;
+    return {
+      success: false,
+      error: "User not authenticated",
+      statusCode: 401,
+    };
   }
+
   const client = generateClient();
   try {
+    if (!id) {
+      return {
+        success: false,
+        error: "Application id is required",
+        statusCode: 400,
+      };
+    }
+
     const response = await client.graphql({
       query: `
       query GetApplication($id: ID!) {
@@ -442,28 +684,195 @@ export const getApplicationWithJob = async ({ id }: { id: string }) => {
     if ("data" in response) {
       const application = response.data.getApplication;
 
+      if (!application) {
+        return {
+          success: false,
+          error: `Application with id: ${id} not found`,
+          statusCode: 404,
+        };
+      }
+
       // Flatten the topics.items array if it exists
       if (application?.job?.topics?.items) {
         application.job.topics = application.job.topics.items;
       }
 
-      return application;
+      return {
+        success: true,
+        data: application,
+        statusCode: 200,
+      };
     }
-    throw new Error("Unexpected response format from GraphQL operation");
+
+    return {
+      success: false,
+      error: "Unexpected response format from GraphQL operation",
+      statusCode: 500,
+    };
   } catch (error) {
     console.error("Error fetching Application:", error);
-    throw error;
+    return {
+      success: false,
+      error: "Failed to fetch Application",
+      statusCode: 500,
+    };
   }
 };
-export const listApplications = async () => {
+
+export const getApplicationWithJobAndQualifications = async ({
+  id,
+}: {
+  id: string;
+}): Promise<ApiResponse> => {
   try {
     const session = await fetchAuthSession();
     if (!session.tokens) {
-      throw new Error("No valid authentication session found");
+      return {
+        success: false,
+        error: "No valid authentication session found",
+        statusCode: 401,
+      };
     }
   } catch (error) {
     console.error("No user is signed in");
-    return;
+    return {
+      success: false,
+      error: "User not authenticated",
+      statusCode: 401,
+    };
+  }
+
+  const client = generateClient();
+  try {
+    if (!id) {
+      return {
+        success: false,
+        error: "Application id is required",
+        statusCode: 400,
+      };
+    }
+
+    const response = await client.graphql({
+      query: `
+      query GetApplication($id: ID!) {
+        getApplication(id: $id) {
+          completedSteps
+          id
+          jobId
+          userId
+          job {
+            id
+            title
+            department
+            agencyDescription
+            duties
+            evaluationCriteria
+            qualificationsSummary
+            questionnaire
+            requiredDocuments
+            usaJobsId
+            topics {
+              items {
+                id
+                keywords
+                title
+              }
+            }
+          }
+          qualifications {
+            items {
+              qualificationId
+              applicationId
+              qualification {
+                id
+                title
+                description
+                paragraph
+                question
+                userConfirmed
+                userId
+                topic {
+                  id
+                  title
+                  keywords
+                  description
+                  evidence
+                }
+                pastJobs {
+                  items {
+                    pastJob {
+                      title
+                      organization
+                    }
+                  }
+                }
+              }
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+      `,
+      variables: { id },
+      authMode: "userPool",
+    });
+
+    if ("data" in response) {
+      const application = response.data.getApplication;
+
+      if (!application) {
+        return {
+          success: false,
+          error: `Application with id: ${id} not found`,
+          statusCode: 404,
+        };
+      }
+
+      // Flatten the topics.items array if it exists
+      if (application?.job?.topics?.items) {
+        application.job.topics = application.job.topics.items;
+      }
+
+      return {
+        success: true,
+        data: application,
+        statusCode: 200,
+      };
+    }
+
+    return {
+      success: false,
+      error: "Unexpected response format from GraphQL operation",
+      statusCode: 500,
+    };
+  } catch (error) {
+    console.error("Error fetching Application:", error);
+    return {
+      success: false,
+      error: "Failed to fetch Application",
+      statusCode: 500,
+    };
+  }
+};
+//tk currently  not used.
+export const listApplications = async (): Promise<ApiResponse> => {
+  try {
+    const session = await fetchAuthSession();
+    if (!session.tokens) {
+      return {
+        success: false,
+        error: "No valid authentication session found",
+        statusCode: 401,
+      };
+    }
+  } catch (error) {
+    console.error("No user is signed in");
+    return {
+      success: false,
+      error: "User not authenticated",
+      statusCode: 401,
+    };
   }
 
   const client = generateClient();
@@ -486,31 +895,60 @@ export const listApplications = async () => {
     });
 
     if ("data" in response) {
-      return response.data.listApplications.items;
+      return {
+        success: true,
+        data: response.data.listApplications.items,
+        statusCode: 200,
+      };
     }
-    throw new Error("Unexpected response format from GraphQL operation");
+
+    return {
+      success: false,
+      error: "Unexpected response format from GraphQL operation",
+      statusCode: 500,
+    };
   } catch (error) {
     console.error("Error fetching Applications:", error);
-    throw error;
+    return {
+      success: false,
+      error: "Failed to fetch Applications",
+      statusCode: 500,
+    };
   }
 };
 
-export const listUserApplications = async ({ userId }: { userId: string }) => {
+export const listUserApplications = async ({
+  userId,
+}: {
+  userId: string;
+}): Promise<ApiResponse> => {
   try {
     const session = await fetchAuthSession();
     if (!session.tokens) {
-      throw new Error("No valid authentication session found");
+      return {
+        success: false,
+        error: "No valid authentication session found",
+        statusCode: 401,
+      };
     }
   } catch (error) {
     console.error("No user is signed in");
-    return;
+    return {
+      success: false,
+      error: "User not authenticated",
+      statusCode: 401,
+    };
   }
 
   const client = generateClient();
   try {
     // Validate required parameter
     if (!userId) {
-      throw new Error("userId is required");
+      return {
+        success: false,
+        error: "userId is required",
+        statusCode: 400,
+      };
     }
 
     const response = await client.graphql({
@@ -542,14 +980,28 @@ export const listUserApplications = async ({ userId }: { userId: string }) => {
     });
 
     if ("data" in response) {
-      return response.data.listApplications.items;
+      return {
+        success: true,
+        data: response.data.listApplications.items,
+        statusCode: 200,
+      };
     }
-    throw new Error("Unexpected response format from GraphQL operation");
+
+    return {
+      success: false,
+      error: "Unexpected response format from GraphQL operation",
+      statusCode: 500,
+    };
   } catch (error) {
     console.error("Error fetching user Applications:", error);
-    throw error;
+    return {
+      success: false,
+      error: "Failed to fetch user Applications",
+      statusCode: 500,
+    };
   }
 };
+
 export const updateApplication = async ({
   id,
   input,
@@ -558,15 +1010,23 @@ export const updateApplication = async ({
   input: {
     completedSteps?: string[];
   };
-}) => {
+}): Promise<ApiResponse> => {
   try {
     const session = await fetchAuthSession();
     if (!session.tokens) {
-      throw new Error("No valid authentication session found");
+      return {
+        success: false,
+        error: "No valid authentication session found",
+        statusCode: 401,
+      };
     }
   } catch (error) {
     console.error("No user is signed in");
-    return;
+    return {
+      success: false,
+      error: "User not authenticated",
+      statusCode: 401,
+    };
   }
 
   const client = generateClient();
@@ -574,11 +1034,19 @@ export const updateApplication = async ({
   try {
     // Validate required parameters
     if (!id) {
-      throw new Error("Application id is required");
+      return {
+        success: false,
+        error: "Application id is required",
+        statusCode: 400,
+      };
     }
 
     if (Object.keys(input).length === 0) {
-      throw new Error("At least one field to update is required");
+      return {
+        success: false,
+        error: "At least one field to update is required",
+        statusCode: 400,
+      };
     }
 
     const response = await client.graphql({
@@ -599,21 +1067,27 @@ export const updateApplication = async ({
     });
 
     if ("data" in response) {
-      return response.data.updateApplication;
+      return {
+        success: true,
+        data: response.data.updateApplication,
+        statusCode: 200,
+      };
     }
 
-    throw new Error("Unexpected response format from GraphQL operation");
+    return {
+      success: false,
+      error: "Unexpected response format from GraphQL operation",
+      statusCode: 500,
+    };
   } catch (error) {
     console.error("Error updating Application:", error);
-    throw error;
+    return {
+      success: false,
+      error: "Failed to update Application",
+      statusCode: 500,
+    };
   }
 };
-/**
- * Helper function to deduplicate an array of objects by ID
- *
- * @param {Array<{id: string}>} items - Array of objects with id property
- * @returns {Array<{id: string}>} - Array with duplicates removed
- */
 
 /**
  * Deletes an Application and all its associated join table entries
@@ -621,22 +1095,29 @@ export const updateApplication = async ({
  *
  * @param {Object} params - The function parameters
  * @param {string} params.applicationId - The ID of the application to delete
- * @returns {Promise<any>} - The deleted application data
- * @throws {Error} - If deletion fails or required parameters are missing
+ * @returns {Promise<ApiResponse>} - The deleted application data
  */
 export const deleteApplication = async ({
   applicationId,
 }: {
   applicationId: string;
-}) => {
+}): Promise<ApiResponse> => {
   try {
     const session = await fetchAuthSession();
     if (!session.tokens) {
-      throw new Error("No valid authentication session found");
+      return {
+        success: false,
+        error: "No valid authentication session found",
+        statusCode: 401,
+      };
     }
   } catch (error) {
     console.error("No user is signed in");
-    return;
+    return {
+      success: false,
+      error: "User not authenticated",
+      statusCode: 401,
+    };
   }
 
   const client = generateClient();
@@ -644,27 +1125,42 @@ export const deleteApplication = async ({
   try {
     // Validate required parameter
     if (!applicationId) {
-      throw new Error("applicationId is required");
+      return {
+        success: false,
+        error: "applicationId is required",
+        statusCode: 400,
+      };
     }
+
+    // Define the composite key field mappings
+    const joinTableKeys = {
+      AwardApplication: ["awardId", "applicationId"],
+      EducationApplication: ["educationId", "applicationId"],
+      PastJobApplication: ["pastJobId", "applicationId"],
+      QualificationApplication: ["qualificationId", "applicationId"],
+    };
 
     // Define the join tables that need to be cleaned up
     const joinTables = [
       "AwardApplication",
       "EducationApplication",
-      "ResumeApplication",
       "PastJobApplication",
+      "QualificationApplication",
     ];
 
     // Step 1: Delete all join table entries for each association type
-    // Use Promise.all to wait for all join table deletions to complete
     await Promise.all(
       joinTables.map(async (joinTable) => {
+        const keyFields =
+          joinTableKeys[joinTable as keyof typeof joinTableKeys];
+        const [relatedIdField] = keyFields; // First field is the related entity ID
+
         // 1.1: List all join table entries for this application
         const listQuery = `
           query List${joinTable}s($filter: Model${joinTable}FilterInput) {
             list${joinTable}s(filter: $filter) {
               items {
-                id
+                ${keyFields.join("\n                ")}
               }
             }
           }
@@ -686,13 +1182,13 @@ export const deleteApplication = async ({
         ) {
           const joinItems = listResponse.data[`list${joinTable}s`].items;
 
-          // 1.2: Delete each join table entry - use Promise.all here too
+          // 1.2: Delete each join table entry using composite key
           await Promise.all(
             joinItems.map(async (item: any) => {
               const deleteQuery = `
                 mutation Delete${joinTable}($input: Delete${joinTable}Input!) {
                   delete${joinTable}(input: $input) {
-                    id
+                    ${keyFields.join("\n                    ")}
                   }
                 }
               `;
@@ -700,7 +1196,10 @@ export const deleteApplication = async ({
               return client.graphql({
                 query: deleteQuery,
                 variables: {
-                  input: { id: item.id },
+                  input: {
+                    [relatedIdField]: item[relatedIdField],
+                    applicationId: item.applicationId,
+                  },
                 },
                 authMode: "userPool",
               });
@@ -732,49 +1231,98 @@ export const deleteApplication = async ({
     });
 
     if ("data" in deleteResponse) {
-      return deleteResponse.data.deleteApplication;
+      return {
+        success: true,
+        data: deleteResponse.data.deleteApplication,
+        statusCode: 200,
+      };
     }
 
-    throw new Error("Unexpected response format from GraphQL operation");
+    return {
+      success: false,
+      error: "Unexpected response format from GraphQL operation",
+      statusCode: 500,
+    };
   } catch (error) {
     console.error("Error deleting Application:", error);
-    throw error;
+    return {
+      success: false,
+      error: "Failed to delete Application",
+      statusCode: 500,
+    };
   }
 };
 
 /**
- * Helper function to delete a single item from a join table
+ * Helper function to delete a single item from a join table using composite keys
  *
  * @param {Object} params - The function parameters
- * @param {string} params.id - The ID of the join table entry to delete
+ * @param {string} params.relatedId - The ID of the related entity (award, education, etc.)
+ * @param {string} params.applicationId - The ID of the application
  * @param {string} params.tableName - The name of the join table (e.g., "AwardApplication")
- * @returns {Promise<any>} - The deleted join table entry data
- * @throws {Error} - If deletion fails
+ * @returns {Promise<ApiResponse>} - The deleted join table entry data
  */
 export const deleteJoinTableItem = async ({
-  id,
+  relatedId,
+  applicationId,
   tableName,
 }: {
-  id: string;
+  relatedId: string;
+  applicationId: string;
   tableName: string;
-}) => {
+}): Promise<ApiResponse> => {
   try {
     const session = await fetchAuthSession();
     if (!session.tokens) {
-      throw new Error("No valid authentication session found");
+      return {
+        success: false,
+        error: "No valid authentication session found",
+        statusCode: 401,
+      };
     }
   } catch (error) {
     console.error("No user is signed in");
-    return;
+    return {
+      success: false,
+      error: "User not authenticated",
+      statusCode: 401,
+    };
   }
 
   const client = generateClient();
 
   try {
+    if (!relatedId || !applicationId || !tableName) {
+      return {
+        success: false,
+        error: "relatedId, applicationId, and tableName are required",
+        statusCode: 400,
+      };
+    }
+
+    // Define the composite key field mappings
+    const joinTableKeys = {
+      AwardApplication: ["awardId", "applicationId"],
+      EducationApplication: ["educationId", "applicationId"],
+      PastJobApplication: ["pastJobId", "applicationId"],
+      QualificationApplication: ["qualificationId", "applicationId"],
+    };
+
+    const keyFields = joinTableKeys[tableName as keyof typeof joinTableKeys];
+    if (!keyFields) {
+      return {
+        success: false,
+        error: `Unknown table name: ${tableName}`,
+        statusCode: 400,
+      };
+    }
+
+    const [relatedIdField] = keyFields;
+
     const deleteQuery = `
       mutation Delete${tableName}($input: Delete${tableName}Input!) {
         delete${tableName}(input: $input) {
-          id
+          ${keyFields.join("\n          ")}
         }
       }
     `;
@@ -782,20 +1330,33 @@ export const deleteJoinTableItem = async ({
     const response = await client.graphql({
       query: deleteQuery,
       variables: {
-        input: { id },
+        input: {
+          [relatedIdField]: relatedId,
+          applicationId: applicationId,
+        },
       },
       authMode: "userPool",
     });
 
     if ("data" in response) {
-      return response.data[`delete${tableName}`];
+      return {
+        success: true,
+        data: response.data[`delete${tableName}`],
+        statusCode: 200,
+      };
     }
 
-    throw new Error(
-      `Unexpected response format from GraphQL operation when deleting ${tableName}`
-    );
+    return {
+      success: false,
+      error: `Unexpected response format from GraphQL operation when deleting ${tableName}`,
+      statusCode: 500,
+    };
   } catch (error) {
     console.error(`Error deleting ${tableName}:`, error);
-    throw error;
+    return {
+      success: false,
+      error: `Failed to delete ${tableName}`,
+      statusCode: 500,
+    };
   }
 };

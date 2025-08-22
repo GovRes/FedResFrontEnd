@@ -26,8 +26,11 @@ export default function NewEducationPage() {
         userId: user.userId,
       };
 
-      const res = await createModelRecord("Education", completeEducationData);
-      router.push(`/profile/educations/${res.id}`);
+      const { data } = await createModelRecord(
+        "Education",
+        completeEducationData
+      );
+      router.push(`/profile/educations/${data.id}`);
     } catch (error) {
       console.error("Error creating education:", error);
       setLoading(false);

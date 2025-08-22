@@ -43,9 +43,9 @@ export default function ResumeUploader({
   useEffect(() => {
     async function fetchExistingAwards() {
       try {
-        const result = await listUserModelRecords("Award", user.userId);
-        if (result.items) {
-          setExistingAwards(result.items);
+        const { data } = await listUserModelRecords("Award", user.userId);
+        if (data && data.items) {
+          setExistingAwards(data.items);
         }
       } catch (error) {
         console.error("Failed to fetch awards:", error);
@@ -53,9 +53,9 @@ export default function ResumeUploader({
     }
     async function fetchExistingEducations() {
       try {
-        const result = await listUserModelRecords("Education", user.userId);
-        if (result.items) {
-          setExistingEducations(result.items);
+        const { data } = await listUserModelRecords("Education", user.userId);
+        if (data && data.items) {
+          setExistingEducations(data.items);
         }
       } catch (error) {
         console.error("Failed to fetch educations:", error);
@@ -63,10 +63,10 @@ export default function ResumeUploader({
     }
     async function fetchExistingPastJobs() {
       try {
-        const result = await listUserModelRecords("PastJob", user.userId);
+        const { data } = await listUserModelRecords("PastJob", user.userId);
 
-        if (result.items) {
-          setExistingPastJobs(result.items);
+        if (data && data.items) {
+          setExistingPastJobs(data.items);
         }
       } catch (error) {
         console.error("Failed to fetch past jobs:", error);

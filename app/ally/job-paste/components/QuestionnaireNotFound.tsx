@@ -1,9 +1,7 @@
 "use client";
 import { useApplication } from "@/app/providers/applicationContext";
-
-import { navigateToNextIncompleteStep } from "@/lib/utils/nextStepNavigation";
+import createApplicationAndNavigate from "../../components/createApplicationAndNav";
 import { useRouter } from "next/navigation";
-import createApplication from "@/lib/utils/createApplication";
 export default function questionnaireNotFound({
   jobResult,
   userId,
@@ -19,8 +17,8 @@ export default function questionnaireNotFound({
   setQuestionnaireFound: React.Dispatch<React.SetStateAction<boolean>>;
   setSearchSent: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
+  const { steps, setApplicationId, completeStep } = useApplication();
   const router = useRouter();
-  const { completeStep, steps, setApplicationId } = useApplication();
   return (
     <div>
       <div>
@@ -42,24 +40,15 @@ export default function questionnaireNotFound({
       <button
         onClick={async () => {
           if (jobResult && jobResult.jobId) {
-            const result = await createApplication({
-              completeStep,
+            await createApplicationAndNavigate({
               jobId: jobResult.jobId,
-              userId: userId,
-              setLoading: setLoading,
+              userId,
+              setLoading,
+              steps,
               setApplicationId,
+              completeStep,
+              router,
             });
-            if (result) {
-              navigateToNextIncompleteStep({
-                steps,
-                router,
-                currentStepId: "usa-jobs",
-                applicationId: result.id,
-                completeStep: result.completeStep,
-              });
-            } else {
-              console.error("Failed to create application:", result?.error);
-            }
           }
         }}
       >

@@ -17,7 +17,7 @@ export const validModelNames = [
   "Qualification",
   "AwardApplication",
   "EducationApplication",
-  "ResumeApplication",
+  "QualificationApplication",
   "PastJobApplication",
   "PastJobQualification",
 ];
@@ -104,7 +104,6 @@ export const modelFields: Record<string, string[]> = {
   ],
   AwardApplication: ["awardId", "applicationId"],
   EducationApplication: ["educationId", "applicationId"],
-  ResumeApplication: ["resumeId", "applicationId"],
   PastJobApplication: ["pastJobId", "applicationId"],
   PastJobQualification: ["pastJobId", "qualificationId"],
 };

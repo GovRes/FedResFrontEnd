@@ -7,11 +7,11 @@ import { formatJobDescription } from "@/lib/utils/usaJobsSearch";
 import indefiniteArticle from "@/lib/utils/indefiniteArticles";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { useApplication } from "@/app/providers/applicationContext";
-import { navigateToNextIncompleteStep } from "@/lib/utils/nextStepNavigation";
 import { useRouter } from "next/navigation";
 import processUSAJob from "@/lib/utils/processUSAJob";
-import createApplication from "@/lib/utils/createApplication";
 import QuestionnaireNotFound from "./QuestionnaireNotFound";
+import createApplicationAndNavigate from "@/app/ally/components/createApplicationAndNav";
+import { Loader } from "@/app/components/loader/Loader";
 export interface MatchedObjectDescriptor {
   PositionTitle: string;
   DepartmentName: string;
@@ -45,12 +45,15 @@ export default function UsaJobsResults({
 }: {
   searchResults: Result[];
 }) {
-  const { steps, setApplicationId, completeStep } = useApplication();
   const { user } = useAuthenticator();
+  const { steps, setApplicationId, completeStep } = useApplication();
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [currentJob, setCurrentJob] = useState<Result | null>();
   const [loading, setLoading] = useState<boolean>(false);
+  const [loadingText, setLoadingText] = useState<string>(
+    "Processing job, please wait..."
+  );
   const [questionnaireFound, setQuestionnaireFound] = useState<boolean>(false);
   const [jobResult, setJobResult] = useState<any>(null);
   function selectJob({ job }: { job: Result }) {
@@ -66,7 +69,10 @@ export default function UsaJobsResults({
         let formattedJobDescription = formatJobDescription({ job: currentJob });
 
         // Create or get the job
-        const jobResult = await processUSAJob(formattedJobDescription);
+        const jobResult = await processUSAJob(
+          formattedJobDescription,
+          setLoadingText
+        );
         console.log("Job processing result:", jobResult);
         if (jobResult) {
           setJobResult(jobResult);
@@ -76,27 +82,15 @@ export default function UsaJobsResults({
         }
         if (jobResult?.questionnaireFound && jobResult?.jobId) {
           console.log("Creating application with questionnaire");
-          const newApplicationId = await createApplication({
-            completeStep,
+          await createApplicationAndNavigate({
             jobId: jobResult.jobId,
             userId: user.userId,
-            setLoading: setLoading,
+            setLoading,
+            steps,
             setApplicationId,
+            completeStep,
+            router,
           });
-
-          if (newApplicationId) {
-            console.log("Navigating to next step");
-            // Use a small delay to ensure context updates have propagated
-            setTimeout(() => {
-              navigateToNextIncompleteStep({
-                steps,
-                router,
-                currentStepId: "usa-jobs",
-                applicationId: newApplicationId, // Use the new ID directly
-                completeStep,
-              });
-            }, 100);
-          }
         }
       } catch (error) {
         console.error("Error getting questionnaire URL:", error);
@@ -107,6 +101,10 @@ export default function UsaJobsResults({
         };
       }
     }
+  }
+
+  if (loading) {
+    return <Loader text={loadingText} />;
   }
 
   if (!loading && jobResult && !questionnaireFound) {

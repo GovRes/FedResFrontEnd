@@ -47,8 +47,8 @@ export default function EditEducationPage({
     async function fetchData() {
       setLoading(true);
       try {
-        const fetchedEducationData = await fetchModelRecord("Education", id);
-        setEducationData(fetchedEducationData);
+        const { data } = await fetchModelRecord("Education", id);
+        setEducationData(data);
       } catch (error) {
         console.error("Error fetching education:", error);
       }

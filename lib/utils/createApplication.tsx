@@ -16,21 +16,21 @@ export default async function createApplication({
   setLoading(true);
   try {
     console.log("Creating application for job:", jobId);
-    const applicationRes = await createAndSaveApplication({
+    const { data } = await createAndSaveApplication({
       jobId,
       userId,
     });
-    console.log("Application created:", applicationRes);
+    console.log("Application created:", data);
 
     // Update context state - this will trigger sessionStorage update in the context
-    setApplicationId(applicationRes.id);
+    setApplicationId(data.id);
 
     // Complete the step
     console.log("marking step complete");
-    await completeStep("usa-jobs", applicationRes.id);
+    await completeStep("usa-jobs", data.id);
     console.log("Application creation completed");
 
-    return applicationRes.id; // Return the ID instead of boolean
+    return data.id; // Return the ID instead of boolean
   } catch (error) {
     console.error("Error creating application:", error);
     return null;
