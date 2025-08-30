@@ -1,13 +1,9 @@
 "use client";
 import { useRouter } from "next/navigation";
 export default function JobNotFound({
-  setSearchSent,
-  setQuestionnaireFound,
-  setJobResult,
+  resetSearch,
 }: {
-  setSearchSent: React.Dispatch<React.SetStateAction<boolean>>;
-  setQuestionnaireFound: React.Dispatch<React.SetStateAction<boolean>>;
-  setJobResult: React.Dispatch<React.SetStateAction<any | null>>;
+  resetSearch: () => void;
 }) {
   const router = useRouter();
   return (
@@ -18,9 +14,7 @@ export default function JobNotFound({
       </div>
       <button
         onClick={() => {
-          setSearchSent(false);
-          setQuestionnaireFound(false);
-          setJobResult(null); // Reset jobResult when going back
+          resetSearch();
         }}
       >
         Back to paste a different job URL

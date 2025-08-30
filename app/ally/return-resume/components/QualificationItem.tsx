@@ -5,9 +5,11 @@ export default function qualificationItem({
 }: {
   qualification: QualificationType;
 }) {
+  console.log(8, qualification);
   return (
     <div className={styles.resumeItem}>
       {qualification.title.toUpperCase()}. {qualification.paragraph}
+      <ul></ul>
     </div>
   );
 }

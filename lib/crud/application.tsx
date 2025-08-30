@@ -855,6 +855,289 @@ export const getApplicationWithJobAndQualifications = async ({
     };
   }
 };
+
+export const getApplicationWithAllAssociations = async ({
+  id,
+}: {
+  id: string;
+}): Promise<ApiResponse> => {
+  try {
+    const session = await fetchAuthSession();
+    if (!session.tokens) {
+      return {
+        success: false,
+        error: "No valid authentication session found",
+        statusCode: 401,
+      };
+    }
+  } catch (error) {
+    console.error("No user is signed in");
+    return {
+      success: false,
+      error: "User not authenticated",
+      statusCode: 401,
+    };
+  }
+
+  const client = generateClient();
+  try {
+    if (!id) {
+      return {
+        success: false,
+        error: "Application id is required",
+        statusCode: 400,
+      };
+    }
+
+    const response = await client.graphql({
+      query: `
+        query GetApplicationWithAllAssociations($id: ID!) {
+          getApplication(id: $id) {
+            completedSteps
+            id
+            jobId
+            userId
+            job {
+              id
+              title
+              department
+              agencyDescription
+              duties
+              evaluationCriteria
+              qualificationsSummary
+              questionnaire
+              requiredDocuments
+              usaJobsId
+              topics {
+                items {
+                  id
+                  keywords
+                  title
+                  description
+                  evidence
+                }
+              }
+            }
+            # Awards
+            awards {
+              items {
+                award {
+                  id
+                  title
+                  date
+                  userId
+                  createdAt
+                  updatedAt
+                }
+              }
+            }
+            # Educations
+            educations {
+              items {
+                education {
+                  id
+                  degree
+                  date
+                  gpa
+                  major
+                  school
+                  schoolCity
+                  schoolState
+                  type
+                  userId
+                  createdAt
+                  updatedAt
+                }
+              }
+            }
+            # Past Jobs
+            pastJobs {
+              items {
+                pastJob {
+                  id
+                  endDate
+                  hours
+                  organization
+                  organizationAddress
+                  supervisorMayContact
+                  supervisorName
+                  supervisorPhone
+                  type
+                  gsLevel
+                  responsibilities
+                  startDate
+                  title
+                  userId
+                  qualifications {
+                    items {
+                      qualification {
+                        id
+                        title
+                        description
+                        paragraph
+                        question
+                        userConfirmed
+                        userId
+                        topic {
+                          id
+                          title
+                          jobId
+                          keywords
+                          description
+                          evidence
+                        }
+                      }
+                    }
+                  }
+                  createdAt
+                  updatedAt
+                }
+              }
+            }
+            # Qualifications
+            qualifications {
+              items {
+                qualification {
+                  id
+                  title
+                  description
+                  paragraph
+                  question
+                  userConfirmed
+                  userId
+                  topic {
+                    id
+                    title
+                    keywords
+                    description
+                    evidence
+                  }
+                  pastJobs {
+                    items {
+                      pastJob {
+                        id
+                        title
+                        organization
+                        startDate
+                        endDate
+                      }
+                    }
+                  }
+                  createdAt
+                  updatedAt
+                }
+              }
+            }
+            createdAt
+            updatedAt
+          }
+        }
+      `,
+      variables: { id },
+      authMode: "userPool",
+    });
+
+    if ("data" in response) {
+      const application = response.data.getApplication;
+
+      if (!application) {
+        return {
+          success: false,
+          error: `Application with id: ${id} not found`,
+          statusCode: 404,
+        };
+      }
+
+      // Transform the nested data structure to match your ApplicationType
+      const transformedApplication = {
+        ...application,
+        job: {
+          ...application.job,
+          topics: application.job?.topics?.items || null,
+        },
+        // Transform each association type
+        awards: application.awards?.items
+          ? deduplicateById(
+              application.awards.items.map((item: any) => item.award)
+            )
+          : null,
+        educations: application.educations?.items
+          ? deduplicateById(
+              application.educations.items.map((item: any) => item.education)
+            )
+          : null,
+        pastJobs: application.pastJobs?.items
+          ? deduplicateById(
+              application.pastJobs.items.map((item: any) => {
+                const pastJob = item.pastJob;
+                return {
+                  ...pastJob,
+                  hours:
+                    pastJob.hours !== undefined
+                      ? String(pastJob.hours)
+                      : undefined,
+                  qualifications: (pastJob.qualifications?.items || []).map(
+                    (qualJunction: any) => {
+                      const qual = qualJunction.qualification || {};
+                      return {
+                        id: qual.id || "",
+                        title: qual.title || "",
+                        description: qual.description || "",
+                        paragraph: qual.paragraph,
+                        question: qual.question,
+                        userConfirmed: qual.userConfirmed || false,
+                        userId: qual.userId,
+                        topic: qual.topic || {
+                          id: "",
+                          title: "",
+                          jobId: "",
+                          keywords: [],
+                        },
+                      };
+                    }
+                  ),
+                };
+              })
+            )
+          : null,
+        qualifications: application.qualifications?.items
+          ? deduplicateById(
+              application.qualifications.items.map(
+                (item: any) => item.qualification
+              )
+            ).sort((a: QualificationType, b: QualificationType) => {
+              if (a.id < b.id) return -1;
+              return 1;
+            })
+          : null,
+        resumes: application.resumes?.items
+          ? deduplicateById(
+              application.resumes.items.map((item: any) => item.resume)
+            )
+          : null,
+      };
+
+      return {
+        success: true,
+        data: transformedApplication,
+        statusCode: 200,
+      };
+    }
+
+    return {
+      success: false,
+      error: "Unexpected response format from GraphQL operation",
+      statusCode: 500,
+    };
+  } catch (error) {
+    console.error("Error fetching Application with all associations:", error);
+    return {
+      success: false,
+      error: "Failed to fetch Application with all associations",
+      statusCode: 500,
+    };
+  }
+};
 //tk currently  not used.
 export const listApplications = async (): Promise<ApiResponse> => {
   try {

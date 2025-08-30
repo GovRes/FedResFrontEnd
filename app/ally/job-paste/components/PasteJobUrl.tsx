@@ -17,13 +17,13 @@ import { Loader } from "@/app/components/loader/Loader";
 import createApplicationAndNavigate from "../../components/createApplicationAndNav";
 import { getJobByUsaJobsId } from "@/lib/crud/job";
 import { useRouter } from "next/navigation";
+
 const stringFieldSchema = z.object({
   value: z.string(),
 });
 
 export default function PastJobUrl() {
-  const { applicationId, completeStep, steps, setApplicationId, setJob } =
-    useApplication();
+  const { completeStep, steps, setApplicationId, setJob } = useApplication();
   const router = useRouter();
   const { user } = useAuthenticator();
   const [loading, setLoading] = useState(false);
@@ -33,6 +33,7 @@ export default function PastJobUrl() {
   const [questionnaireFound, setQuestionnaireFound] = useState(false);
   const [searchSent, setSearchSent] = useState(false);
   const [jobResult, setJobResult] = useState<any>(null);
+  const [isCreatingApplication, setIsCreatingApplication] = useState(false);
 
   const onSubmit = async (data: { value: string }): Promise<void> => {
     setSearchSent(true);
@@ -49,6 +50,7 @@ export default function PastJobUrl() {
         if (statusCode === 200 && data) {
           if (data.questionnaire) {
             setQuestionnaireFound(true);
+            setIsCreatingApplication(true);
           }
           createApplicationAndNavigate({
             jobId: data.id,
@@ -83,6 +85,7 @@ export default function PastJobUrl() {
           if (jobResult?.questionnaireFound && jobResult?.jobId) {
             console.log("Creating application with questionnaire");
             setLoadingText("Starting your application....");
+            setIsCreatingApplication(true);
             createApplicationAndNavigate({
               jobId: jobResult.jobId,
               userId: user.userId,
@@ -121,24 +124,11 @@ export default function PastJobUrl() {
     setSearchSent(false);
     setQuestionnaireFound(false);
     setJobResult(null);
+    setIsCreatingApplication(false);
   };
 
-  const proceedWithoutQuestionnaire = async () => {
-    if (jobResult?.jobId) {
-      setLoadingText("Starting your application....");
-      createApplicationAndNavigate({
-        jobId: jobResult.jobId,
-        userId: user.userId,
-        setLoading,
-        steps,
-        setApplicationId,
-        completeStep,
-        router,
-      });
-    }
-  };
-
-  if (loading) {
+  // Show loader if loading OR if creating application
+  if (loading || isCreatingApplication) {
     return <Loader text={loadingText} />;
   }
 
@@ -168,36 +158,7 @@ export default function PastJobUrl() {
     );
   }
 
-  if (searchSent && !questionnaireFound) {
-    return (
-      <div>
-        <div>
-          We could not find a questionnaire for this job. Please try another job
-          URL. We will eventually have an interface that will allow you to paste
-          the questionnaire. In the meantime, you can either move forward based
-          only on the job information we were able to retrieve, or return to
-          search.
-        </div>
-        <button onClick={resetSearch}>Back to paste a different job URL</button>
-        <button onClick={proceedWithoutQuestionnaire}>
-          Go forward with less information
-        </button>
-      </div>
-    );
-  }
-
-  if (searchSent && !jobResult && !loading) {
-    //tk make this not return too fast
-    return (
-      <JobNotFound
-        setJobResult={setJobResult}
-        setQuestionnaireFound={setQuestionnaireFound}
-        setSearchSent={setSearchSent}
-      />
-    );
-  }
-
-  if (searchSent && jobResult && !loading && !questionnaireFound) {
+  if (searchSent && !questionnaireFound && jobResult) {
     return (
       <QuestionnaireNotFound
         jobResult={jobResult}
@@ -208,14 +169,10 @@ export default function PastJobUrl() {
         setSearchSent={setSearchSent}
       />
     );
-  } else if (searchSent && jobResult && questionnaireFound && applicationId) {
-    return (
-      <div>
-        <div>
-          We found a questionnaire for this job! You can now proceed to fill out
-          the application.
-        </div>
-      </div>
-    );
   }
+
+  if (searchSent && !jobResult && !loading) {
+    return <JobNotFound resetSearch={resetSearch} />;
+  }
+  return null;
 }

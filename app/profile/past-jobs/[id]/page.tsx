@@ -4,8 +4,8 @@ import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { PastJobType } from "@/lib/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
-import PastJobItem from "@/app/ally/return-resume/components/PastJobItem";
-import { fetchPastJobWithQualifications } from "@/lib/crud/pastJob";
+import PastJobItem from "./components/PastJobItem";
+import { fetchPastJobWithQualificationsAndApplications } from "@/lib/crud/pastJob";
 export default function PastJobPage({
   params,
 }: {
@@ -18,7 +18,7 @@ export default function PastJobPage({
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      const { data } = await fetchPastJobWithQualifications(id);
+      const { data } = await fetchPastJobWithQualificationsAndApplications(id);
       setPastJob(data);
       setLoading(false);
     }

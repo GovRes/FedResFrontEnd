@@ -162,7 +162,6 @@ export async function fetchPastJobWithQualifications(
             userId: item.qualification?.userId,
             createdAt: item.qualification?.createdAt,
             updatedAt: item.qualification?.updatedAt,
-            relationshipId: item.id, // The PastJobQualification join table ID
           })) || [],
         applications:
           pastJob.applications?.items?.map((item: any) => ({
@@ -171,7 +170,6 @@ export async function fetchPastJobWithQualifications(
             completedSteps: item.application?.completedSteps,
             jobId: item.application?.jobId,
             job: item.application?.job,
-            relationshipId: item.id, // The PastJobApplication join table ID
           })) || [],
       };
 
@@ -196,7 +194,429 @@ export async function fetchPastJobWithQualifications(
     };
   }
 }
+/**
+ * Fetch a single PastJob record with all its qualifications, applications for those qualifications, and the jobs those applications target
+ *
+ * @param {string} pastJobId - The ID of the PastJob to fetch
+ * @returns {Promise<ApiResponse<Object>>} - API response with the PastJob data including qualifications with their applications and jobs
+ */
+export async function fetchPastJobWithQualificationsAndApplications(
+  pastJobId: string
+): Promise<ApiResponse<any>> {
+  // Validate input
+  if (!pastJobId || typeof pastJobId !== "string" || pastJobId.trim() === "") {
+    return {
+      success: false,
+      error: "Invalid pastJobId: pastJobId must be a non-empty string",
+      statusCode: 400,
+    };
+  }
 
+  const client = generateClient();
+
+  try {
+    const getPastJobQuery = `
+      query GetPastJob($id: ID!) {
+        getPastJob(id: $id) {
+          id
+          title
+          organization
+          organizationAddress
+          startDate
+          endDate
+          hours
+          gsLevel
+          responsibilities
+          supervisorName
+          supervisorPhone
+          supervisorMayContact
+          type
+          userId
+          createdAt
+          updatedAt
+          user {
+            id
+            email
+            givenName
+            familyName
+          }
+          qualifications {
+            items {
+              id
+              qualificationId
+              qualification {
+                id
+                title
+                description
+                paragraph
+                question
+                userConfirmed
+                topicId
+                topic {
+                  id
+                  title
+                  keywords
+                  description
+                  evidence
+                  jobId
+                  job {
+                    id
+                    title
+                    department
+                    usaJobsId
+                    agencyDescription
+                    duties
+                    evaluationCriteria
+                    qualificationsSummary
+                  }
+                }
+                userId
+                createdAt
+                updatedAt
+                applications {
+                  items {
+                    id
+                    qualificationId
+                    applicationId
+                    application {
+                      id
+                      status
+                      completedSteps
+                      jobId
+                      createdAt
+                      updatedAt
+                      job {
+                        id
+                        title
+                        department
+                        usaJobsId
+                        agencyDescription
+                        duties
+                        evaluationCriteria
+                        qualificationsSummary
+                      }
+                      user {
+                        id
+                        email
+                        givenName
+                        familyName
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          applications {
+            items {
+              id
+              applicationId
+              application {
+                id
+                status
+                completedSteps
+                jobId
+                job {
+                  id
+                  title
+                  department
+                  usaJobsId
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await client.graphql({
+      query: getPastJobQuery,
+      variables: {
+        id: pastJobId,
+      },
+      authMode: "userPool",
+    });
+
+    // Check if the result is a GraphQLResult type with data
+    if ("data" in result && result.data?.getPastJob) {
+      const pastJob = result.data.getPastJob;
+
+      // Transform the data to a more convenient format
+      const transformedData = {
+        ...pastJob,
+        qualifications:
+          pastJob.qualifications?.items?.map((item: any) => ({
+            id: item.qualification?.id,
+            title: item.qualification?.title,
+            description: item.qualification?.description,
+            paragraph: item.qualification?.paragraph,
+            question: item.qualification?.question,
+            userConfirmed: item.qualification?.userConfirmed,
+            topicId: item.qualification?.topicId,
+            topic: item.qualification?.topic,
+            userId: item.qualification?.userId,
+            createdAt: item.qualification?.createdAt,
+            updatedAt: item.qualification?.updatedAt,
+            // Enhanced: Include applications for this qualification
+            applications:
+              item.qualification?.applications?.items?.map((appItem: any) => ({
+                id: appItem.application?.id,
+                status: appItem.application?.status,
+                completedSteps: appItem.application?.completedSteps,
+                jobId: appItem.application?.jobId,
+                createdAt: appItem.application?.createdAt,
+                updatedAt: appItem.application?.updatedAt,
+                job: appItem.application?.job,
+                user: appItem.application?.user,
+              })) || [],
+          })) || [],
+        applications:
+          pastJob.applications?.items?.map((item: any) => ({
+            id: item.application?.id,
+            status: item.application?.status,
+            completedSteps: item.application?.completedSteps,
+            jobId: item.application?.jobId,
+            job: item.application?.job,
+          })) || [],
+      };
+
+      return {
+        success: true,
+        data: transformedData,
+        statusCode: 200,
+      };
+    } else {
+      return {
+        success: false,
+        error: `PastJob with ID: ${pastJobId} not found`,
+        statusCode: 404,
+      };
+    }
+  } catch (error) {
+    console.error(
+      "Error fetching PastJob with qualifications and applications:",
+      error
+    );
+    return {
+      success: false,
+      error: `Failed to fetch PastJob with qualifications and applications: ${error instanceof Error ? error.message : String(error)}`,
+      statusCode: 500,
+    };
+  }
+}
+
+/**
+ * Fetch multiple PastJob records with their qualifications and applications for a specific user
+ *
+ * @param {string} userId - The ID of the user whose PastJobs to fetch
+ * @param {number} limit - Optional limit on the number of results (default: 100)
+ * @param {string} nextToken - Optional pagination token for fetching next page
+ * @returns {Promise<ApiResponse<{items: Object[], nextToken?: string}>>} - API response with array of PastJob data
+ */
+export async function fetchUserPastJobsWithQualificationsAndApplications(
+  userId: string,
+  limit: number = 100,
+  nextToken?: string
+): Promise<ApiResponse<{ items: any[]; nextToken?: string }>> {
+  // Validate input
+  if (!userId || typeof userId !== "string" || userId.trim() === "") {
+    return {
+      success: false,
+      error: "Invalid userId: userId must be a non-empty string",
+      statusCode: 400,
+    };
+  }
+
+  if (limit <= 0 || limit > 1000) {
+    return {
+      success: false,
+      error: "Invalid limit: limit must be between 1 and 1000",
+      statusCode: 400,
+    };
+  }
+
+  const client = generateClient();
+
+  try {
+    const listPastJobsQuery = `
+      query ListPastJobs($filter: ModelPastJobFilterInput, $limit: Int, $nextToken: String) {
+        listPastJobs(filter: $filter, limit: $limit, nextToken: $nextToken) {
+          items {
+            id
+            title
+            organization
+            organizationAddress
+            startDate
+            endDate
+            hours
+            gsLevel
+            responsibilities
+            supervisorName
+            supervisorPhone
+            supervisorMayContact
+            type
+            userId
+            createdAt
+            updatedAt
+            qualifications {
+              items {
+                id
+                qualificationId
+                qualification {
+                  id
+                  title
+                  description
+                  paragraph
+                  question
+                  userConfirmed
+                  topicId
+                  topic {
+                    id
+                    title
+                    keywords
+                    description
+                    evidence
+                    jobId
+                    job {
+                      id
+                      title
+                      department
+                    }
+                  }
+                  userId
+                  applications {
+                    items {
+                      id
+                      qualificationId
+                      applicationId
+                      application {
+                        id
+                        status
+                        completedSteps
+                        jobId
+                        createdAt
+                        updatedAt
+                        job {
+                          id
+                          title
+                          department
+                          usaJobsId
+                        }
+                        user {
+                          id
+                          email
+                          givenName
+                          familyName
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            applications {
+              items {
+                id
+                applicationId
+                application {
+                  id
+                  status
+                  jobId
+                  job {
+                    id
+                    title
+                    department
+                  }
+                }
+              }
+            }
+          }
+          nextToken
+        }
+      }
+    `;
+
+    const result = await client.graphql({
+      query: listPastJobsQuery,
+      variables: {
+        filter: {
+          userId: { eq: userId },
+        },
+        limit,
+        nextToken,
+      },
+      authMode: "userPool",
+    });
+
+    if ("data" in result && result.data?.listPastJobs) {
+      const { items, nextToken: responseNextToken } = result.data.listPastJobs;
+
+      // Transform the data to a more convenient format
+      const transformedItems =
+        items?.map((pastJob: any) => ({
+          ...pastJob,
+          qualifications:
+            pastJob.qualifications?.items?.map((item: any) => ({
+              id: item.qualification?.id,
+              title: item.qualification?.title,
+              description: item.qualification?.description,
+              paragraph: item.qualification?.paragraph,
+              question: item.qualification?.question,
+              userConfirmed: item.qualification?.userConfirmed,
+              topicId: item.qualification?.topicId,
+              topic: item.qualification?.topic,
+              userId: item.qualification?.userId,
+              // Enhanced: Include applications for this qualification
+              applications:
+                item.qualification?.applications?.items?.map(
+                  (appItem: any) => ({
+                    id: appItem.application?.id,
+                    status: appItem.application?.status,
+                    completedSteps: appItem.application?.completedSteps,
+                    jobId: appItem.application?.jobId,
+                    createdAt: appItem.application?.createdAt,
+                    updatedAt: appItem.application?.updatedAt,
+                    job: appItem.application?.job,
+                    user: appItem.application?.user,
+                  })
+                ) || [],
+            })) || [],
+          applications:
+            pastJob.applications?.items?.map((item: any) => ({
+              id: item.application?.id,
+              status: item.application?.status,
+              jobId: item.application?.jobId,
+              job: item.application?.job,
+            })) || [],
+        })) || [];
+
+      return {
+        success: true,
+        data: {
+          items: transformedItems,
+          nextToken: responseNextToken,
+        },
+        statusCode: 200,
+      };
+    } else {
+      return {
+        success: false,
+        error: `No PastJobs found for user: ${userId}`,
+        statusCode: 404,
+      };
+    }
+  } catch (error) {
+    console.error(
+      "Error fetching user PastJobs with qualifications and applications:",
+      error
+    );
+    return {
+      success: false,
+      error: `Failed to fetch PastJobs for user: ${error instanceof Error ? error.message : String(error)}`,
+      statusCode: 500,
+    };
+  }
+}
 /**
  * Fetch multiple PastJob records with their qualifications for a specific user
  *
@@ -332,7 +752,6 @@ export async function fetchUserPastJobsWithQualifications(
               topicId: item.qualification?.topicId,
               topic: item.qualification?.topic,
               userId: item.qualification?.userId,
-              relationshipId: item.id,
             })) || [],
           applications:
             pastJob.applications?.items?.map((item: any) => ({
@@ -340,7 +759,6 @@ export async function fetchUserPastJobsWithQualifications(
               status: item.application?.status,
               jobId: item.application?.jobId,
               job: item.application?.job,
-              relationshipId: item.id,
             })) || [],
         })) || [];
 
@@ -976,87 +1394,3 @@ export async function updatePastJobWithQualifications(
     };
   }
 }
-
-/**
- * Example usage:
- *
- * // Fetch single PastJob with qualifications
- * const fetchResult = await fetchPastJobWithQualifications("pastJob123");
- * if (fetchResult.success && fetchResult.data) {
- *   console.log("PastJob with qualifications:", fetchResult.data);
- *   console.log("Number of qualifications:", fetchResult.data.qualifications.length);
- * } else {
- *   console.error(`Error ${fetchResult.statusCode}:`, fetchResult.error);
- * }
- *
- * // Fetch all PastJobs for a user
- * const userJobsResult = await fetchUserPastJobsWithQualifications("user123", 50);
- * if (userJobsResult.success && userJobsResult.data) {
- *   console.log(`Found ${userJobsResult.data.items.length} past jobs`);
- *   if (userJobsResult.data.nextToken) {
- *     console.log("More results available, use nextToken for pagination");
- *   }
- * }
- *
- * // Update single PastJob with qualifications
- * const updateResult = await updatePastJobWithQualifications(
- *   "pastJob123",
- *   {
- *     title: "Senior Software Engineer",
- *     organization: "Tech Corp",
- *     userId: "user123"
- *   },
- *   [
- *     {
- *       title: "React Development",
- *       description: "Expert in React framework",
- *       userConfirmed: true
- *     }
- *   ]
- * );
- *
- * if (updateResult.success && updateResult.data) {
- *   console.log("Updated PastJob:", updateResult.data);
- * } else {
- *   console.error(`Error ${updateResult.statusCode}:`, updateResult.error);
- * }
- *
- * // Batch update PastJobs (sequential)
- * const batchResult = await batchUpdatePastJobsWithQualifications([
- *   {
- *     id: "pastJob1",
- *     title: "Software Engineer",
- *     userId: "user123",
- *     qualifications: [...]
- *   },
- *   {
- *     id: "pastJob2",
- *     title: "Web Developer",
- *     userId: "user123",
- *     qualifications: [...]
- *   }
- * ]);
- *
- * if (batchResult.success && batchResult.data) {
- *   const { results, summary } = batchResult.data;
- *   console.log(`Batch update: ${summary.successful}/${summary.total} successful`);
- *   if (summary.errors) {
- *     console.warn("Some updates failed:", summary.errors);
- *   }
- * } else {
- *   console.error(`Error ${batchResult.statusCode}:`, batchResult.error);
- * }
- *
- * // Parallel batch update (for larger batches)
- * const parallelResult = await parallelBatchUpdatePastJobsWithQualifications([
- *   {
- *     pastJobId: "pastJob1",
- *     pastJobData: { title: "Software Engineer", userId: "user123" },
- *     qualifications: [...]
- *   }
- * ], 5);
- *
- * if (parallelResult.success && parallelResult.data) {
- *   console.log("Parallel update results:", parallelResult.data.summary);
- * }
- */
