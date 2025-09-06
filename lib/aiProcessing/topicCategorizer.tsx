@@ -30,6 +30,6 @@ export const topicsCategorizer = async ({
     messages: messagesForQualificationsReviewer,
     name: "topics",
   });
-
+  console.log("topicsCategorizer res:", res.topics);
   return res.topics as TopicType[];
 };

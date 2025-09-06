@@ -135,7 +135,6 @@ export const createOrFindSimilarTopics = async ({
                 title
                 keywords
                 description
-                evidence
                 jobId
                 createdAt
                 updatedAt
@@ -147,7 +146,6 @@ export const createOrFindSimilarTopics = async ({
               title: topic.title,
               keywords: topic.keywords,
               description: topic.description,
-              evidence: topic.evidence,
               jobId: jobId,
             },
           },

@@ -10,7 +10,7 @@ export default function AdminPage() {
       <em> tk make cascading delete for join tables </em>
       <button
         onClick={async () =>
-          await deleteAllModelRecords("PastJobQualification", true)
+          await deleteAllModelRecords("PastJobApplication", true)
         }
       >
         Delete all Qualification records
