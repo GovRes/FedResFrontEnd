@@ -194,7 +194,6 @@ const schema = a.schema({
       title: a.string().required(),
       keywords: a.string().array().required(),
       description: a.string(),
-      evidence: a.string(),
       jobId: a.id().required(),
       job: a.belongsTo("Job", "jobId"),
       qualifications: a.hasMany("Qualification", "topicId"),

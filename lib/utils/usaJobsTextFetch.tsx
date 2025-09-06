@@ -55,7 +55,9 @@ export async function usaJobsTextFetch({
       return response.data;
     } catch (error) {
       lastError = error;
-      console.error(`Attempt ${attempt + 1} failed:`, error);
+
+      // Enhanced error logging to handle AggregateError
+      logDetailedError(error, attempt + 1, jobId);
 
       // If this is the last attempt or error is not retryable, throw the error
       if (attempt === maxRetries || !isRetryableError(error)) {
@@ -71,4 +73,83 @@ export async function usaJobsTextFetch({
 
   // This should never be reached, but just in case
   throw lastError;
+}
+
+function logDetailedError(error: any, attemptNumber: number, jobId: string) {
+  console.error(`Attempt ${attemptNumber} failed for job ID ${jobId}:`);
+
+  if (error instanceof AggregateError) {
+    console.error(
+      `AggregateError with ${error.errors.length} individual errors:`
+    );
+    console.error(`Main message: ${error.message}`);
+
+    // Log each individual error
+    error.errors.forEach((individualError, index) => {
+      console.error(`  Error ${index + 1}:`, {
+        name: individualError.name,
+        message: individualError.message,
+        stack: individualError.stack,
+        code: individualError.code,
+        status: individualError.status,
+        // Include any other relevant properties
+        ...individualError,
+      });
+    });
+  } else {
+    // Handle regular errors
+    console.error("Error details:", {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      status: error.status,
+      // Include the full error object for any additional properties
+      fullError: error,
+    });
+  }
+}
+
+// Alternative: More structured logging approach
+function logDetailedErrorStructured(
+  error: any,
+  attemptNumber: number,
+  jobId: string
+) {
+  const baseLogData = {
+    jobId,
+    attemptNumber,
+    timestamp: new Date().toISOString(),
+  };
+
+  if (error instanceof AggregateError) {
+    console.error("AggregateError occurred:", {
+      ...baseLogData,
+      errorType: "AggregateError",
+      mainMessage: error.message,
+      individualErrorCount: error.errors.length,
+    });
+
+    error.errors.forEach((individualError, index) => {
+      console.error(`Individual error ${index + 1}:`, {
+        ...baseLogData,
+        errorIndex: index,
+        name: individualError.name,
+        message: individualError.message,
+        code: individualError.code,
+        status: individualError.status,
+        stack: individualError.stack,
+      });
+    });
+  } else {
+    console.error("Single error occurred:", {
+      ...baseLogData,
+      errorType: "SingleError",
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      status: error.status,
+      stack: error.stack,
+    });
+  }
 }

@@ -414,6 +414,7 @@ export const getApplicationAssociations = async <T extends AssociationType>({
                   description
                   paragraph
                   question
+                  topicId
                   userConfirmed
                   userId
                   applications {
@@ -530,7 +531,7 @@ export const getApplicationAssociations = async <T extends AssociationType>({
       // Deduplicate by ID
       const uniqueItems = deduplicateById(associatedItemsWithDuplicates);
 
-      // Special handling for PastJob and Volunteer to transform the data structure
+      // Special handling for PastJob to transform the data structure
       if (associationType === "PastJob") {
         const transformedItems = uniqueItems.map((item: any) => {
           // Convert hours to string if it's a number to match schema
@@ -546,7 +547,37 @@ export const getApplicationAssociations = async <T extends AssociationType>({
                 // Get the actual qualification from the junction object
                 const qual = qualJunction.qualification || {};
 
-                return {
+                // Debug logging to see what we're getting from GraphQL
+                console.log("=== PROCESSING QUALIFICATION FROM DB ===");
+                console.log("Raw qual object:", qual);
+                console.log("qual.topicId:", qual.topicId);
+                console.log("qual.topic:", qual.topic);
+                console.log("qual.topic?.id:", qual.topic?.id);
+
+                // Extract topicId - try multiple sources
+                let topicId = null;
+                if (qual.topicId && qual.topicId !== "") {
+                  topicId = qual.topicId;
+                } else if (qual.topic?.id && qual.topic.id !== "") {
+                  topicId = qual.topic.id;
+                }
+
+                // Build topic object only if we have valid data
+                let topicData = null;
+                if (qual.topic && qual.topic.id && qual.topic.id !== "") {
+                  topicData = {
+                    id: qual.topic.id,
+                    title: qual.topic.title || "",
+                    jobId: qual.topic.jobId || "",
+                    keywords: Array.isArray(qual.topic.keywords)
+                      ? qual.topic.keywords
+                      : [],
+                    description: qual.topic.description || "",
+                    evidence: qual.topic.evidence || "",
+                  };
+                }
+
+                const result = {
                   id: qual.id || qualJunction.id || "",
                   title: qual.title || "",
                   description: qual.description || "",
@@ -554,27 +585,18 @@ export const getApplicationAssociations = async <T extends AssociationType>({
                   question: qual.question,
                   userConfirmed: qual.userConfirmed || false,
                   userId: qual.userId || item.userId,
-                  // Extract applicationIds from the qualification's applications junction table
+                  topicId: topicId, // This should now preserve the actual topicId
                   applicationIds: (qual.applications?.items || [])
                     .map((appJunction: any) => appJunction.applicationId)
-                    .filter(Boolean), // Filter out any null/undefined values
-                  topic: qual.topic
-                    ? {
-                        id: qual.topic.id || "",
-                        title: qual.topic.title || "",
-                        jobId: qual.topic.jobId || "",
-                        keywords: qual.topic.keywords || [],
-                        description: qual.topic.description,
-                        evidence: qual.topic.evidence,
-                        question: qual.question,
-                      }
-                    : {
-                        id: "",
-                        title: "",
-                        jobId: "",
-                        keywords: [],
-                      },
+                    .filter(Boolean),
+                  topic: topicData, // This will be null if no valid topic, or the proper object
                 };
+
+                console.log("Final processed qualification:", result);
+                console.log("Final topicId:", result.topicId);
+                console.log("Final topic object:", result.topic);
+
+                return result;
               }
             ),
           };
@@ -1138,6 +1160,7 @@ export const getApplicationWithAllAssociations = async ({
     };
   }
 };
+
 //tk currently  not used.
 export const listApplications = async (): Promise<ApiResponse> => {
   try {

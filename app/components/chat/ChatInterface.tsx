@@ -1,6 +1,10 @@
 import React, { useState, useEffect, FormEvent } from "react";
 import { useChatContext } from "../../providers/chatContext";
 import { useEditableParagraph } from "../../providers/editableParagraphContext";
+import {
+  pastJobsAssistantInstructions,
+  pastJobsAssistantName,
+} from "@/lib/prompts/pastJobsWriterPrompt";
 import styles from "./chatInterface.module.css";
 
 type Message = {
@@ -149,11 +153,21 @@ export default function ChatInterface() {
     setError(null);
 
     try {
+      // Determine which assistant to use based on context
+      const usesPastJobsAssistant =
+        pastJobsAssistantName && pastJobsAssistantInstructions;
+      const selectedAssistantName = usesPastJobsAssistant
+        ? pastJobsAssistantName
+        : assistantName;
+      const selectedAssistantInstructions = usesPastJobsAssistant
+        ? pastJobsAssistantInstructions
+        : assistantInstructions;
+
       // Customize instructions based on whether we're editing or creating
-      let customInstructions = assistantInstructions;
+      let customInstructions = selectedAssistantInstructions;
 
       if (isEditingExistingParagraph) {
-        customInstructions = `${assistantInstructions}. The user is editing an existing paragraph about "${currentItem?.title}". 
+        customInstructions = `${selectedAssistantInstructions}. The user is editing an existing paragraph about "${currentItem?.title}". 
         Here is their current paragraph: "${paragraphData}". 
         Help them improve it based on their feedback. If you generate a new paragraph, make sure it builds on the existing content.`;
       }
@@ -169,7 +183,7 @@ export default function ChatInterface() {
             additionalContext &&
             "here is information about prior job experience that you should use.: "
           }${additionalContext ? JSON.stringify(additionalContext) : ""}`,
-          assistantName,
+          assistantName: selectedAssistantName,
           message: input,
           threadId: threadId,
           // Pass the current paragraph if in editing mode
@@ -281,6 +295,12 @@ export default function ChatInterface() {
     cancelEditing();
   };
 
+  // Determine which assistant name to display
+  const displayAssistantName =
+    pastJobsAssistantName && pastJobsAssistantInstructions
+      ? pastJobsAssistantName
+      : assistantName;
+
   // Render prompt suggestion buttons
   const renderPromptButtons = () => (
     <div className={styles.promptButtons}>
@@ -341,7 +361,7 @@ export default function ChatInterface() {
               }
             >
               <strong>
-                {msg.role === "assistant" ? assistantName : "You"}:
+                {msg.role === "assistant" ? displayAssistantName : "You"}:
               </strong>{" "}
               {msg.content}
             </div>
@@ -349,7 +369,7 @@ export default function ChatInterface() {
 
           {loading && (
             <div className={styles.allyChatContainer}>
-              <strong>{assistantName}:</strong> <em>Thinking...</em>
+              <strong>{displayAssistantName}:</strong> <em>Thinking...</em>
             </div>
           )}
 

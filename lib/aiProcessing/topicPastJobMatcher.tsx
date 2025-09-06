@@ -13,30 +13,30 @@ export const topicPastJobMatcher = async ({
   topic: TopicType;
   pastJobs: PastJobType[];
 }) => {
-  const userMessage: ChatCompletionUserMessageParam = {
-    role: "user",
-    content: `user's past jobs: ${JSON.stringify(
-      pastJobs
-    )}. Topic with keywords keywords from job listing: ${JSON.stringify(
-      topic
-    )}.`,
-  };
-  const messagesForTopicPastJobMatcher: (
-    | ChatCompletionUserMessageParam
-    | ChatCompletionSystemMessageParam
-  )[] = [userMessage, topicPastJobMatcherPrompt];
+  const messages = [
+    topicPastJobMatcherPrompt,
+    {
+      role: "user" as const,
+      content: `Past jobs: ${JSON.stringify(pastJobs)}
+      
+Job requirements topic with keywords: ${JSON.stringify(topic)}
+
+Please identify which past jobs are most relevant to this topic and explain the connections.`,
+    },
+  ];
 
   try {
-    let res = await sendMessages({
-      messages: messagesForTopicPastJobMatcher,
+    const res = await sendMessages({
+      messages,
       name: "pastJobs",
+      // temperature: 0, // Consistent results for matching logic
+      // maxTokens: 2000, // Adjust based on expected response size
     });
-    console.log("response from topic matcher 34", res);
-    // Parse and validate the response
-    return res.pastJobs;
+
+    console.log("Response from topic matcher:", res);
+    return res.pastJobs || [];
   } catch (error) {
-    console.error("Response did not match expected schema:", error);
-    // Handle validation failure - could return empty array, throw error, etc.
+    console.error("Topic matching failed:", error);
     return [];
   }
 };

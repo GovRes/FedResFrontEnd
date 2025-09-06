@@ -5,7 +5,7 @@ RESPONSE FORMAT: Return a valid JSON array of topic objects with this exact stru
 [
   {
     "id": "abc123def4",
-    "name": "Topic Name",
+    "title": "Topic Name",
     "keywords": ["keyword 1", "keyword 2", "keyword 3"],
     "evidence": "",
     "description": "Description of the topic and its relevance to the job",
@@ -36,8 +36,8 @@ Create topics that represent distinct skill areas such as:
 • Education & Qualifications (degrees, certifications, clearances)
 
 TOPIC NAMING:
-• Use clear, professional category names (3-6 words maximum)
-• Make names specific enough to be meaningful
+• Use clear, professional category titles (3-6 words maximum)
+• Make titles specific enough to be meaningful
 • Avoid generic terms like "Skills" or "Requirements"
 • Examples: "Data Analysis Tools", "Project Management", "Federal Compliance"
 

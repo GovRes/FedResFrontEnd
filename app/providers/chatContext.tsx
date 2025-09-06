@@ -2,7 +2,10 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useEditableParagraph } from "./editableParagraphContext";
-import { PastJobType } from "../../lib/utils/responseSchemas";
+import {
+  PastJobType,
+  QualificationType,
+} from "../../lib/utils/responseSchemas";
 
 // Generic item type that can be extended by specific item types
 export type BaseItem = {
@@ -170,7 +173,17 @@ export function ChatProvider({
 
       // Always use the saveFunction - it now handles nested logic in the parent component
       console.log(186, "saving item", item);
-      await saveFunction(item);
+      const handleSave = (qualification: QualificationType) => {
+        console.log("=== ABOUT TO SAVE QUALIFICATION ===");
+        console.log("Qualification object:", qualification);
+        console.log("TopicId available:", qualification.topicId);
+        console.log("Topic object available:", qualification.topic);
+        console.log("Topic object ID:", qualification.topic?.id);
+
+        return saveFunction(qualification);
+      };
+      await handleSave(item as QualificationType);
+      // await saveFunction(item);
 
       // If we were editing this item, finish editing
       if (isEditingExistingParagraph && itemBeingEdited === item.id) {

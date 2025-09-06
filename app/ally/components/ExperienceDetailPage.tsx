@@ -73,6 +73,7 @@ export default function ExperienceDetailPage({
         // 2. Find the specific job by ID
         console.log("Looking for job with ID:", id);
         const pastJob = pastJobs?.find((j) => j.id === id);
+
         if (pastJob) {
           console.log("Found job:", pastJob);
           // 3. Ensure qualifications is properly formatted

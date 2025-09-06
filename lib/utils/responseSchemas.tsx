@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { zodToJsonSchema } from "zod-to-json-schema";
 import { agencies } from "@/lib/utils/usaJobsCodes";
 import { UserType, userZodSchema } from "@/lib/utils/userAttributeUtils";
 
@@ -49,7 +50,6 @@ export const topicZodSchema = z.object({
   jobId: z.string(),
   keywords: z.array(z.string()),
   description: z.string().nullish(),
-  evidence: z.string().nullish(),
 });
 
 export const topicsArrayZodSchema = z.object({
@@ -355,3 +355,77 @@ export const fullQualificationZodSchema = schemas.full.qualification;
 export const fullPastJobZodSchema = schemas.full.pastJob;
 export const fullJobZodSchema = schemas.full.job;
 export const fullApplicationZodSchema = schemas.full.application;
+
+// ============================================================================
+// JSON SCHEMAS FOR RESPONSES API (Auto-converted and flattened)
+// ============================================================================
+
+// Helper function to flatten schemas and remove $ref
+const flattenJsonSchema = (schema: any, schemaName: string) => {
+  if (schema.$ref && schema.definitions && schema.definitions[schemaName]) {
+    // Return the actual definition instead of the $ref
+    return schema.definitions[schemaName];
+  }
+  return schema;
+};
+
+const keywordsRawSchema = zodToJsonSchema(Keywords, "keywords");
+export const keywordsJsonSchema = flattenJsonSchema(
+  keywordsRawSchema,
+  "keywords"
+);
+
+const awardsArrayRawSchema = zodToJsonSchema(awardsArrayZodSchema, "awards");
+export const awardsArrayJsonSchema = flattenJsonSchema(
+  awardsArrayRawSchema,
+  "awards"
+);
+
+const educationArrayRawSchema = zodToJsonSchema(
+  educationArrayZodSchema,
+  "education"
+);
+export const educationArrayJsonSchema = flattenJsonSchema(
+  educationArrayRawSchema,
+  "education"
+);
+const jobRawSchema = zodToJsonSchema(jobZodSchema, "job");
+export const jobJsonSchema = flattenJsonSchema(jobRawSchema, "job");
+
+const qualificationRawSchema = zodToJsonSchema(
+  qualificationZodSchema,
+  "qualification"
+);
+export const qualificationJsonSchema = flattenJsonSchema(
+  qualificationRawSchema,
+  "qualification"
+);
+
+const topicRawSchema = zodToJsonSchema(topicZodSchema, "topic");
+export const topicJsonSchema = flattenJsonSchema(topicRawSchema, "topic");
+
+const topicsArrayRawSchema = zodToJsonSchema(topicsArrayZodSchema, "topics");
+export const topicsArrayJsonSchema = flattenJsonSchema(
+  topicsArrayRawSchema,
+  "topics"
+);
+
+const pastJobsArrayRawSchema = zodToJsonSchema(
+  pastJobsArrayZodSchema,
+  "pastJobs"
+);
+export const pastJobsArrayJsonSchema = flattenJsonSchema(
+  pastJobsArrayRawSchema,
+  "pastJobs"
+);
+
+export const responsesApiSchemas = {
+  awards: awardsArrayJsonSchema,
+  education: educationArrayJsonSchema,
+  job: jobJsonSchema,
+  keywords: keywordsJsonSchema,
+  qualification: qualificationJsonSchema,
+  qualifications: qualificationJsonSchema, // Assuming this maps to the same
+  topics: topicsArrayJsonSchema,
+  pastJobs: pastJobsArrayJsonSchema,
+} as const;
