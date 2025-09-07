@@ -51,7 +51,6 @@ export async function fetchQualificationWithApplicationsAndJobs(
             title
             keywords
             description
-            evidence
             jobId
             job {
               id
@@ -234,7 +233,6 @@ export async function fetchUserQualificationsWithApplicationsAndJobs(
               title
               keywords
               description
-              evidence
               jobId
               job {
                 id

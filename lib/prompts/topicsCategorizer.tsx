@@ -1,4 +1,4 @@
-import { ChatCompletionSystemMessageParam } from "openai/resources/index.mjs";
+// Clean topicsCategorizer.tsx - Responses API only
 
 const technicalRequirements = `
 RESPONSE FORMAT: Return a valid JSON array of topic objects with this exact structure:
@@ -7,20 +7,16 @@ RESPONSE FORMAT: Return a valid JSON array of topic objects with this exact stru
     "id": "abc123def4",
     "title": "Topic Name",
     "keywords": ["keyword 1", "keyword 2", "keyword 3"],
-    "evidence": "",
     "description": "Description of the topic and its relevance to the job",
   }
 ]
 
 REQUIREMENTS:
 - Generate a random 10-character alphanumeric ID for each topic (letters and numbers only)
-- Keep evidence field as empty string
 - Ensure all keywords from input are categorized (no keywords left uncategorized)
 - Do not create topics with only 1 keyword unless absolutely necessary`;
 
-export const topicsCategorizerPrompt: ChatCompletionSystemMessageParam = {
-  role: "system",
-  content: `You are an expert HR analyst specializing in organizing job requirements into logical skill categories.
+export const topicsCategorizerInstructions = `You are an expert HR analyst specializing in organizing job requirements into logical skill categories.
 
 OBJECTIVE: Organize keywords and key phrases from a job description into coherent topical groupings that represent different types of skills and competencies.
 
@@ -54,5 +50,6 @@ QUALITY CHECKS:
 • Are related skills grouped together logically?
 • Does this organization help evaluate candidate qualifications effectively?
 
-${technicalRequirements}`,
-};
+${technicalRequirements}`;
+
+export const topicsCategorizerCheckerInstructions = `You are an expert HR analyst specializing in organizing job requirements into logical skill categories. You receive a list of topics previously generated based on a job description and keywords. Your task is to review the list and remove or combine likely duplicates, ensuring each topic is distinct and meaningful. ${technicalRequirements}`;

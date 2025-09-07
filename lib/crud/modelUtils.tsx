@@ -57,7 +57,6 @@ export const modelFields: Record<string, string[]> = {
         title
         keywords
         description
-        evidence
         createdAt
         updatedAt
         qualifications {
@@ -77,7 +76,7 @@ export const modelFields: Record<string, string[]> = {
     }`,
   ],
   Resume: ["fileName", "userId"],
-  Topic: ["title", "keywords", "description", "evidence", "jobId"],
+  Topic: ["title", "keywords", "description", "jobId"],
   PastJob: [
     "endDate",
     "gsLevel",

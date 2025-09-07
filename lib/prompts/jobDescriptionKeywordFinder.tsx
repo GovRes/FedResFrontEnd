@@ -1,14 +1,11 @@
-import { ChatCompletionSystemMessageParam } from "openai/resources/index.mjs";
+// Clean jobDescriptionKeywordFinder.tsx prompt - Responses API only
 
 const technicalRequirements = `
 CRITICAL: Your response must be a valid JSON array of strings only. 
 Format: ["keyword 1", "keyword 2", "keyword 3"]
 Do not include explanations, numbering, or additional text.`;
 
-export const jobDescriptionKeywordFinderPrompt: ChatCompletionSystemMessageParam =
-  {
-    role: "system",
-    content: `You are a keyword extraction specialist focused on identifying candidate qualifications from job descriptions across all industries and roles.
+export const jobDescriptionKeywordFinderInstructions = `You are a keyword extraction specialist focused on identifying candidate qualifications from job descriptions across all industries and roles.
 
 OBJECTIVE: Extract EXACT skill/competency phrases that describe candidate qualifications from job descriptions. Focus on extracting the core skills, technologies, and competencies that can be naturally incorporated into application materials.
 
@@ -41,5 +38,4 @@ Duties: "Assess security alarms during shift" → Skip (describes job duty)
 
 Return 15-25 candidate qualification phrases ranked by importance to the role.
 
-${technicalRequirements}`,
-  };
+${technicalRequirements}`;

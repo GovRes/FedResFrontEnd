@@ -435,7 +435,6 @@ export const getApplicationAssociations = async <T extends AssociationType>({
                     jobId
                     keywords
                     description
-                    evidence
                   }
                 }
               }
@@ -464,7 +463,6 @@ export const getApplicationAssociations = async <T extends AssociationType>({
               jobId
               keywords
               description
-              evidence
             }
             pastJob {
               id
@@ -573,7 +571,6 @@ export const getApplicationAssociations = async <T extends AssociationType>({
                       ? qual.topic.keywords
                       : [],
                     description: qual.topic.description || "",
-                    evidence: qual.topic.evidence || "",
                   };
                 }
 
@@ -818,7 +815,6 @@ export const getApplicationWithJobAndQualifications = async ({
                   title
                   keywords
                   description
-                  evidence
                 }
                 pastJobs {
                   items {
@@ -936,7 +932,6 @@ export const getApplicationWithAllAssociations = async ({
                   keywords
                   title
                   description
-                  evidence
                 }
               }
             }
@@ -1006,7 +1001,6 @@ export const getApplicationWithAllAssociations = async ({
                           jobId
                           keywords
                           description
-                          evidence
                         }
                       }
                     }
@@ -1032,7 +1026,6 @@ export const getApplicationWithAllAssociations = async ({
                     title
                     keywords
                     description
-                    evidence
                   }
                   pastJobs {
                     items {

@@ -83,7 +83,6 @@ export const createOrFindSimilarTopics = async ({
               title
               keywords
               description
-              evidence
               jobId
               createdAt
               updatedAt
@@ -254,7 +253,6 @@ export const fetchTopicsByJobId = async (
               title
               keywords
               description
-              evidence
               jobId
               createdAt
               updatedAt
@@ -342,37 +340,3 @@ function findSimilarTopic(
 
   return null;
 }
-
-/**
- * Example usage:
- *
- * // Create or find similar topics for a job
- * const topicsResult = await createOrFindSimilarTopics({
- *   topics: [
- *     {
- *       title: "React Development",
- *       keywords: ["React", "JavaScript", "Frontend"],
- *       description: "Frontend development with React",
- *       evidence: "Built multiple React applications"
- *     }
- *   ],
- *   jobId: "job123"
- * });
- *
- * if (topicsResult.success && topicsResult.data) {
- *   console.log("Topics processed:", topicsResult.data);
- *   topicsResult.data.forEach(result => {
- *     console.log(`Topic: ${result.topic.title}, New: ${result.isNew}`);
- *   });
- * } else {
- *   console.error(`Error ${topicsResult.statusCode}:`, topicsResult.error);
- * }
- *
- * // Fetch topics for a specific job
- * const fetchResult = await fetchTopicsByJobId("job123");
- * if (fetchResult.success && fetchResult.data) {
- *   console.log("Job topics:", fetchResult.data);
- * } else {
- *   console.error(`Error ${fetchResult.statusCode}:`, fetchResult.error);
- * }
- */

@@ -1,22 +1,18 @@
-import { ChatCompletionSystemMessageParam } from "openai/resources/index.mjs";
-import { ChatCompletionUserMessageParam } from "openai/src/resources/index.js";
-
 export async function sendMessages({
-  messages,
+  input,
   name,
   useVision = false,
+  temperature = 0,
 }: {
-  messages: (
-    | ChatCompletionUserMessageParam
-    | ChatCompletionSystemMessageParam
-  )[];
+  input: string;
   name: string;
   useVision?: boolean;
+  temperature?: number;
 }) {
   const res = await fetch("/api/ai", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages, name, useVision }),
+    body: JSON.stringify({ input, name, useVision, temperature }),
   });
 
   const text = await res.text();
@@ -32,7 +28,6 @@ export async function sendMessages({
 
   try {
     const data: Record<string, any> = JSON.parse(text);
-
     return data;
   } catch (error) {
     console.error("JSON parse error:", error);

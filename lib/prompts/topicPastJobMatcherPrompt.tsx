@@ -1,8 +1,6 @@
-import { ChatCompletionSystemMessageParam } from "openai/resources/index.mjs";
+// Clean topicPastJobMatcherPrompt.tsx - Responses API only
 
-export const topicPastJobMatcherPrompt: ChatCompletionSystemMessageParam = {
-  role: "system",
-  content: `You are an expert career analyst specializing in matching past work experience to job qualifications.
+export const topicPastJobMatcherInstructions = `You are an expert career analyst specializing in matching past work experience to job qualifications.
 
 OBJECTIVE: Analyze a user's past jobs and identify which skill topics from the attached topics array can be demonstrated through their previous work experience.
 
@@ -59,7 +57,7 @@ QUALIFICATION OBJECT STRUCTURE:
 }
 
 CRITICAL REQUIREMENTS:
-• Use COMPLETE topic objects from the provided topics list - copy ALL properties including id, name, keywords, evidence
+• Use COMPLETE topic objects from the provided topics list - copy ALL properties including id, title, keywords, description
 • Never create new topic objects or modify existing ones
 • Check existing qualifications to prevent duplicate topic matches
 • Only match topics where there is clear evidence in the past job experience
@@ -70,5 +68,4 @@ QUALITY STANDARDS:
 • Would an HR professional agree this past experience demonstrates the required skill?
 • Is there specific evidence in the job description that supports this match?
 • Could the candidate credibly claim this qualification based on their experience?
-• Is this topic already covered by an existing qualification for this job?`,
-};
+• Is this topic already covered by an existing qualification for this job?`;

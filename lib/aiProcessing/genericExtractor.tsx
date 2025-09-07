@@ -1,45 +1,35 @@
 import { sendMessages } from "@/lib/utils/api";
-import {
-  ChatCompletionSystemMessageParam,
-  ChatCompletionUserMessageParam,
-} from "openai/resources/index.mjs";
 
 export const genericExtractor = async ({
   resumeImages,
   resume,
   existingRecords,
   extractorType,
-  systemPrompt,
+  instructions,
 }: {
   resumeImages?: string[];
   resume?: string;
   existingRecords: any[];
-  extractorType: "pastJobs" | "education" | "awards" | "volunteers";
-  systemPrompt: ChatCompletionSystemMessageParam;
+  extractorType: "pastJobs" | "educations" | "awards" | "volunteers";
+  instructions: string;
 }) => {
   // Use Vision API if images available, otherwise fall back to text
   if (resumeImages && resumeImages.length > 0) {
-    const userMessage: ChatCompletionUserMessageParam = {
-      role: "user",
-      content: [
-        {
-          type: "text",
-          text: `Extract ${extractorType} from these resume images. Existing records to avoid duplicating: ${JSON.stringify(
-            existingRecords
-          )}`,
-        },
-        ...resumeImages.map((image) => ({
-          type: "image_url" as const,
-          image_url: { url: image },
-        })),
-      ],
-    };
+    const combinedInput = `${instructions}
+
+Extract ${extractorType} from the provided resume images.
+
+Existing records to avoid duplicating:
+${JSON.stringify(existingRecords, null, 2)}
+
+Please analyze the resume images and extract any new ${extractorType} that don't already exist in the records above.`;
 
     try {
       const res = await sendMessages({
-        messages: [systemPrompt, userMessage],
+        input: combinedInput,
         name: extractorType,
         useVision: true,
+        temperature: 0.1, // Low temperature for consistent extraction
       });
 
       return res[extractorType] || [];
@@ -54,18 +44,22 @@ export const genericExtractor = async ({
 
   // Fallback to text extraction
   if (resume) {
-    const userMessage: ChatCompletionUserMessageParam = {
-      role: "user",
-      content: `Extract ${extractorType} from this resume: ${resume}. Existing records to avoid duplicating: ${JSON.stringify(
-        existingRecords
-      )}`,
-    };
+    const combinedInput = `${instructions}
+
+Extract ${extractorType} from this resume text:
+${resume}
+
+Existing records to avoid duplicating:
+${JSON.stringify(existingRecords, null, 2)}
+
+Please analyze the resume text and extract any new ${extractorType} that don't already exist in the records above.`;
 
     try {
       const res = await sendMessages({
-        messages: [systemPrompt, userMessage],
+        input: combinedInput,
         name: extractorType,
         useVision: false,
+        temperature: 0.1, // Low temperature for consistent extraction
       });
 
       return res[extractorType] || [];

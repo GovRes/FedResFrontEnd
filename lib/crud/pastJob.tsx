@@ -93,7 +93,6 @@ export async function fetchPastJobWithQualifications(
                   title
                   keywords
                   description
-                  evidence
                   jobId
                   job {
                     id
@@ -257,7 +256,6 @@ export async function fetchPastJobWithQualificationsAndApplications(
                   title
                   keywords
                   description
-                  evidence
                   jobId
                   job {
                     id
@@ -475,7 +473,6 @@ export async function fetchUserPastJobsWithQualificationsAndApplications(
                     title
                     keywords
                     description
-                    evidence
                     jobId
                     job {
                       id
@@ -687,7 +684,6 @@ export async function fetchUserPastJobsWithQualifications(
                     title
                     keywords
                     description
-                    evidence
                     jobId
                     job {
                       id
@@ -1354,7 +1350,6 @@ export async function updatePastJobWithQualifications(
                     jobId
                     keywords
                     description
-                    evidence
                   }
                 }
               }

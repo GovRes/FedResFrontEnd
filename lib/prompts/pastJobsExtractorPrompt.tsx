@@ -1,4 +1,4 @@
-import { ChatCompletionSystemMessageParam } from "openai/resources/index.mjs";
+// Clean pastJobsExtractorPrompt.tsx - Responses API only
 
 const technicalRequirements = `
 Technical requirements:
@@ -9,9 +9,7 @@ Technical requirements:
 - Return valid JSON array format
 `;
 
-export const pastJobsExtractorPrompt: ChatCompletionSystemMessageParam = {
-  role: "system",
-  content: `You are an expert at extracting work experience from resume images.
+export const pastJobsExtractorInstructions = `You are an expert at extracting work experience from resume images.
 
 TASK: Extract ALL work positions shown in the resume images and return only those that are genuinely new (not duplicates of existing records provided).
 
@@ -71,5 +69,4 @@ INSTRUCTIONS:
 
 REMEMBER: The first job listed is typically the current/most recent position and is critical to capture. Do not skip it.
 
-Focus on accuracy - extract what you can clearly see in the images without making assumptions about missing information.`,
-};
+Focus on accuracy - extract what you can clearly see in the images without making assumptions about missing information.`;

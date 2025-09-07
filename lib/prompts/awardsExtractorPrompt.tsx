@@ -1,4 +1,4 @@
-import { ChatCompletionSystemMessageParam } from "openai/resources/index.mjs";
+// Clean awardsExtractorPrompt.tsx - Responses API only
 
 const technicalRequirements = `
 Technical requirements:
@@ -8,9 +8,7 @@ Technical requirements:
 - Return valid JSON array format
 `;
 
-export const awardsExtractorPrompt: ChatCompletionSystemMessageParam = {
-  role: "system",
-  content: `You are an expert at extracting awards and achievements from resume images.
+export const awardsExtractorInstructions = `You are an expert at extracting awards and achievements from resume images.
 
 TASK: Extract ALL awards and achievements shown in the resume images and return only those that are genuinely new (not duplicates of existing records provided).
 
@@ -56,5 +54,4 @@ INSTRUCTIONS:
 4. Return only the new awards that don't already exist
 5. If no new awards are found, return an empty array []
 
-Focus on accuracy - extract what you can clearly see in the images without making assumptions about missing information.`,
-};
+Focus on accuracy - extract what you can clearly see in the images without making assumptions about missing information.`;

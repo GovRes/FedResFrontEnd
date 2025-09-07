@@ -1,7 +1,6 @@
-// route.tsx - Using imported JSON schemas with debugging
+// Clean route.tsx - Responses API only
 import OpenAI from "openai";
 import { type NextRequest } from "next/server";
-
 import { responsesApiSchemas } from "@/lib/utils/responseSchemas";
 
 export async function POST(req: NextRequest) {
@@ -26,20 +25,23 @@ export async function POST(req: NextRequest) {
     return new Response(`Invalid schema name: ${data.name}`, { status: 400 });
   }
 
+  if (!data.input) {
+    return new Response("Missing input parameter", { status: 400 });
+  }
+
   // Debug logging
   console.log(`\n=== RESPONSES API DEBUG ===`);
   console.log(`Schema name: ${schemaName}`);
-  // console.log(`Schema type: ${selectedJsonSchema.type}`);
-  console.log(`Full schema:`, JSON.stringify(selectedJsonSchema, null, 2));
-  console.log(
-    `Input messages count: ${Array.isArray(data.messages) ? data.messages.length : "not array"}`
-  );
+  console.log(`Input length: ${data.input.length}`);
+  console.log(`Input preview: ${data.input.substring(0, 300)}...`);
+  console.log(`Temperature: ${data.temperature ?? 0}`);
+  console.log(`Use vision: ${data.useVision ?? false}`);
   console.log(`===========================\n`);
 
   try {
     const completion = await client.responses.create({
       model: data.useVision ? "gpt-4o" : "gpt-4o-mini",
-      input: data.messages,
+      input: data.input,
       text: {
         format: {
           type: "json_schema",
@@ -49,7 +51,6 @@ export async function POST(req: NextRequest) {
         },
       },
       temperature: data.temperature ?? 0,
-      // max_tokens: data.maxTokens,
       store: false,
     });
 
@@ -57,14 +58,17 @@ export async function POST(req: NextRequest) {
     console.log(`Response received: ${!!completion.output_text}`);
     console.log(`Output text length: ${completion.output_text?.length || 0}`);
     console.log(
-      `Raw output (first 200 chars): ${completion.output_text?.substring(0, 200)}...`
+      `Raw output (first 300 chars): ${completion.output_text?.substring(0, 300)}...`
     );
     console.log(`======================\n`);
 
     if (completion.output_text) {
       try {
         const parsedContent = JSON.parse(completion.output_text);
-        console.log(`Successfully parsed JSON:`, parsedContent);
+        console.log(
+          `Successfully parsed JSON with keys:`,
+          Object.keys(parsedContent)
+        );
 
         return new Response(JSON.stringify(parsedContent), {
           status: 200,

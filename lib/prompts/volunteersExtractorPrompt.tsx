@@ -1,4 +1,4 @@
-import { ChatCompletionSystemMessageParam } from "openai/resources/index.mjs";
+// Clean volunteersExtractorPrompt.tsx - Responses API only
 
 const technicalRequirements = `
 Technical requirements:
@@ -9,9 +9,7 @@ Technical requirements:
 - Return valid JSON array format
 `;
 
-export const volunteersExtractorPrompt: ChatCompletionSystemMessageParam = {
-  role: "system",
-  content: `You are an expert at extracting volunteer and community service experience from resume images.
+export const volunteersExtractorInstructions = `You are an expert at extracting volunteer and community service experience from resume images.
 
 TASK: Extract ALL volunteer experiences shown in the resume images and return only those that are genuinely new (not duplicates of existing records provided).
 
@@ -59,5 +57,4 @@ INSTRUCTIONS:
 4. Return only the new volunteer experiences that don't already exist
 5. If no new volunteer work is found, return an empty array []
 
-Focus on accuracy - extract what you can clearly see in the images without making assumptions about missing information.`,
-};
+Focus on accuracy - extract what you can clearly see in the images without making assumptions about missing information.`;

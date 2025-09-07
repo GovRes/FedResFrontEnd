@@ -1,4 +1,4 @@
-import { ChatCompletionSystemMessageParam } from "openai/resources/index.mjs";
+// Clean educationExtractorPrompt.tsx - Responses API only
 
 const technicalRequirements = `
 Technical requirements:
@@ -8,9 +8,7 @@ Technical requirements:
 - Return valid JSON array format
 `;
 
-export const educationExtractorPrompt: ChatCompletionSystemMessageParam = {
-  role: "system",
-  content: `You are an expert at extracting education information from resume images.
+export const educationExtractorInstructions = `You are an expert at extracting education information from resume images.
 
 TASK: Extract ALL educational experiences shown in the resume images and return only those that are genuinely new (not duplicates of existing records provided).
 
@@ -83,5 +81,4 @@ INSTRUCTIONS:
 
 REMEMBER: Use flexible matching - focus on core institution + degree level + year, not exact text matches.
 
-Focus on accuracy - extract what you can clearly see in the images without making assumptions about missing information.`,
-};
+Focus on accuracy - extract what you can clearly see in the images without making assumptions about missing information.`;
