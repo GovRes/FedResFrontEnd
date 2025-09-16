@@ -5,11 +5,12 @@ export default function QualificationItem({
 }: {
   qualification: QualificationType;
 }) {
+  console.log("Rendering qualification:", qualification);
   return (
     <li key={qualification.id}>
-      {qualification.id} - {qualification.title} (
-      {qualification.pastJobs.items[0].pastJob.title} -{" "}
-      {qualification.pastJobs.items[0].pastJob.organization})
+      {qualification.id} - {qualification.title} ({qualification.pastJob.title}{" "}
+      - {qualification.pastJob.organization}) User confirmed?{" "}
+      {qualification.userConfirmed ? "Yes" : "No"}
     </li>
   );
 }

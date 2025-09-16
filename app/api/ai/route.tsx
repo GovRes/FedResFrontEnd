@@ -70,6 +70,7 @@ export async function POST(req: NextRequest) {
           Object.keys(parsedContent)
         );
 
+        // Return the parsed object as JSON - this is the key fix
         return new Response(JSON.stringify(parsedContent), {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -80,15 +81,50 @@ export async function POST(req: NextRequest) {
           "Raw output that failed to parse:",
           completion.output_text
         );
-        return new Response(completion.output_text, {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        });
+
+        // FIXED: Try to extract JSON from the raw output if it's malformed
+        try {
+          // Sometimes the AI returns JSON wrapped in markdown or with extra text
+          const jsonMatch = completion.output_text.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const extractedJson = JSON.parse(jsonMatch[0]);
+            console.log(
+              "Successfully extracted and parsed JSON from malformed response"
+            );
+            return new Response(JSON.stringify(extractedJson), {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            });
+          }
+        } catch (extractError) {
+          console.error(
+            "Failed to extract JSON from malformed response:",
+            extractError
+          );
+        }
+
+        // FIXED: Return a proper error response instead of invalid JSON
+        return new Response(
+          JSON.stringify({
+            error: "Invalid JSON response from AI",
+            raw_output: completion.output_text.substring(0, 500), // Limit length for debugging
+          }),
+          {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
       }
     } else {
       console.error("No content in the completion response");
       console.error("Full response object:", completion);
-      return new Response("Invalid response from OpenAI", { status: 500 });
+      return new Response(
+        JSON.stringify({ error: "No content in AI response" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
   } catch (error: any) {
     console.error("\n=== ERROR DEBUG ===");

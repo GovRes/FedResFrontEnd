@@ -79,10 +79,12 @@ export default function VolunteerDetailsPage() {
           associationType: "PastJob",
         });
         console.log("Fetched volunteer experiences:", data);
-
+        const volunteerExperiences = data?.filter(
+          (exp) => exp.type === "Volunteer"
+        );
         if (
-          data &&
-          data.length > 0 &&
+          volunteerExperiences &&
+          volunteerExperiences.length > 0 &&
           job &&
           job.topics &&
           job.topics.length > 0
@@ -94,7 +96,7 @@ export default function VolunteerDetailsPage() {
             console.log("Processing topic for volunteers:", topic);
             const topicMatcherData = await topicPastJobMatcher({
               topic,
-              pastJobs: data, // This works for volunteer experiences too since they use the same structure
+              pastJobs: volunteerExperiences, // This works for volunteer experiences too since they use the same structure
             });
             console.log("Volunteer topic matcher result:", topicMatcherData);
             console.log(

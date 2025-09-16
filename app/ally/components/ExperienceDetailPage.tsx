@@ -43,7 +43,10 @@ export default function ExperienceDetailPage({
 
   // Calculate if all qualifications are confirmed
   const allQualificationsConfirmed =
-    pastJob?.qualifications?.every((q: QualificationType) => q.userConfirmed) ||
+    (pastJob?.qualifications.length > 0 &&
+      pastJob?.qualifications?.every(
+        (q: QualificationType) => q.userConfirmed
+      )) ||
     false;
 
   // Only use the completion hook when not specifically in edit mode

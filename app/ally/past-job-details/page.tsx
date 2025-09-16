@@ -8,12 +8,13 @@ import {
 import { updatePastJobWithQualifications } from "@/lib/crud/pastJob";
 import { useApplication } from "@/app/providers/applicationContext";
 import { PastJobType, QualificationType } from "@/lib/utils/responseSchemas";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Loader } from "@/app/components/loader/Loader";
 
 export default function PastJobDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [loadingText, setLoadingText] = useState("Loading past job details...");
+  const processingRef = useRef(false);
   const {
     applicationId,
     job,
@@ -21,6 +22,7 @@ export default function PastJobDetailsPage() {
     markProcessingComplete,
     steps,
   } = useApplication();
+
   useEffect(() => {
     console.log("=== STEP DEBUG ===");
     steps.forEach((step) => {
@@ -30,6 +32,7 @@ export default function PastJobDetailsPage() {
     });
     console.log("==================");
   }, [steps]);
+
   useEffect(() => {
     async function fetchAndMatch(): Promise<void> {
       if (!applicationId) {
@@ -43,6 +46,16 @@ export default function PastJobDetailsPage() {
         setLoading(false);
         return;
       }
+
+      // Prevent multiple simultaneous runs
+      if (processingRef.current) {
+        console.log(
+          "Processing already in progress (via ref), skipping duplicate run"
+        );
+        return;
+      }
+
+      processingRef.current = true;
 
       // Check if we already have qualifications for this application's past jobs
       try {
@@ -61,15 +74,19 @@ export default function PastJobDetailsPage() {
 
           if (hasExistingQualifications) {
             console.log(
-              "Qualifications already exist for this application, marking as processed"
+              "Qualifications already exist for this application, marking processing complete but NOT step complete"
             );
             markProcessingComplete("pastJobs");
+            processingRef.current = false;
             setLoading(false);
             return;
           }
         }
       } catch (error) {
         console.error("Error checking existing qualifications:", error);
+        processingRef.current = false;
+        setLoading(false);
+        return;
       }
 
       setLoading(true);
@@ -96,19 +113,18 @@ export default function PastJobDetailsPage() {
           const totalTopics = job.topics.length;
 
           const topicPromises = job.topics.map(async (topic, index) => {
-            console.log(40, topic);
+            console.log(`Processing topic ${index + 1}/${totalTopics}:`, topic);
             const topicMatcherData = await topicPastJobMatcher({
               topic,
               pastJobs: data,
             });
-            console.log(44, topicMatcherData);
             console.log(
               `Topic matcher result for topic ${index + 1}/${totalTopics}:`,
               topicMatcherData
             );
             completedCount++;
             setLoadingText(
-              `Processed ${completedCount}/${totalTopics} topics (${topic.title})`
+              `AI matching topics: ${completedCount}/${totalTopics} topics (${topic.title})`
             );
             return topicMatcherData;
           });
@@ -130,6 +146,7 @@ export default function PastJobDetailsPage() {
           );
 
           // Process each job instance to create/update qualifications
+          //tk looks like the failure is here - the qualifications are getting saved but in line 168 they do not have IDs. This is probably because we're not adding the ID created during object creation to the local instance of the qualification. or may be an issue with what is returned by updatePastJobWithQualifications.
           const processedJobs = new Map<string, any>();
           const allQualificationsToAssociate: QualificationType[] = [];
 
@@ -145,6 +162,7 @@ export default function PastJobDetailsPage() {
               );
 
               if (item.qualifications && item.qualifications.length > 0) {
+                console.log("qualifications for job:", item.qualifications);
                 console.log(
                   "Qualification IDs for job:",
                   item.qualifications.map(
@@ -171,12 +189,19 @@ export default function PastJobDetailsPage() {
                   `Updating past job ${item.id} with ${item.qualifications.length} qualifications`
                 );
 
+                // IMPORTANT: Ensure all qualifications start as unconfirmed
+                const unconfirmedQualifications = item.qualifications.map(
+                  (q: QualificationType) => ({
+                    ...q,
+                    userConfirmed: false, // Force to false so user must confirm each one
+                    paragraph: q.paragraph || "", // Ensure paragraph field exists
+                  })
+                );
+
                 const updateResult = await updatePastJobWithQualifications(
                   item.id!,
                   item,
-                  Array.isArray(item.qualifications)
-                    ? item.qualifications
-                    : undefined
+                  unconfirmedQualifications
                 );
 
                 if (!updateResult.success) {
@@ -190,6 +215,13 @@ export default function PastJobDetailsPage() {
                 );
 
                 const updatedPastJob = updateResult.data;
+                console.log(
+                  "Qualification IDs after update:",
+                  updatedPastJob.qualifications?.map(
+                    (q: QualificationType) => q.id
+                  )
+                );
+
                 if (
                   updatedPastJob?.qualifications?.items &&
                   updatedPastJob.qualifications.items.length > 0
@@ -208,9 +240,10 @@ export default function PastJobDetailsPage() {
                           id: qualItem.qualification.id,
                           title: qualItem.qualification.title,
                           description: qualItem.qualification.description,
-                          paragraph: qualItem.qualification.paragraph,
+                          paragraph: qualItem.qualification.paragraph || "",
                           question: qualItem.qualification.question,
-                          userConfirmed: qualItem.qualification.userConfirmed,
+                          userConfirmed:
+                            qualItem.qualification.userConfirmed || false,
                           topicId: qualItem.qualification.topicId,
                           userId: qualItem.qualification.userId,
                           topic: qualItem.qualification.topic,
@@ -299,8 +332,15 @@ export default function PastJobDetailsPage() {
 
           console.log("Completed processing all matched jobs");
 
-          // Mark processing as completed
+          // IMPORTANT: Mark processing as completed, but NOT the step as completed
+          // The step should only complete when all qualifications are confirmed by user
           markProcessingComplete("pastJobs");
+          console.log(
+            "✅ Qualifications created and associated - processing complete"
+          );
+          console.log(
+            "❌ Step NOT marked complete - user must confirm each qualification with paragraphs"
+          );
         } else {
           // No past jobs or topics found, still mark as processed to avoid future attempts
           console.log("No past jobs or topics found, marking as processed");
@@ -309,6 +349,7 @@ export default function PastJobDetailsPage() {
       } catch (error) {
         console.error("Error in fetchAndMatch:", error);
       } finally {
+        processingRef.current = false;
         setLoading(false);
       }
     }

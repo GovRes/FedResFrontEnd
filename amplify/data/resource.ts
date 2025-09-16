@@ -47,7 +47,7 @@ const schema = a.schema({
       id: a.id().required(),
       jobId: a.id().required(),
       job: a.belongsTo("Job", "jobId"),
-      qualifications: a.hasMany("QualificationApplication", "applicationId"), // Changed from ApplicationQualification
+      qualifications: a.hasMany("QualificationApplication", "applicationId"),
       status: a.string().default("draft"),
       userId: a.id().required(),
       user: a.belongsTo("User", "userId"),
@@ -108,6 +108,7 @@ const schema = a.schema({
     .authorization((allow) => [
       allow.authenticated().to(["create", "read", "update", "delete"]),
     ]),
+
   PastJob: a
     .model({
       applications: a.hasMany("PastJobApplication", "pastJobId"),
@@ -117,7 +118,7 @@ const schema = a.schema({
       id: a.id().required(),
       organization: a.string().required(),
       organizationAddress: a.string(),
-      qualifications: a.hasMany("PastJobQualification", "pastJobId"),
+      qualifications: a.hasMany("Qualification", "pastJobId"),
       responsibilities: a.string(),
       startDate: a.string(),
       supervisorMayContact: a.boolean(),
@@ -143,14 +144,16 @@ const schema = a.schema({
       users: a.hasMany("UserPermission", "permissionId"), // Users assigned this role
     })
     .authorization((allow) => [allow.authenticated().to(["read"])]),
+
   Qualification: a
     .model({
-      applications: a.hasMany("QualificationApplication", "qualificationId"), // Changed from ApplicationQualification
+      applications: a.hasMany("QualificationApplication", "qualificationId"),
       id: a.id().required(),
       title: a.string().required(),
       description: a.string().required(),
       paragraph: a.string(),
-      pastJobs: a.hasMany("PastJobQualification", "qualificationId"),
+      pastJobId: a.id(),
+      pastJob: a.belongsTo("PastJob", "pastJobId"),
       question: a.string(),
       topicId: a.id().required(),
       topic: a.belongsTo("Topic", "topicId"),
@@ -188,6 +191,7 @@ const schema = a.schema({
     .authorization((allow) => [
       allow.authenticated().to(["create", "read", "update", "delete"]),
     ]),
+
   Topic: a
     .model({
       id: a.id().required(),
@@ -202,7 +206,6 @@ const schema = a.schema({
       allow.authenticated().to(["create", "read", "update", "delete"]),
     ]),
 
-  // Join tables
   AwardApplication: a
     .model({
       id: a.id().required(),
@@ -254,17 +257,9 @@ const schema = a.schema({
     .authorization((allow) => [
       allow.authenticated().to(["create", "read", "update", "delete"]),
     ]),
-  PastJobQualification: a
-    .model({
-      id: a.id().required(),
-      pastJobId: a.id().required(),
-      qualificationId: a.id().required(),
-      pastJob: a.belongsTo("PastJob", "pastJobId"),
-      qualification: a.belongsTo("Qualification", "qualificationId"),
-    })
-    .authorization((allow) => [
-      allow.authenticated().to(["create", "read", "update", "delete"]),
-    ]),
+
+  // Removed PastJobQualification junction table since it's now one-to-many
+
   UserPermission: a
     .model({
       id: a.id().required(),
@@ -278,6 +273,7 @@ const schema = a.schema({
     .authorization((allow) => [
       allow.authenticated().to(["create", "read", "update", "delete"]),
     ]),
+
   UserRole: a
     .model({
       id: a.id().required(),

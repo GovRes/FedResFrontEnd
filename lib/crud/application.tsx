@@ -7,6 +7,7 @@ import {
   ResumeType,
 } from "../utils/responseSchemas";
 import { generateClient } from "aws-amplify/api";
+import { buildQueryWithFragments } from "./graphqlFragments";
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -15,9 +16,6 @@ interface ApiResponse<T = any> {
   statusCode: number;
 }
 
-/**
- * Types for different associations - updated to match responseSchemas
- */
 type AssociationType =
   | "Award"
   | "Education"
@@ -33,6 +31,51 @@ type AssociationTypeMap = {
   Resume: ResumeType;
 };
 
+/**
+ * Helper function to validate authentication
+ */
+async function validateAuth(): Promise<{
+  success: boolean;
+  error?: string;
+  statusCode?: number;
+}> {
+  try {
+    const session = await fetchAuthSession();
+    if (!session.tokens) {
+      return {
+        success: false,
+        error: "No valid authentication session found",
+        statusCode: 401,
+      };
+    }
+    return { success: true };
+  } catch (error) {
+    console.error("No user is signed in");
+    return {
+      success: false,
+      error: "User not authenticated",
+      statusCode: 401,
+    };
+  }
+}
+
+/**
+ * Helper function to deduplicate items by ID
+ */
+function deduplicateById<T extends { id: string }>(items: T[]): T[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    if (seen.has(item.id)) {
+      return false;
+    }
+    seen.add(item.id);
+    return true;
+  });
+}
+
+/**
+ * Associate items with an application
+ */
 export const associateItemsWithApplication = async ({
   applicationId,
   items,
@@ -43,22 +86,10 @@ export const associateItemsWithApplication = async ({
   associationType: AssociationType;
 }): Promise<ApiResponse> => {
   console.log(items, associationType);
-  try {
-    const session = await fetchAuthSession();
-    if (!session.tokens) {
-      return {
-        success: false,
-        error: "No valid authentication session found",
-        statusCode: 401,
-      };
-    }
-  } catch (error) {
-    console.error("No user is signed in");
-    return {
-      success: false,
-      error: "User not authenticated",
-      statusCode: 401,
-    };
+
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
   }
 
   const client = generateClient();
@@ -77,20 +108,14 @@ export const associateItemsWithApplication = async ({
     const itemIds = items.map((item) =>
       typeof item === "string" ? item : item.id
     );
-    console.log(62, itemIds);
 
-    // Build the mutation name based on the associationType
+    // Build the mutation name and field names based on the associationType
     const mutationName = `create${associationType}Application`;
-
-    // Build the input field name based on the associationType (lowercase first letter)
-    const itemIdFieldName = `${
-      associationType.charAt(0).toLowerCase() + associationType.slice(1)
-    }Id`;
-
-    // STEP 1: Check for existing associations first
+    const itemIdFieldName = `${associationType.charAt(0).toLowerCase() + associationType.slice(1)}Id`;
     const listQueryName = `list${associationType}Applications`;
 
-    const existingAssociationsQuery = `
+    // STEP 1: Check for existing associations
+    const existingAssociationsQuery = buildQueryWithFragments(`
       query List${associationType}Applications($filter: Model${associationType}ApplicationFilterInput) {
         ${listQueryName}(filter: $filter) {
           items {
@@ -99,14 +124,12 @@ export const associateItemsWithApplication = async ({
           }
         }
       }
-    `;
+    `);
 
     const existingResponse = await client.graphql({
       query: existingAssociationsQuery,
       variables: {
-        filter: {
-          applicationId: { eq: applicationId },
-        },
+        filter: { applicationId: { eq: applicationId } },
       },
       authMode: "userPool",
     });
@@ -151,15 +174,17 @@ export const associateItemsWithApplication = async ({
           applicationId,
         };
 
-        const response = await client.graphql({
-          query: `
-            mutation Create${associationType}Application($input: Create${associationType}ApplicationInput!) {
-              ${mutationName}(input: $input) {
-                ${itemIdFieldName}
-                applicationId
-              }
+        const createMutation = buildQueryWithFragments(`
+          mutation Create${associationType}Application($input: Create${associationType}ApplicationInput!) {
+            ${mutationName}(input: $input) {
+              ${itemIdFieldName}
+              applicationId
             }
-          `,
+          }
+        `);
+
+        const response = await client.graphql({
+          query: createMutation,
           variables: { input },
           authMode: "userPool",
         });
@@ -180,21 +205,21 @@ export const associateItemsWithApplication = async ({
           error
         );
         errors.push(
-          `Failed to create association for ${associationType} ${itemId}: ${error instanceof Error ? error.message : String(error)}`
+          `Failed to create association for ${associationType} ${itemId}: ${
+            error instanceof Error ? error.message : String(error)
+          }`
         );
       }
     }
 
     // STEP 4: Return results
     if (errors.length > 0 && createdConnections.length === 0) {
-      // All failed
       return {
         success: false,
         error: `Failed to create any associations: ${errors.join("; ")}`,
         statusCode: 500,
       };
     } else if (errors.length > 0) {
-      // Partial success
       return {
         success: true,
         data: createdConnections,
@@ -202,7 +227,6 @@ export const associateItemsWithApplication = async ({
         error: `Some associations failed: ${errors.join("; ")}`,
       };
     } else {
-      // All successful
       return {
         success: true,
         data: createdConnections,
@@ -216,12 +240,17 @@ export const associateItemsWithApplication = async ({
     );
     return {
       success: false,
-      error: `Failed to associate ${associationType} with Application: ${error instanceof Error ? error.message : String(error)}`,
+      error: `Failed to associate ${associationType} with Application: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
       statusCode: 500,
     };
   }
 };
 
+/**
+ * Create and save a new application
+ */
 export const createAndSaveApplication = async ({
   jobId,
   userId,
@@ -229,27 +258,14 @@ export const createAndSaveApplication = async ({
   jobId: string;
   userId: string;
 }): Promise<ApiResponse> => {
-  try {
-    const session = await fetchAuthSession();
-    if (!session.tokens) {
-      return {
-        success: false,
-        error: "No valid authentication session found",
-        statusCode: 401,
-      };
-    }
-  } catch (error) {
-    console.error("No user is signed in");
-    return {
-      success: false,
-      error: "User not authenticated",
-      statusCode: 401,
-    };
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
   }
 
   const client = generateClient();
+
   try {
-    // Validate required parameters
     if (!jobId || !userId) {
       return {
         success: false,
@@ -258,33 +274,22 @@ export const createAndSaveApplication = async ({
       };
     }
 
-    // Create the Application input object
-    const applicationInput = {
-      jobId,
-      userId,
-      // Note: The ID will be auto-generated by Amplify
-    };
-
-    // Use the client.models approach in Amplify v2
-    const response = await client.graphql({
-      query: `
-        mutation CreateApplication($input: CreateApplicationInput!) {
-          createApplication(input: $input) {
-            id
-            jobId
-            userId
-            createdAt
-            updatedAt
-          }
+    const createMutation = buildQueryWithFragments(`
+      mutation CreateApplication($input: CreateApplicationInput!) {
+        createApplication(input: $input) {
+          ...ApplicationFields
         }
-      `,
+      }
+    `);
+
+    const response = await client.graphql({
+      query: createMutation,
       variables: {
-        input: applicationInput,
+        input: { jobId, userId },
       },
       authMode: "userPool",
     });
 
-    // Return the created Application
     if ("data" in response) {
       return {
         success: true,
@@ -308,24 +313,8 @@ export const createAndSaveApplication = async ({
   }
 };
 
-function deduplicateById<T extends { id: string }>(items: T[]): T[] {
-  const seen = new Set<string>();
-  return items.filter((item) => {
-    if (seen.has(item.id)) {
-      return false;
-    }
-    seen.add(item.id);
-    return true;
-  });
-}
-
 /**
  * Get all associations of a specific type for an application
- *
- * @param {Object} params - The function parameters
- * @param {string} params.applicationId - The ID of the application
- * @param {AssociationType} params.associationType - The type of association to fetch
- * @returns {Promise<ApiResponse<T[]>>} - Array of associated items with duplicates removed
  */
 export const getApplicationAssociations = async <T extends AssociationType>({
   applicationId,
@@ -335,28 +324,15 @@ export const getApplicationAssociations = async <T extends AssociationType>({
   associationType: T;
 }): Promise<ApiResponse<AssociationTypeMap[T][]>> => {
   console.log(337, applicationId, associationType);
-  try {
-    const session = await fetchAuthSession();
-    if (!session.tokens) {
-      return {
-        success: false,
-        error: "No valid authentication session found",
-        statusCode: 401,
-      };
-    }
-  } catch (error) {
-    console.error("No user is signed in");
-    return {
-      success: false,
-      error: "User not authenticated",
-      statusCode: 401,
-    };
+
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
   }
 
   const client = generateClient();
 
   try {
-    // Validate required parameters
     if (!applicationId) {
       return {
         success: false,
@@ -365,239 +341,143 @@ export const getApplicationAssociations = async <T extends AssociationType>({
       };
     }
 
-    // Build the query name based on the associationType
     const queryName = `list${associationType}Applications`;
+    const entityFieldName = `${associationType.charAt(0).toLowerCase() + associationType.slice(1)}`;
 
-    // Build the filter to match the applicationId
-    const filter = {
-      applicationId: { eq: applicationId },
-    };
-
-    // Define the fields to fetch based on the associationType
-    const getSpecificFields = () => {
+    // Build query with appropriate fragments based on association type
+    const getQueryForAssociationType = () => {
       switch (associationType) {
         case "Award":
-          return `
-            title
-            date
-            userId
-          `;
-        case "Education":
-          return `
-            degree
-            date
-            gpa
-            major
-            school
-            schoolCity
-            schoolState
-            type
-            userId
-          `;
-        case "PastJob":
-          return `
-            endDate
-            hours
-            organization
-            organizationAddress
-            supervisorMayContact
-            supervisorName
-            supervisorPhone
-            type
-            qualifications {
-              items {
-                id
-                qualificationId
-                qualification {
-                  id
-                  title
-                  description
-                  paragraph
-                  question
-                  topicId
-                  userConfirmed
-                  userId
-                  applications {
-                    items {
-                      id
-                      applicationId
-                      qualificationId
-                      application {
-                        id
-                        createdAt
-                        updatedAt
-                      }
-                    }
-                  }
-                  topic {
-                    id
-                    title
-                    jobId
-                    keywords
-                    description
+          return buildQueryWithFragments(`
+            query List${associationType}Applications($filter: Model${associationType}ApplicationFilterInput) {
+              ${queryName}(filter: $filter) {
+                items {
+                  ...AwardApplicationFields
+                  ${entityFieldName} {
+                    ...AwardFields
                   }
                 }
               }
             }
-            gsLevel
-            responsibilities
-            startDate
-            title
-            userId
-          `;
-        case "Resume":
-          return `
-            fileName
-            userId
-          `;
+          `);
+        case "Education":
+          return buildQueryWithFragments(`
+            query List${associationType}Applications($filter: Model${associationType}ApplicationFilterInput) {
+              ${queryName}(filter: $filter) {
+                items {
+                  ...EducationApplicationFields
+                  ${entityFieldName} {
+                    ...EducationFields
+                  }
+                }
+              }
+            }
+          `);
+        case "PastJob":
+          return buildQueryWithFragments(`
+            query List${associationType}Applications($filter: Model${associationType}ApplicationFilterInput) {
+              ${queryName}(filter: $filter) {
+                items {
+                  ...PastJobApplicationFields
+                  ${entityFieldName} {
+                    ...PastJobWithQualificationsFields
+                  }
+                }
+              }
+            }
+          `);
         case "Qualification":
-          return `
-            title
-            description
-            paragraph
-            question
-            userConfirmed
-            topic {
-              id
-              title
-              jobId
-              keywords
-              description
+          return buildQueryWithFragments(`
+            query List${associationType}Applications($filter: Model${associationType}ApplicationFilterInput) {
+              ${queryName}(filter: $filter) {
+                items {
+                  ...QualificationApplicationFields
+                  ${entityFieldName} {
+                    ...QualificationWithPastJobFields
+                  }
+                }
+              }
             }
-            pastJob {
-              id
-              title
-              organization
-              startDate
-              endDate
+          `);
+        case "Resume":
+          return buildQueryWithFragments(`
+            query List${associationType}Applications($filter: Model${associationType}ApplicationFilterInput) {
+              ${queryName}(filter: $filter) {
+                items {
+                  id
+                  applicationId
+                  ${entityFieldName}Id
+                  ${entityFieldName} {
+                    ...ResumeFields
+                  }
+                  createdAt
+                  updatedAt
+                }
+              }
             }
-            userId
-          `;
+          `);
         default:
           return "";
       }
     };
 
-    // Get the composite key field name for this join table
-    const getJoinTableKeyFields = () => {
-      const itemIdFieldName = `${
-        associationType.charAt(0).toLowerCase() + associationType.slice(1)
-      }Id`;
-      return [itemIdFieldName, "applicationId"];
-    };
+    const query = getQueryForAssociationType();
 
-    const keyFields = getJoinTableKeyFields();
-
-    // Execute the query to get the junction table entries
     const junctionResponse = await client.graphql({
-      query: `
-        query List${associationType}Applications($filter: Model${associationType}ApplicationFilterInput) {
-          ${queryName}(filter: $filter) {
-            items {
-              ${keyFields.join("\n              ")}
-              ${
-                associationType.charAt(0).toLowerCase() +
-                associationType.slice(1)
-              } {
-                id
-                ${getSpecificFields()}
-                createdAt
-                updatedAt
-              }
-              createdAt
-              updatedAt
-            }
-          }
-        }
-      `,
-      variables: { filter } as any,
+      query,
+      variables: {
+        filter: { applicationId: { eq: applicationId } },
+      } as any,
       authMode: "userPool",
     });
 
     if ("data" in junctionResponse) {
-      // Extract associated items
       const junctionItems = junctionResponse.data[queryName].items;
       const associatedItemsWithDuplicates = junctionItems
-        .map(
-          (item: any) =>
-            item[
-              associationType.charAt(0).toLowerCase() + associationType.slice(1)
-            ]
-        )
-        .filter(Boolean); // Filter out any null items
+        .map((item: any) => item[entityFieldName])
+        .filter(Boolean);
 
-      // Deduplicate by ID
       const uniqueItems = deduplicateById(associatedItemsWithDuplicates);
 
-      // Special handling for PastJob to transform the data structure
+      // Special handling for PastJob to transform qualifications
       if (associationType === "PastJob") {
         const transformedItems = uniqueItems.map((item: any) => {
-          // Convert hours to string if it's a number to match schema
           const hours =
             item.hours !== undefined ? String(item.hours) : undefined;
-
           return {
             ...item,
             hours,
-            // Format qualifications as an array matching the schema
             qualifications: (item.qualifications?.items || []).map(
-              (qualJunction: any) => {
-                // Get the actual qualification from the junction object
-                const qual = qualJunction.qualification || {};
-
-                // Debug logging to see what we're getting from GraphQL
-                console.log("=== PROCESSING QUALIFICATION FROM DB ===");
-                console.log("Raw qual object:", qual);
-                console.log("qual.topicId:", qual.topicId);
-                console.log("qual.topic:", qual.topic);
-                console.log("qual.topic?.id:", qual.topic?.id);
-
-                // Extract topicId - try multiple sources
-                let topicId = null;
-                if (qual.topicId && qual.topicId !== "") {
-                  topicId = qual.topicId;
-                } else if (qual.topic?.id && qual.topic.id !== "") {
-                  topicId = qual.topic.id;
-                }
-
-                // Build topic object only if we have valid data
-                let topicData = null;
-                if (qual.topic && qual.topic.id && qual.topic.id !== "") {
-                  topicData = {
-                    id: qual.topic.id,
-                    title: qual.topic.title || "",
-                    jobId: qual.topic.jobId || "",
-                    keywords: Array.isArray(qual.topic.keywords)
-                      ? qual.topic.keywords
-                      : [],
-                    description: qual.topic.description || "",
-                  };
-                }
-
-                const result = {
-                  id: qual.id || qualJunction.id || "",
-                  title: qual.title || "",
-                  description: qual.description || "",
-                  paragraph: qual.paragraph,
-                  question: qual.question,
-                  userConfirmed: qual.userConfirmed || false,
-                  userId: qual.userId || item.userId,
-                  topicId: topicId, // This should now preserve the actual topicId
-                  applicationIds: (qual.applications?.items || [])
-                    .map((appJunction: any) => appJunction.applicationId)
-                    .filter(Boolean),
-                  topic: topicData, // This will be null if no valid topic, or the proper object
-                };
-
-                console.log("Final processed qualification:", result);
-                console.log("Final topicId:", result.topicId);
-                console.log("Final topic object:", result.topic);
-
-                return result;
-              }
+              (qualification: any) => ({
+                id: qualification.id || "",
+                title: qualification.title || "",
+                description: qualification.description || "",
+                paragraph: qualification.paragraph,
+                question: qualification.question,
+                userConfirmed: qualification.userConfirmed || false,
+                userId: qualification.userId,
+                pastJobId: qualification.pastJobId,
+                topicId: qualification.topicId,
+                topic: qualification.topic || null,
+              })
             ),
           };
         }) as AssociationTypeMap[T][];
+
+        return {
+          success: true,
+          data: transformedItems,
+          statusCode: 200,
+        };
+      }
+
+      // For Qualification, handle the simplified pastJob relationship
+      if (associationType === "Qualification") {
+        const transformedItems = uniqueItems.map((item: any) => ({
+          ...item,
+          pastJob: item.pastJob || null,
+          topic: item.topic || null,
+        })) as AssociationTypeMap[T][];
 
         return {
           success: true,
@@ -631,30 +511,21 @@ export const getApplicationAssociations = async <T extends AssociationType>({
   }
 };
 
+/**
+ * Get application with job details
+ */
 export const getApplicationWithJob = async ({
   id,
 }: {
   id: string;
 }): Promise<ApiResponse> => {
-  try {
-    const session = await fetchAuthSession();
-    if (!session.tokens) {
-      return {
-        success: false,
-        error: "No valid authentication session found",
-        statusCode: 401,
-      };
-    }
-  } catch (error) {
-    console.error("No user is signed in");
-    return {
-      success: false,
-      error: "User not authenticated",
-      statusCode: 401,
-    };
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
   }
 
   const client = generateClient();
+
   try {
     if (!id) {
       return {
@@ -664,38 +535,24 @@ export const getApplicationWithJob = async ({
       };
     }
 
-    const response = await client.graphql({
-      query: `
+    const query = buildQueryWithFragments(`
       query GetApplication($id: ID!) {
         getApplication(id: $id) {
-        completedSteps
-        id
-        jobId
-        userId
-        job {
-          id
-          title
-          department
-          agencyDescription
-          duties
-          evaluationCriteria
-          qualificationsSummary
-          questionnaire
-          requiredDocuments
-          usaJobsId
-          topics {
-            items {
-              id
-              keywords
-              title
+          ...ApplicationFields
+          job {
+            ...JobDetailedFields
+            topics {
+              items {
+                ...TopicFields
+              }
             }
           }
         }
-        createdAt
-        updatedAt
-        }
       }
-      `,
+    `);
+
+    const response = await client.graphql({
+      query,
       variables: { id },
       authMode: "userPool",
     });
@@ -738,30 +595,21 @@ export const getApplicationWithJob = async ({
   }
 };
 
+/**
+ * Get application with job details and qualifications
+ */
 export const getApplicationWithJobAndQualifications = async ({
   id,
 }: {
   id: string;
 }): Promise<ApiResponse> => {
-  try {
-    const session = await fetchAuthSession();
-    if (!session.tokens) {
-      return {
-        success: false,
-        error: "No valid authentication session found",
-        statusCode: 401,
-      };
-    }
-  } catch (error) {
-    console.error("No user is signed in");
-    return {
-      success: false,
-      error: "User not authenticated",
-      statusCode: 401,
-    };
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
   }
 
   const client = generateClient();
+
   try {
     if (!id) {
       return {
@@ -771,67 +619,32 @@ export const getApplicationWithJobAndQualifications = async ({
       };
     }
 
-    const response = await client.graphql({
-      query: `
+    const query = buildQueryWithFragments(`
       query GetApplication($id: ID!) {
         getApplication(id: $id) {
-          completedSteps
-          id
-          jobId
-          userId
+          ...ApplicationFields
           job {
-            id
-            title
-            department
-            agencyDescription
-            duties
-            evaluationCriteria
-            qualificationsSummary
-            questionnaire
-            requiredDocuments
-            usaJobsId
+            ...JobDetailedFields
             topics {
               items {
-                id
-                keywords
-                title
+                ...TopicFields
               }
             }
           }
           qualifications {
             items {
-              qualificationId
-              applicationId
+              ...QualificationApplicationFields
               qualification {
-                id
-                title
-                description
-                paragraph
-                question
-                userConfirmed
-                userId
-                topic {
-                  id
-                  title
-                  keywords
-                  description
-                }
-                pastJobs {
-                  items {
-                    pastJob {
-                      title
-                      organization
-                    }
-                  }
-                }
+                ...QualificationWithPastJobFields
               }
             }
           }
-          createdAt
-          updatedAt
         }
       }
-      `,
+    `);
+
+    const response = await client.graphql({
+      query,
       variables: { id },
       authMode: "userPool",
     });
@@ -847,7 +660,7 @@ export const getApplicationWithJobAndQualifications = async ({
         };
       }
 
-      // Flatten the topics.items array if it exists
+      // Flatten the topics.items array
       if (application?.job?.topics?.items) {
         application.job.topics = application.job.topics.items;
       }
@@ -874,30 +687,21 @@ export const getApplicationWithJobAndQualifications = async ({
   }
 };
 
+/**
+ * Get application with all associations
+ */
 export const getApplicationWithAllAssociations = async ({
   id,
 }: {
   id: string;
 }): Promise<ApiResponse> => {
-  try {
-    const session = await fetchAuthSession();
-    if (!session.tokens) {
-      return {
-        success: false,
-        error: "No valid authentication session found",
-        statusCode: 401,
-      };
-    }
-  } catch (error) {
-    console.error("No user is signed in");
-    return {
-      success: false,
-      error: "User not authenticated",
-      statusCode: 401,
-    };
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
   }
 
   const client = generateClient();
+
   try {
     if (!id) {
       return {
@@ -907,147 +711,56 @@ export const getApplicationWithAllAssociations = async ({
       };
     }
 
-    const response = await client.graphql({
-      query: `
-        query GetApplicationWithAllAssociations($id: ID!) {
-          getApplication(id: $id) {
-            completedSteps
-            id
-            jobId
-            userId
-            job {
-              id
-              title
-              department
-              agencyDescription
-              duties
-              evaluationCriteria
-              qualificationsSummary
-              questionnaire
-              requiredDocuments
-              usaJobsId
-              topics {
-                items {
-                  id
-                  keywords
-                  title
-                  description
-                }
-              }
-            }
-            # Awards
-            awards {
+    const query = buildQueryWithFragments(`
+      query GetApplicationWithAllAssociations($id: ID!) {
+        getApplication(id: $id) {
+          ...ApplicationFields
+          job {
+            ...JobDetailedFields
+            topics {
               items {
-                award {
-                  id
-                  title
-                  date
-                  userId
-                  createdAt
-                  updatedAt
-                }
+                ...TopicFields
               }
             }
-            # Educations
-            educations {
-              items {
-                education {
-                  id
-                  degree
-                  date
-                  gpa
-                  major
-                  school
-                  schoolCity
-                  schoolState
-                  type
-                  userId
-                  createdAt
-                  updatedAt
-                }
+          }
+          awards {
+            items {
+              ...AwardApplicationFields
+              award {
+                ...AwardFields
               }
             }
-            # Past Jobs
-            pastJobs {
-              items {
-                pastJob {
-                  id
-                  endDate
-                  hours
-                  organization
-                  organizationAddress
-                  supervisorMayContact
-                  supervisorName
-                  supervisorPhone
-                  type
-                  gsLevel
-                  responsibilities
-                  startDate
-                  title
-                  userId
-                  qualifications {
-                    items {
-                      qualification {
-                        id
-                        title
-                        description
-                        paragraph
-                        question
-                        userConfirmed
-                        userId
-                        topic {
-                          id
-                          title
-                          jobId
-                          keywords
-                          description
-                        }
-                      }
-                    }
-                  }
-                  createdAt
-                  updatedAt
-                }
+          }
+          educations {
+            items {
+              ...EducationApplicationFields
+              education {
+                ...EducationFields
               }
             }
-            # Qualifications
-            qualifications {
-              items {
-                qualification {
-                  id
-                  title
-                  description
-                  paragraph
-                  question
-                  userConfirmed
-                  userId
-                  topic {
-                    id
-                    title
-                    keywords
-                    description
-                  }
-                  pastJobs {
-                    items {
-                      pastJob {
-                        id
-                        title
-                        organization
-                        startDate
-                        endDate
-                      }
-                    }
-                  }
-                  createdAt
-                  updatedAt
-                }
+          }
+          pastJobs {
+            items {
+              ...PastJobApplicationFields
+              pastJob {
+                ...PastJobWithQualificationsFields
               }
             }
-            createdAt
-            updatedAt
+          }
+          qualifications {
+            items {
+              ...QualificationApplicationFields
+              qualification {
+                ...QualificationWithPastJobFields
+              }
+            }
           }
         }
-      `,
+      }
+    `);
+
+    const response = await client.graphql({
+      query,
       variables: { id },
       authMode: "userPool",
     });
@@ -1063,7 +776,7 @@ export const getApplicationWithAllAssociations = async ({
         };
       }
 
-      // Transform the nested data structure to match your ApplicationType
+      // Transform the nested data structure
       const transformedApplication = {
         ...application,
         job: {
@@ -1092,24 +805,18 @@ export const getApplicationWithAllAssociations = async ({
                       ? String(pastJob.hours)
                       : undefined,
                   qualifications: (pastJob.qualifications?.items || []).map(
-                    (qualJunction: any) => {
-                      const qual = qualJunction.qualification || {};
-                      return {
-                        id: qual.id || "",
-                        title: qual.title || "",
-                        description: qual.description || "",
-                        paragraph: qual.paragraph,
-                        question: qual.question,
-                        userConfirmed: qual.userConfirmed || false,
-                        userId: qual.userId,
-                        topic: qual.topic || {
-                          id: "",
-                          title: "",
-                          jobId: "",
-                          keywords: [],
-                        },
-                      };
-                    }
+                    (qualification: any) => ({
+                      id: qualification.id || "",
+                      title: qualification.title || "",
+                      description: qualification.description || "",
+                      paragraph: qualification.paragraph,
+                      question: qualification.question,
+                      userConfirmed: qualification.userConfirmed || false,
+                      userId: qualification.userId,
+                      pastJobId: qualification.pastJobId,
+                      topicId: qualification.topicId,
+                      topic: qualification.topic || null,
+                    })
                   ),
                 };
               })
@@ -1117,9 +824,13 @@ export const getApplicationWithAllAssociations = async ({
           : null,
         qualifications: application.qualifications?.items
           ? deduplicateById(
-              application.qualifications.items.map(
-                (item: any) => item.qualification
-              )
+              application.qualifications.items.map((item: any) => {
+                const qual = item.qualification;
+                return {
+                  ...qual,
+                  pastJob: qual.pastJob || null,
+                };
+              })
             ).sort((a: QualificationType, b: QualificationType) => {
               if (a.id < b.id) return -1;
               return 1;
@@ -1154,42 +865,30 @@ export const getApplicationWithAllAssociations = async ({
   }
 };
 
-//tk currently  not used.
+/**
+ * List all applications
+ */
 export const listApplications = async (): Promise<ApiResponse> => {
-  try {
-    const session = await fetchAuthSession();
-    if (!session.tokens) {
-      return {
-        success: false,
-        error: "No valid authentication session found",
-        statusCode: 401,
-      };
-    }
-  } catch (error) {
-    console.error("No user is signed in");
-    return {
-      success: false,
-      error: "User not authenticated",
-      statusCode: 401,
-    };
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
   }
 
   const client = generateClient();
+
   try {
-    const response = await client.graphql({
-      query: `
-        query ListApplications {
-          listApplications {
-            items {
-              id
-              jobId
-              userId
-              createdAt
-              updatedAt
-            }
+    const query = buildQueryWithFragments(`
+      query ListApplications {
+        listApplications {
+          items {
+            ...ApplicationFields
           }
         }
-      `,
+      }
+    `);
+
+    const response = await client.graphql({
+      query,
       authMode: "userPool",
     });
 
@@ -1216,32 +915,22 @@ export const listApplications = async (): Promise<ApiResponse> => {
   }
 };
 
+/**
+ * List applications for a specific user
+ */
 export const listUserApplications = async ({
   userId,
 }: {
   userId: string;
 }): Promise<ApiResponse> => {
-  try {
-    const session = await fetchAuthSession();
-    if (!session.tokens) {
-      return {
-        success: false,
-        error: "No valid authentication session found",
-        statusCode: 401,
-      };
-    }
-  } catch (error) {
-    console.error("No user is signed in");
-    return {
-      success: false,
-      error: "User not authenticated",
-      statusCode: 401,
-    };
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
   }
 
   const client = generateClient();
+
   try {
-    // Validate required parameter
     if (!userId) {
       return {
         success: false,
@@ -1250,30 +939,24 @@ export const listUserApplications = async ({
       };
     }
 
-    const response = await client.graphql({
-      query: `
-        query ListApplications($filter: ModelApplicationFilterInput) {
-          listApplications(filter: $filter) {
-            items {
-              id
-              jobId
-              userId
-              job {
-                id
-                title
-                department
-                agencyDescription
-              }
-              createdAt
-              updatedAt
+    const query = buildQueryWithFragments(`
+      query ListApplications($filter: ModelApplicationFilterInput) {
+        listApplications(filter: $filter) {
+          items {
+            ...ApplicationFields
+            job {
+              ...JobFields
+              agencyDescription
             }
           }
         }
-      `,
+      }
+    `);
+
+    const response = await client.graphql({
+      query,
       variables: {
-        filter: {
-          userId: { eq: userId },
-        },
+        filter: { userId: { eq: userId } },
       },
       authMode: "userPool",
     });
@@ -1301,6 +984,9 @@ export const listUserApplications = async ({
   }
 };
 
+/**
+ * Update an application
+ */
 export const updateApplication = async ({
   id,
   input,
@@ -1308,30 +994,17 @@ export const updateApplication = async ({
   id: string;
   input: {
     completedSteps?: string[];
+    status?: string;
   };
 }): Promise<ApiResponse> => {
-  try {
-    const session = await fetchAuthSession();
-    if (!session.tokens) {
-      return {
-        success: false,
-        error: "No valid authentication session found",
-        statusCode: 401,
-      };
-    }
-  } catch (error) {
-    console.error("No user is signed in");
-    return {
-      success: false,
-      error: "User not authenticated",
-      statusCode: 401,
-    };
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
   }
 
   const client = generateClient();
 
   try {
-    // Validate required parameters
     if (!id) {
       return {
         success: false,
@@ -1348,19 +1021,18 @@ export const updateApplication = async ({
       };
     }
 
-    const response = await client.graphql({
-      query: `
-        mutation UpdateApplication($input: UpdateApplicationInput!) {
-          updateApplication(input: $input) {
-            id
-          }
+    const mutation = buildQueryWithFragments(`
+      mutation UpdateApplication($input: UpdateApplicationInput!) {
+        updateApplication(input: $input) {
+          ...ApplicationFields
         }
-      `,
+      }
+    `);
+
+    const response = await client.graphql({
+      query: mutation,
       variables: {
-        input: {
-          id,
-          ...input,
-        },
+        input: { id, ...input },
       },
       authMode: "userPool",
     });
@@ -1389,40 +1061,21 @@ export const updateApplication = async ({
 };
 
 /**
- * Deletes an Application and all its associated join table entries
- * without deleting the actual associated items (Education, Award, etc.)
- *
- * @param {Object} params - The function parameters
- * @param {string} params.applicationId - The ID of the application to delete
- * @returns {Promise<ApiResponse>} - The deleted application data
+ * Delete an application and all its associated join table entries
  */
 export const deleteApplication = async ({
   applicationId,
 }: {
   applicationId: string;
 }): Promise<ApiResponse> => {
-  try {
-    const session = await fetchAuthSession();
-    if (!session.tokens) {
-      return {
-        success: false,
-        error: "No valid authentication session found",
-        statusCode: 401,
-      };
-    }
-  } catch (error) {
-    console.error("No user is signed in");
-    return {
-      success: false,
-      error: "User not authenticated",
-      statusCode: 401,
-    };
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
   }
 
   const client = generateClient();
 
   try {
-    // Validate required parameter
     if (!applicationId) {
       return {
         success: false,
@@ -1430,14 +1083,6 @@ export const deleteApplication = async ({
         statusCode: 400,
       };
     }
-
-    // Define the composite key field mappings
-    const joinTableKeys = {
-      AwardApplication: ["awardId", "applicationId"],
-      EducationApplication: ["educationId", "applicationId"],
-      PastJobApplication: ["pastJobId", "applicationId"],
-      QualificationApplication: ["qualificationId", "applicationId"],
-    };
 
     // Define the join tables that need to be cleaned up
     const joinTables = [
@@ -1447,15 +1092,22 @@ export const deleteApplication = async ({
       "QualificationApplication",
     ];
 
+    const joinTableKeys = {
+      AwardApplication: ["awardId", "applicationId"],
+      EducationApplication: ["educationId", "applicationId"],
+      PastJobApplication: ["pastJobId", "applicationId"],
+      QualificationApplication: ["qualificationId", "applicationId"],
+    };
+
     // Step 1: Delete all join table entries for each association type
     await Promise.all(
       joinTables.map(async (joinTable) => {
         const keyFields =
           joinTableKeys[joinTable as keyof typeof joinTableKeys];
-        const [relatedIdField] = keyFields; // First field is the related entity ID
+        const [relatedIdField] = keyFields;
 
-        // 1.1: List all join table entries for this application
-        const listQuery = `
+        // List all join table entries for this application
+        const listQuery = buildQueryWithFragments(`
           query List${joinTable}s($filter: Model${joinTable}FilterInput) {
             list${joinTable}s(filter: $filter) {
               items {
@@ -1463,14 +1115,12 @@ export const deleteApplication = async ({
               }
             }
           }
-        `;
+        `);
 
         const listResponse = await client.graphql({
           query: listQuery,
           variables: {
-            filter: {
-              applicationId: { eq: applicationId },
-            },
+            filter: { applicationId: { eq: applicationId } },
           },
           authMode: "userPool",
         });
@@ -1481,16 +1131,16 @@ export const deleteApplication = async ({
         ) {
           const joinItems = listResponse.data[`list${joinTable}s`].items;
 
-          // 1.2: Delete each join table entry using composite key
+          // Delete each join table entry using composite key
           await Promise.all(
             joinItems.map(async (item: any) => {
-              const deleteQuery = `
+              const deleteQuery = buildQueryWithFragments(`
                 mutation Delete${joinTable}($input: Delete${joinTable}Input!) {
                   delete${joinTable}(input: $input) {
                     ${keyFields.join("\n                    ")}
                   }
                 }
-              `;
+              `);
 
               return client.graphql({
                 query: deleteQuery,
@@ -1508,18 +1158,14 @@ export const deleteApplication = async ({
       })
     );
 
-    // Step 2: Now that all join table entries are deleted, delete the application itself
-    const deleteApplicationQuery = `
+    // Step 2: Delete the application itself
+    const deleteApplicationQuery = buildQueryWithFragments(`
       mutation DeleteApplication($input: DeleteApplicationInput!) {
         deleteApplication(input: $input) {
-          id
-          jobId
-          userId
-          createdAt
-          updatedAt
+          ...ApplicationFields
         }
       }
-    `;
+    `);
 
     const deleteResponse = await client.graphql({
       query: deleteApplicationQuery,
@@ -1554,12 +1200,6 @@ export const deleteApplication = async ({
 
 /**
  * Helper function to delete a single item from a join table using composite keys
- *
- * @param {Object} params - The function parameters
- * @param {string} params.relatedId - The ID of the related entity (award, education, etc.)
- * @param {string} params.applicationId - The ID of the application
- * @param {string} params.tableName - The name of the join table (e.g., "AwardApplication")
- * @returns {Promise<ApiResponse>} - The deleted join table entry data
  */
 export const deleteJoinTableItem = async ({
   relatedId,
@@ -1570,22 +1210,9 @@ export const deleteJoinTableItem = async ({
   applicationId: string;
   tableName: string;
 }): Promise<ApiResponse> => {
-  try {
-    const session = await fetchAuthSession();
-    if (!session.tokens) {
-      return {
-        success: false,
-        error: "No valid authentication session found",
-        statusCode: 401,
-      };
-    }
-  } catch (error) {
-    console.error("No user is signed in");
-    return {
-      success: false,
-      error: "User not authenticated",
-      statusCode: 401,
-    };
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
   }
 
   const client = generateClient();
@@ -1599,7 +1226,6 @@ export const deleteJoinTableItem = async ({
       };
     }
 
-    // Define the composite key field mappings
     const joinTableKeys = {
       AwardApplication: ["awardId", "applicationId"],
       EducationApplication: ["educationId", "applicationId"],
@@ -1618,13 +1244,13 @@ export const deleteJoinTableItem = async ({
 
     const [relatedIdField] = keyFields;
 
-    const deleteQuery = `
+    const deleteQuery = buildQueryWithFragments(`
       mutation Delete${tableName}($input: Delete${tableName}Input!) {
         delete${tableName}(input: $input) {
           ${keyFields.join("\n          ")}
         }
       }
-    `;
+    `);
 
     const response = await client.graphql({
       query: deleteQuery,

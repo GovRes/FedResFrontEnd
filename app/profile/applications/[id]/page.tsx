@@ -136,7 +136,7 @@ export default function ApplicationPage({
       {application.qualifications && application.qualifications.length > 0 ? (
         <div>
           <h2>Qualifications</h2>
-          <ul>
+          <ol>
             {application.qualifications.map(
               (qualification: QualificationType) => (
                 <QualificationItem
@@ -145,7 +145,7 @@ export default function ApplicationPage({
                 />
               )
             )}
-          </ul>
+          </ol>
         </div>
       ) : (
         <div></div>
