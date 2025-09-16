@@ -8,20 +8,21 @@
 
 :root {
   /* colors */
-  --blue-dark: #014662;
-  --blue-light: #4d8aa8;
-  --blue-med: #025f84;
+  --primary-color: #014662;
+  --secondary-color: #6fa2b3;
+  --blue-med: #4d8aa8;
   --green-dark: #284235;
   --green-light: #83dcae;
   --green-med: #538a6e;
-  --grey-very-light: #f0f2f5ad;
-  --grey-light: #9098a9;
-  --grey-med: #5f6e8c;
-  --red-dark: #7b1a1c;
-  --red-med: #bc282a;
+  --contrast: #edecda;
+  --highlight-2: #330704;
+  --highlight-1: #7f2725;
   --red-light: #da8283;
   --white: #ffffff;
+  --secondary-background: #f1f2f5;
   --body-color: #ffffff;
+  --nav-background: var(--highlight-2);
+  --text-color: #333333;
   /* fonts */
   --body-font: "Roboto", sans-serif;
   --font-regular-weight: 300;
@@ -49,7 +50,8 @@ body {
 }
 
 header {
-  background-color: var(--blue-dark);
+  background-color: var(--nav-background);
+  color: var(--contrast);
   left: 0;
   position: fixed;
   top: 0;
@@ -92,7 +94,7 @@ a {
 }
 
 h1 {
-  color: var(--red-med);
+  color: var(--highlight-1);
   font-family: var(--header-font);
   font-style: normal;
   font-weight: var(--font-semi-bold);
@@ -111,11 +113,11 @@ p {
 }
 
 input {
-  background-color: var(--blue-dark);
+  background-color: var(--secondary-background);
   border: 0;
   border-radius: 12px;
   box-sizing: border-box;
-  color: var(--white);
+  color: var(--text-color);
   font-size: var(--font-size-med);
   height: 100%;
   margin: 0 5px;
@@ -127,11 +129,11 @@ input {
 select {
   background: url("data:image/svg+xml,<svg height='10px' width='10px' viewBox='0 0 16 16' fill='%23000000' xmlns='http://www.w3.org/2000/svg'><path d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/></svg>")
     no-repeat;
-  background-color: var(--blue-dark);
+  background-color: var(--secondary-background);
   background-position: calc(100% - 0.75rem) center !important;
   border-radius: 12px;
   box-sizing: border-box;
-  color: var(--white);
+  color: var(--text-color);
   font-size: var(--font-size-med);
   padding: 10px;
   width: 100%;
@@ -152,12 +154,12 @@ button {
   width: 100%;
 }
 button[type="submit"] {
-  background-color: var(--red-dark);
+  background-color: var(--highlight-2);
   color: var(--white);
 }
 button[type="submit"]:hover {
   background-color: var(--white);
-  color: var(--red-dark);
+  color: var(--highlight-2);
 }
 .tableHead,
 .tableData {
@@ -167,11 +169,11 @@ button[type="submit"]:hover {
 }
 
 .tableHead {
-  background-color: var(--blue-dark);
+  background-color: var(--primary-color);
   color: white;
 }
 textarea {
-  background-color: var(--blue-dark);
+  background-color: var(--secondary-background);
   border: 0;
   border-radius: 12px;
   color: var(--white);
@@ -216,7 +218,7 @@ textarea {
 }
 
 .error {
-  background-color: var(--red-med);
+  background-color: var(--highlight-1);
   color: var(--white);
   font-size: var(--font-size-med);
 }
@@ -246,9 +248,13 @@ textarea {
   padding: 1rem 2rem;
   margin-right: 0.2rem;
   cursor: pointer;
-  background-color: var(--red-light);
+  background-color: var(--contrast);
   font-weight: bold;
   transition: background ease 0.3s;
+}
+
+.tabs a {
+  color: var(--primary-color);
 }
 
 .tabs .tab {
