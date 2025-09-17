@@ -106,6 +106,7 @@ const createSchemas = () => {
   const base = {
     qualification: z.object({
       id: z.string(),
+      conversationThreadId: z.string().nullish(),
       topic: topicZodSchema,
       description: z.string(),
       title: z.string(),

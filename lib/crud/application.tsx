@@ -440,6 +440,7 @@ export const getApplicationAssociations = async <T extends AssociationType>({
       const uniqueItems = deduplicateById(associatedItemsWithDuplicates);
 
       // Special handling for PastJob to transform qualifications
+      // Special handling for PastJob to transform qualifications
       if (associationType === "PastJob") {
         const transformedItems = uniqueItems.map((item: any) => {
           const hours =
@@ -448,18 +449,27 @@ export const getApplicationAssociations = async <T extends AssociationType>({
             ...item,
             hours,
             qualifications: (item.qualifications?.items || []).map(
-              (qualification: any) => ({
-                id: qualification.id || "",
-                title: qualification.title || "",
-                description: qualification.description || "",
-                paragraph: qualification.paragraph,
-                question: qualification.question,
-                userConfirmed: qualification.userConfirmed || false,
-                userId: qualification.userId,
-                pastJobId: qualification.pastJobId,
-                topicId: qualification.topicId,
-                topic: qualification.topic || null,
-              })
+              (qualification: any) => {
+                // Extract applicationIds from the junction table
+                const applicationIds =
+                  qualification.applications?.items?.map(
+                    (app: any) => app.applicationId
+                  ) || [];
+
+                return {
+                  id: qualification.id || "",
+                  title: qualification.title || "",
+                  description: qualification.description || "",
+                  paragraph: qualification.paragraph,
+                  question: qualification.question,
+                  userConfirmed: qualification.userConfirmed || false,
+                  userId: qualification.userId,
+                  pastJobId: qualification.pastJobId,
+                  topicId: qualification.topicId,
+                  topic: qualification.topic || null,
+                  applicationIds: applicationIds, // Add the transformed applicationIds
+                };
+              }
             ),
           };
         }) as AssociationTypeMap[T][];

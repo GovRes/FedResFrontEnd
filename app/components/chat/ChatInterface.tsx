@@ -14,6 +14,7 @@ type Message = {
 
 // Utility function to highlight keywords in generated paragraphs
 function highlightKeywords(text: string, keywords: string[]): string {
+  console.log(17, keywords);
   if (!keywords || keywords.length === 0) return text;
 
   let highlightedText = text;
@@ -65,10 +66,12 @@ export default function ChatInterface() {
     assistantInstructions,
     jobString,
     isEditingExistingParagraph,
+    navigateToNextUnconfirmed,
   } = useChatContext();
 
-  const { editMode, setEditMode, cancelEditing } = useEditableParagraph();
-
+  const { editMode, setEditMode, cancelEditing, startEditing } =
+    useEditableParagraph();
+  console.log("Rendering ChatInterface with currentItem:", currentItem);
   // Local state
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -120,6 +123,11 @@ export default function ChatInterface() {
         "${paragraphData}"
         
         How would you like to improve it? You can give me specific instructions, or I can suggest improvements.`;
+      } else if (currentItem.userConfirmed && currentItem.paragraph) {
+        // For viewing completed content - show that it's already done
+        initialMessage = `You've already completed this qualification: "${currentItem.title}". Your paragraph is ready to review.`;
+        // Set the paragraph data to show the existing content
+        setParagraphData(currentItem.paragraph);
       } else {
         // For creating new content
         initialMessage = `${currentItem.question}`;
@@ -135,6 +143,7 @@ export default function ChatInterface() {
     isEditingExistingParagraph,
     paragraphData,
     isInFeedbackMode,
+    setParagraphData,
   ]);
 
   // Handle chat submission
@@ -185,7 +194,10 @@ export default function ChatInterface() {
           }${additionalContext ? JSON.stringify(additionalContext) : ""}`,
           assistantName: selectedAssistantName,
           message: input,
-          threadId: threadId,
+
+          threadId: isEditingExistingParagraph
+            ? currentItem?.conversationThreadId
+            : threadId,
           // Pass the current paragraph if in editing mode
           existingParagraph: isEditingExistingParagraph ? paragraphData : null,
         }),
@@ -242,7 +254,7 @@ export default function ChatInterface() {
     if (!paragraphData) return;
 
     try {
-      await saveParagraph();
+      await saveParagraph(threadId || undefined);
     } catch (error) {
       console.error("Error saving paragraph:", error);
       setError("Failed to save paragraph. Please try again.");
@@ -285,6 +297,18 @@ export default function ChatInterface() {
     setParagraphData("");
   };
 
+  // Handle starting to edit an existing confirmed paragraph
+  const handleStartEditing = () => {
+    if (currentItem && currentItem.paragraph) {
+      startEditing(currentItem.id, currentItem.paragraph);
+    }
+  };
+
+  // Handle continuing to next item (for confirmed paragraphs)
+  const handleContinueNext = () => {
+    navigateToNextUnconfirmed();
+  };
+
   // Switch between chat and manual editing modes
   const toggleEditMode = () => {
     setEditMode(editMode === "chat" ? "manual" : "chat");
@@ -300,6 +324,10 @@ export default function ChatInterface() {
     pastJobsAssistantName && pastJobsAssistantInstructions
       ? pastJobsAssistantName
       : assistantName;
+
+  // Check if current item is already confirmed
+  const isCurrentItemConfirmed =
+    currentItem?.userConfirmed && currentItem?.paragraph;
 
   // Render prompt suggestion buttons
   const renderPromptButtons = () => (
@@ -382,70 +410,100 @@ export default function ChatInterface() {
           {/* Paragraph display with keyword highlighting */}
           {paragraphData ? (
             <div className={styles.paragraphContainer}>
-              <h3>Generated Paragraph</h3>
+              <h3>
+                {isCurrentItemConfirmed && !isEditingExistingParagraph
+                  ? "Your Completed Paragraph"
+                  : "Generated Paragraph"}
+              </h3>
               <div
                 className={styles.paragraphText}
                 dangerouslySetInnerHTML={{
                   __html: highlightKeywords(
                     paragraphData,
-                    currentItem?.keywords || []
+                    currentItem?.topic?.keywords || []
                   ).replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>"),
                 }}
               />
 
               <div className={styles.paragraphActions}>
-                <form onSubmit={handleParagraphSubmit}>
-                  <button type="submit" className={styles.acceptButton}>
-                    {isEditingExistingParagraph
-                      ? "Save Changes"
-                      : "Accept & Continue"}
-                  </button>
-                </form>
-
-                {/* Add options for newly generated paragraphs */}
-                {!isEditingExistingParagraph && (
+                {isCurrentItemConfirmed && !isEditingExistingParagraph ? (
+                  // For already confirmed paragraphs - show different options
                   <>
                     <button
                       type="button"
-                      onClick={handleEditParagraph}
-                      className={styles.editButton}
+                      onClick={handleContinueNext}
+                      className={styles.continueButton}
                     >
-                      Edit Manually
+                      Continue to Next
                     </button>
                     <button
                       type="button"
-                      onClick={handleGiveFeedback}
-                      className={styles.feedbackButton}
+                      onClick={handleStartEditing}
+                      className={styles.editButton}
                     >
-                      Give Feedback & Regenerate
+                      Edit This Paragraph
                     </button>
+                  </>
+                ) : (
+                  // For new or edited paragraphs - show accept/edit/feedback options
+                  <>
+                    <form onSubmit={handleParagraphSubmit}>
+                      <button type="submit" className={styles.acceptButton}>
+                        {isEditingExistingParagraph
+                          ? "Save Changes"
+                          : "Accept & Continue"}
+                      </button>
+                    </form>
+
+                    {/* Add options for newly generated paragraphs */}
+                    {!isEditingExistingParagraph && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleEditParagraph}
+                          className={styles.editButton}
+                        >
+                          Edit Manually
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleGiveFeedback}
+                          className={styles.feedbackButton}
+                        >
+                          Give Feedback & Regenerate
+                        </button>
+                      </>
+                    )}
                   </>
                 )}
               </div>
             </div>
           ) : (
-            <div>
-              {/* Chat input form */}
-              <form onSubmit={handleChatSubmit} className={styles.inputForm}>
-                <textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Type your message here..."
-                  disabled={loading}
-                  className={styles.inputTextarea}
-                />
+            // Only show chat interface for unconfirmed items or when explicitly editing
+            !isCurrentItemConfirmed && (
+              <div>
+                {/* Chat input form */}
+                <form onSubmit={handleChatSubmit} className={styles.inputForm}>
+                  <textarea
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Type your message here..."
+                    disabled={loading}
+                    className={styles.inputTextarea}
+                  />
 
-                <button
-                  type="submit"
-                  disabled={loading || !input.trim()}
-                  className={styles.submitButton}
-                >
-                  {loading ? "Sending..." : "Send"}
-                </button>
+                  <button
+                    type="submit"
+                    disabled={loading || !input.trim()}
+                    className={styles.submitButton}
+                  >
+                    {loading ? "Sending..." : "Send"}
+                  </button>
 
-                {renderPromptButtons()}
-              </form>
-            </div>
+                  {renderPromptButtons()}
+                </form>
+              </div>
+            )
           )}
         </div>
       )}

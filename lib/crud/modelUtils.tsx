@@ -98,6 +98,7 @@ export const modelFields: Record<string, string[]> = {
     "paragraph",
     "question",
     "userConfirmed",
+    "conversationThreadId",
     "topicId",
     "userId",
   ],

@@ -57,6 +57,7 @@ export const pastJobsAssistantInstructions = /* xml */ `
 
   <!-- ---------- CONTENT GUIDELINES ---------- -->
   <paragraph_requirements enforcement="strict">
+    <must_include priority="high">use words and phrases from the provided keywords array</must_include>
     <must_include priority="high">multiple concrete, verifiable examples</must_include>
     <must_include priority="high">metrics &amp; timeframes</must_include>
     <must_include priority="high">tools / processes / methodologies</must_include>

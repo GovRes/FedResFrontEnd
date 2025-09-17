@@ -161,29 +161,35 @@ export const FRAGMENTS = {
 
   // Qualification fields
   QualificationFields: `
-    fragment QualificationFields on Qualification {
-      id
-      title
-      description
-      paragraph
-      question
-      userConfirmed
-      topicId
-      userId
-      pastJobId
-      createdAt
-      updatedAt
-    }
-  `,
+  fragment QualificationFields on Qualification {
+    id
+    title
+    description
+    paragraph
+    question
+    userConfirmed
+    conversationThreadId
+    topicId
+    userId
+    pastJobId
+    createdAt
+    updatedAt
+  }
+`,
 
   QualificationWithTopicFields: `
-    fragment QualificationWithTopicFields on Qualification {
-      ...QualificationFields
-      topic {
-        ...TopicWithJobFields
+  fragment QualificationWithTopicFields on Qualification {
+    ...QualificationFields
+    applications {
+      items {
+        applicationId
       }
     }
-  `,
+    topic {
+      ...TopicWithJobFields
+    }
+  }
+`,
 
   QualificationWithPastJobFields: `
     fragment QualificationWithPastJobFields on Qualification {

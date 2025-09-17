@@ -4,7 +4,7 @@ button.positive {
 }
 button.negative {
   background: var(--red-light);
-  color: var(--red-dark);
+  color: var(--highlight-2);
 }
 
 .ally {
@@ -25,7 +25,11 @@ button.negative {
 .allyChatContainer {
   --r: 1em; /* the radius */
   --t: 1.5em; /* the size of the tail */
-  background: linear-gradient(135deg, var(--blue-light), var(--blue-dark))
+  background: linear-gradient(
+      135deg,
+      var(--secondary-color),
+      var(--primary-color)
+    )
     border-box;
   border-inline: var(--t) solid #0000;
   border-radius: calc(var(--r) + var(--t)) / var(--r);
@@ -104,18 +108,18 @@ button.negative {
 
 .qualificationEditorMapItem {
   background: linear-gradient(
-    var(--blue-dark) 0%,
+    var(--primary-color) 0%,
     var(--blue-med) 6%,
-    var(--blue-light) 49%
+    var(--secondary-color) 49%
   );
   cursor: pointer;
   padding: 25px;
-  border: 1px var(--blue-dark) solid;
+  border: 1px var(--primary-color) solid;
 
   &.active {
     background: linear-gradient(
       var(--blue-med) 0%,
-      var(--blue-light) 6%,
+      var(--secondary-color) 6%,
       var(--white) 49%
     );
     cursor: default;
@@ -160,7 +164,7 @@ button.negative {
   justify-content: space-between;
   align-items: center;
   padding: 10px;
-  background-color: var(--blue-dark);
+  background-color: var(--primary-color);
   border: 1px solid var(--blue-med);
   color: var(--white);
 }
@@ -172,7 +176,11 @@ button.negative {
 .userChatContainer {
   --r: 1em; /* the radius */
   --t: 1.5em; /* the size of the tail */
-  background: linear-gradient(135deg, var(--blue-dark), var(--blue-light))
+  background: linear-gradient(
+      135deg,
+      var(--primary-color),
+      var(--secondary-color)
+    )
     border-box;
   border-inline: var(--t) solid #0000;
   border-radius: calc(var(--r) + var(--t)) / var(--r);

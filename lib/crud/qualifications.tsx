@@ -463,6 +463,7 @@ export async function createQualification(qualificationData: {
   paragraph?: string;
   question?: string;
   userConfirmed?: boolean;
+  conversationThreadId?: string; // NEW FIELD
   topicId: string;
   userId: string;
   pastJobId?: string;
@@ -501,6 +502,7 @@ export async function createQualification(qualificationData: {
           paragraph: qualificationData.paragraph || "",
           question: qualificationData.question || "",
           userConfirmed: qualificationData.userConfirmed || false,
+          conversationThreadId: qualificationData.conversationThreadId, // NEW FIELD
           topicId: qualificationData.topicId,
           userId: qualificationData.userId,
           pastJobId: qualificationData.pastJobId,
@@ -533,7 +535,7 @@ export async function createQualification(qualificationData: {
 }
 
 /**
- * Update an existing qualification
+ * Update an existing qualification - UPDATED to include conversationThreadId
  */
 export async function updateQualification(
   qualificationId: string,
@@ -543,6 +545,7 @@ export async function updateQualification(
     paragraph?: string;
     question?: string;
     userConfirmed?: boolean;
+    conversationThreadId?: string; // NEW FIELD
     topicId?: string;
     pastJobId?: string;
   }

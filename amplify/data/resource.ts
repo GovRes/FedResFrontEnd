@@ -148,6 +148,7 @@ const schema = a.schema({
   Qualification: a
     .model({
       applications: a.hasMany("QualificationApplication", "qualificationId"),
+      conversationThreadId: a.string(), //ai conversation so that thread can continue in edits
       id: a.id().required(),
       title: a.string().required(),
       description: a.string().required(),
