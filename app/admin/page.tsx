@@ -13,7 +13,19 @@ export default function AdminPage() {
           await deleteAllModelRecords("PastJobApplication", true)
         }
       >
+        Delete all PastJobApplication join records
+      </button>
+      <button
+        onClick={async () => await deleteAllModelRecords("Qualification", true)}
+      >
         Delete all Qualification records
+      </button>
+      <button
+        onClick={async () =>
+          await deleteAllModelRecords("QualificationApplication", true)
+        }
+      >
+        Delete all QualificationApplication records
       </button>
     </div>
   );

@@ -43,9 +43,12 @@ export default function ExperienceDetailPage({
 
   // Calculate if all qualifications are confirmed
   const allQualificationsConfirmed =
-    pastJob?.qualifications?.every((q: QualificationType) => q.userConfirmed) ||
+    (pastJob?.qualifications.length > 0 &&
+      pastJob?.qualifications?.every(
+        (q: QualificationType) => q.userConfirmed
+      )) ||
     false;
-
+  console.log("all quals confirmed", allQualificationsConfirmed);
   // Only use the completion hook when not specifically in edit mode
   // This prevents the step from being marked as incomplete when editing
   const { isStepComplete } = usePastJobDetailsStep(
@@ -137,6 +140,7 @@ export default function ExperienceDetailPage({
 
       const qualificationUpdateData = {
         title: qualification.title || "",
+        conversationThreadId: qualification.conversationThreadId || null,
         description: qualification.description || "",
         paragraph: qualification.paragraph || "",
         question: qualification.question || "",

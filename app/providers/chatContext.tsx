@@ -30,7 +30,7 @@ type ChatContextType = {
 
   // Operations
   saveItem: (item: BaseItem) => Promise<void>;
-  saveParagraph: () => Promise<void>;
+  saveParagraph: (threadId?: string) => Promise<void>;
   setParagraphData: (data: string | null) => void;
 
   // Meta info
@@ -197,16 +197,17 @@ export function ChatProvider({
     }
   };
   // Save paragraph to the current item
-  const saveParagraph = async () => {
+  const saveParagraph = async (conversationThreadId?: string) => {
     if (!paragraphData || !currentItem)
       return Promise.reject("No paragraph data or current item");
-    console.log("saving paragraph for item:", currentItem.id);
+
     const updatedItem = {
       ...currentItem,
       paragraph: paragraphData,
       userConfirmed: true,
+      conversationThreadId:
+        conversationThreadId || currentItem.conversationThreadId, // Use passed threadId or existing one
     };
-    console.log("Updated item:", updatedItem);
 
     const res = await saveItem(updatedItem);
     console.log(res);

@@ -1,4 +1,5 @@
 import { generateClient } from "aws-amplify/api";
+import { buildQueryWithFragments } from "./graphqlFragments";
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -8,15 +9,11 @@ interface ApiResponse<T = any> {
 }
 
 /**
- * Fetch a single Qualification record with all its applications and the jobs those applications are for
- *
- * @param {string} qualificationId - The ID of the Qualification to fetch
- * @returns {Promise<ApiResponse<Object>>} - API response with the Qualification data including applications and jobs
+ * Fetch a single Qualification record with all its applications and jobs
  */
 export async function fetchQualificationWithApplicationsAndJobs(
   qualificationId: string
 ): Promise<ApiResponse<any>> {
-  // Validate input
   if (
     !qualificationId ||
     typeof qualificationId !== "string" ||
@@ -33,105 +30,52 @@ export async function fetchQualificationWithApplicationsAndJobs(
   const client = generateClient();
 
   try {
-    const getQualificationQuery = `
+    const query = buildQueryWithFragments(`
       query GetQualification($id: ID!) {
         getQualification(id: $id) {
-          id
-          title
-          description
-          paragraph
-          question
-          userConfirmed
-          topicId
-          userId
-          createdAt
-          updatedAt
+          ...QualificationFields
           topic {
-            id
-            title
-            keywords
-            description
-            jobId
+            ...TopicWithJobFields
             job {
-              id
-              title
-              department
-              usaJobsId
-              agencyDescription
-              duties
-              evaluationCriteria
-              qualificationsSummary
+              ...JobDetailedFields
             }
           }
           user {
-            id
-            email
-            givenName
-            familyName
+            ...UserBasicFields
           }
           applications {
             items {
-              id
-              qualificationId
-              applicationId
+              ...QualificationApplicationFields
               application {
-                id
-                status
-                completedSteps
-                jobId
-                createdAt
-                updatedAt
+                ...ApplicationWithJobDetailedFields
                 job {
-                  id
-                  title
-                  department
-                  usaJobsId
-                  agencyDescription
-                  duties
-                  evaluationCriteria
-                  qualificationsSummary
-                }
-                user {
-                  id
-                  email
-                  givenName
-                  familyName
+                  ...JobDetailedFields
                 }
               }
             }
           }
-          pastJobs {
-            items {
-              id
-              pastJobId
-              qualificationId
-              pastJob {
-                id
-                title
-                organization
-                type
-                startDate
-                endDate
-              }
-            }
+          pastJob {
+            id
+            title
+            organization
+            type
+            startDate
+            endDate
           }
         }
       }
-    `;
+    `);
 
     const result = await client.graphql({
-      query: getQualificationQuery,
-      variables: {
-        id: qualificationId,
-      },
+      query,
+      variables: { id: qualificationId },
       authMode: "userPool",
     });
 
-    // Check if the result is a GraphQLResult type with data
     if ("data" in result && result.data?.getQualification) {
       const qualification = result.data.getQualification;
 
-      // Transform the data to a more convenient format
+      // Transform applications data for consistency
       const transformedData = {
         ...qualification,
         applications:
@@ -145,15 +89,8 @@ export async function fetchQualificationWithApplicationsAndJobs(
             job: item.application?.job,
             user: item.application?.user,
           })) || [],
-        pastJobs:
-          qualification.pastJobs?.items?.map((item: any) => ({
-            id: item.pastJob?.id,
-            title: item.pastJob?.title,
-            organization: item.pastJob?.organization,
-            type: item.pastJob?.type,
-            startDate: item.pastJob?.startDate,
-            endDate: item.pastJob?.endDate,
-          })) || [],
+        // pastJob is now a direct relationship, not an array
+        pastJob: qualification.pastJob || null,
       };
 
       return {
@@ -175,26 +112,22 @@ export async function fetchQualificationWithApplicationsAndJobs(
     );
     return {
       success: false,
-      error: `Failed to fetch Qualification with applications and jobs: ${error instanceof Error ? error.message : String(error)}`,
+      error: `Failed to fetch Qualification with applications and jobs: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
       statusCode: 500,
     };
   }
 }
 
 /**
- * Fetch multiple Qualification records with their applications and jobs for a specific user
- *
- * @param {string} userId - The ID of the user whose Qualifications to fetch
- * @param {number} limit - Optional limit on the number of results (default: 100)
- * @param {string} nextToken - Optional pagination token for fetching next page
- * @returns {Promise<ApiResponse<{items: Object[], nextToken?: string}>>} - API response with array of Qualification data
+ * Fetch multiple Qualification records with applications and jobs for a user
  */
 export async function fetchUserQualificationsWithApplicationsAndJobs(
   userId: string,
   limit: number = 100,
   nextToken?: string
 ): Promise<ApiResponse<{ items: any[]; nextToken?: string }>> {
-  // Validate input
   if (!userId || typeof userId !== "string" || userId.trim() === "") {
     return {
       success: false,
@@ -214,86 +147,43 @@ export async function fetchUserQualificationsWithApplicationsAndJobs(
   const client = generateClient();
 
   try {
-    const listQualificationsQuery = `
+    const query = buildQueryWithFragments(`
       query ListQualifications($filter: ModelQualificationFilterInput, $limit: Int, $nextToken: String) {
         listQualifications(filter: $filter, limit: $limit, nextToken: $nextToken) {
           items {
-            id
-            title
-            description
-            paragraph
-            question
-            userConfirmed
-            topicId
-            userId
-            createdAt
-            updatedAt
+            ...QualificationFields
             topic {
-              id
-              title
-              keywords
-              description
-              jobId
-              job {
-                id
-                title
-                department
-                usaJobsId
-              }
+              ...TopicWithJobFields
             }
             applications {
               items {
-                id
-                qualificationId
-                applicationId
+                ...QualificationApplicationFields
                 application {
-                  id
-                  status
-                  completedSteps
-                  jobId
-                  createdAt
-                  updatedAt
+                  ...ApplicationWithJobDetailedFields
                   job {
-                    id
-                    title
-                    department
-                    usaJobsId
-                    agencyDescription
-                  }
-                  user {
-                    id
-                    email
-                    givenName
-                    familyName
+                    ...JobDetailedFields
                   }
                 }
               }
             }
-            pastJobs {
-              items {
-                id
-                pastJobId
-                qualificationId
-                pastJob {
-                  id
-                  title
-                  organization
-                  type
-                }
-              }
+            pastJob {
+              id
+              title
+              organization
+              type
+              startDate
+              endDate
             }
           }
           nextToken
         }
       }
-    `;
+    `);
 
     const result = await client.graphql({
-      query: listQualificationsQuery,
+      query,
       variables: {
-        filter: {
-          userId: { eq: userId },
-        },
+        filter: { userId: { eq: userId } },
         limit,
         nextToken,
       },
@@ -304,7 +194,7 @@ export async function fetchUserQualificationsWithApplicationsAndJobs(
       const { items, nextToken: responseNextToken } =
         result.data.listQualifications;
 
-      // Transform the data to a more convenient format
+      // Transform the data for consistency
       const transformedItems =
         items?.map((qualification: any) => ({
           ...qualification,
@@ -319,13 +209,8 @@ export async function fetchUserQualificationsWithApplicationsAndJobs(
               job: item.application?.job,
               user: item.application?.user,
             })) || [],
-          pastJobs:
-            qualification.pastJobs?.items?.map((item: any) => ({
-              id: item.pastJob?.id,
-              title: item.pastJob?.title,
-              organization: item.pastJob?.organization,
-              type: item.pastJob?.type,
-            })) || [],
+          // pastJob is now a direct relationship
+          pastJob: qualification.pastJob || null,
         })) || [];
 
       return {
@@ -350,43 +235,444 @@ export async function fetchUserQualificationsWithApplicationsAndJobs(
     );
     return {
       success: false,
-      error: `Failed to fetch Qualifications for user: ${error instanceof Error ? error.message : String(error)}`,
+      error: `Failed to fetch Qualifications for user: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
       statusCode: 500,
     };
   }
 }
 
 /**
- * Example usage:
- *
- * // Fetch single Qualification with applications and jobs
- * const fetchResult = await fetchQualificationWithApplicationsAndJobs("qualification123");
- * if (fetchResult.success && fetchResult.data) {
- *   console.log("Qualification with applications:", fetchResult.data);
- *   console.log("Number of applications:", fetchResult.data.applications.length);
- *
- *   // Access job information from applications
- *   fetchResult.data.applications.forEach((app: any) => {
- *     console.log(`Application ${app.id} for job: ${app.job?.title} at ${app.job?.department}`);
- *   });
- * } else {
- *   console.error(`Error ${fetchResult.statusCode}:`, fetchResult.error);
- * }
- *
- * // Fetch all Qualifications for a user with their applications and jobs
- * const userQualificationsResult = await fetchUserQualificationsWithApplicationsAndJobs("user123", 50);
- * if (userQualificationsResult.success && userQualificationsResult.data) {
- *   console.log(`Found ${userQualificationsResult.data.items.length} qualifications`);
- *
- *   userQualificationsResult.data.items.forEach((qual: any) => {
- *     console.log(`Qualification: ${qual.title}`);
- *     qual.applications.forEach((app: any) => {
- *       console.log(`  - Applied to: ${app.job?.title} (${app.status})`);
- *     });
- *   });
- *
- *   if (userQualificationsResult.data.nextToken) {
- *     console.log("More results available, use nextToken for pagination");
- *   }
- * }
+ * Fetch qualifications for a specific past job
  */
+export async function fetchQualificationsForPastJob(
+  pastJobId: string,
+  limit: number = 100,
+  nextToken?: string
+): Promise<ApiResponse<{ items: any[]; nextToken?: string }>> {
+  if (!pastJobId || typeof pastJobId !== "string" || pastJobId.trim() === "") {
+    return {
+      success: false,
+      error: "Invalid pastJobId: pastJobId must be a non-empty string",
+      statusCode: 400,
+    };
+  }
+
+  if (limit <= 0 || limit > 1000) {
+    return {
+      success: false,
+      error: "Invalid limit: limit must be between 1 and 1000",
+      statusCode: 400,
+    };
+  }
+
+  const client = generateClient();
+
+  try {
+    const query = buildQueryWithFragments(`
+      query ListQualifications($filter: ModelQualificationFilterInput, $limit: Int, $nextToken: String) {
+        listQualifications(filter: $filter, limit: $limit, nextToken: $nextToken) {
+          items {
+            ...QualificationWithPastJobFields
+            applications {
+              items {
+                ...QualificationApplicationFields
+                application {
+                  ...ApplicationWithJobFields
+                }
+              }
+            }
+          }
+          nextToken
+        }
+      }
+    `);
+
+    const result = await client.graphql({
+      query,
+      variables: {
+        filter: { pastJobId: { eq: pastJobId } },
+        limit,
+        nextToken,
+      },
+      authMode: "userPool",
+    });
+
+    if ("data" in result && result.data?.listQualifications) {
+      const { items, nextToken: responseNextToken } =
+        result.data.listQualifications;
+
+      // Transform applications data
+      const transformedItems =
+        items?.map((qualification: any) => ({
+          ...qualification,
+          applications:
+            qualification.applications?.items?.map((item: any) => ({
+              id: item.application?.id,
+              status: item.application?.status,
+              completedSteps: item.application?.completedSteps,
+              jobId: item.application?.jobId,
+              job: item.application?.job,
+              user: item.application?.user,
+            })) || [],
+        })) || [];
+
+      return {
+        success: true,
+        data: {
+          items: transformedItems,
+          nextToken: responseNextToken,
+        },
+        statusCode: 200,
+      };
+    } else {
+      return {
+        success: false,
+        error: `No Qualifications found for pastJob: ${pastJobId}`,
+        statusCode: 404,
+      };
+    }
+  } catch (error) {
+    console.error("Error fetching Qualifications for past job:", error);
+    return {
+      success: false,
+      error: `Failed to fetch Qualifications for past job: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      statusCode: 500,
+    };
+  }
+}
+
+/**
+ * Fetch qualifications for a specific topic
+ */
+export async function fetchQualificationsForTopic(
+  topicId: string,
+  limit: number = 100,
+  nextToken?: string
+): Promise<ApiResponse<{ items: any[]; nextToken?: string }>> {
+  if (!topicId || typeof topicId !== "string" || topicId.trim() === "") {
+    return {
+      success: false,
+      error: "Invalid topicId: topicId must be a non-empty string",
+      statusCode: 400,
+    };
+  }
+
+  if (limit <= 0 || limit > 1000) {
+    return {
+      success: false,
+      error: "Invalid limit: limit must be between 1 and 1000",
+      statusCode: 400,
+    };
+  }
+
+  const client = generateClient();
+
+  try {
+    const query = buildQueryWithFragments(`
+      query ListQualifications($filter: ModelQualificationFilterInput, $limit: Int, $nextToken: String) {
+        listQualifications(filter: $filter, limit: $limit, nextToken: $nextToken) {
+          items {
+            ...QualificationWithTopicFields
+            pastJob {
+              id
+              title
+              organization
+              startDate
+              endDate
+            }
+            applications {
+              items {
+                ...QualificationApplicationFields
+                application {
+                  ...ApplicationWithJobFields
+                }
+              }
+            }
+          }
+          nextToken
+        }
+      }
+    `);
+
+    const result = await client.graphql({
+      query,
+      variables: {
+        filter: { topicId: { eq: topicId } },
+        limit,
+        nextToken,
+      },
+      authMode: "userPool",
+    });
+
+    if ("data" in result && result.data?.listQualifications) {
+      const { items, nextToken: responseNextToken } =
+        result.data.listQualifications;
+
+      // Transform applications data
+      const transformedItems =
+        items?.map((qualification: any) => ({
+          ...qualification,
+          applications:
+            qualification.applications?.items?.map((item: any) => ({
+              id: item.application?.id,
+              status: item.application?.status,
+              completedSteps: item.application?.completedSteps,
+              jobId: item.application?.jobId,
+              job: item.application?.job,
+              user: item.application?.user,
+            })) || [],
+        })) || [];
+
+      return {
+        success: true,
+        data: {
+          items: transformedItems,
+          nextToken: responseNextToken,
+        },
+        statusCode: 200,
+      };
+    } else {
+      return {
+        success: false,
+        error: `No Qualifications found for topic: ${topicId}`,
+        statusCode: 404,
+      };
+    }
+  } catch (error) {
+    console.error("Error fetching Qualifications for topic:", error);
+    return {
+      success: false,
+      error: `Failed to fetch Qualifications for topic: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      statusCode: 500,
+    };
+  }
+}
+
+/**
+ * Create a new qualification
+ */
+export async function createQualification(qualificationData: {
+  title: string;
+  description: string;
+  paragraph?: string;
+  question?: string;
+  userConfirmed?: boolean;
+  conversationThreadId?: string; // NEW FIELD
+  topicId: string;
+  userId: string;
+  pastJobId?: string;
+}): Promise<ApiResponse<any>> {
+  if (
+    !qualificationData.title ||
+    !qualificationData.description ||
+    !qualificationData.topicId ||
+    !qualificationData.userId
+  ) {
+    return {
+      success: false,
+      error:
+        "Missing required fields: title, description, topicId, and userId are required",
+      statusCode: 400,
+    };
+  }
+
+  const client = generateClient();
+
+  try {
+    const mutation = buildQueryWithFragments(`
+      mutation CreateQualification($input: CreateQualificationInput!) {
+        createQualification(input: $input) {
+          ...QualificationWithTopicFields
+        }
+      }
+    `);
+
+    const result = await client.graphql({
+      query: mutation,
+      variables: {
+        input: {
+          title: qualificationData.title,
+          description: qualificationData.description,
+          paragraph: qualificationData.paragraph || "",
+          question: qualificationData.question || "",
+          userConfirmed: qualificationData.userConfirmed || false,
+          conversationThreadId: qualificationData.conversationThreadId, // NEW FIELD
+          topicId: qualificationData.topicId,
+          userId: qualificationData.userId,
+          pastJobId: qualificationData.pastJobId,
+        },
+      },
+      authMode: "userPool",
+    });
+
+    if ("data" in result && result.data?.createQualification) {
+      return {
+        success: true,
+        data: result.data.createQualification,
+        statusCode: 201,
+      };
+    } else {
+      return {
+        success: false,
+        error: "Unexpected response format from GraphQL operation",
+        statusCode: 500,
+      };
+    }
+  } catch (error) {
+    console.error("Error creating Qualification:", error);
+    return {
+      success: false,
+      error: `Failed to create Qualification: ${error instanceof Error ? error.message : String(error)}`,
+      statusCode: 500,
+    };
+  }
+}
+
+/**
+ * Update an existing qualification - UPDATED to include conversationThreadId
+ */
+export async function updateQualification(
+  qualificationId: string,
+  updates: {
+    title?: string;
+    description?: string;
+    paragraph?: string;
+    question?: string;
+    userConfirmed?: boolean;
+    conversationThreadId?: string; // NEW FIELD
+    topicId?: string;
+    pastJobId?: string;
+  }
+): Promise<ApiResponse<any>> {
+  if (
+    !qualificationId ||
+    typeof qualificationId !== "string" ||
+    qualificationId.trim() === ""
+  ) {
+    return {
+      success: false,
+      error:
+        "Invalid qualificationId: qualificationId must be a non-empty string",
+      statusCode: 400,
+    };
+  }
+
+  if (!updates || Object.keys(updates).length === 0) {
+    return {
+      success: false,
+      error: "At least one field to update is required",
+      statusCode: 400,
+    };
+  }
+
+  const client = generateClient();
+
+  try {
+    const mutation = buildQueryWithFragments(`
+      mutation UpdateQualification($input: UpdateQualificationInput!) {
+        updateQualification(input: $input) {
+          ...QualificationWithTopicFields
+        }
+      }
+    `);
+
+    const result = await client.graphql({
+      query: mutation,
+      variables: {
+        input: {
+          id: qualificationId,
+          ...updates,
+        },
+      },
+      authMode: "userPool",
+    });
+
+    if ("data" in result && result.data?.updateQualification) {
+      return {
+        success: true,
+        data: result.data.updateQualification,
+        statusCode: 200,
+      };
+    } else {
+      return {
+        success: false,
+        error: "Unexpected response format from GraphQL operation",
+        statusCode: 500,
+      };
+    }
+  } catch (error) {
+    console.error("Error updating Qualification:", error);
+    return {
+      success: false,
+      error: `Failed to update Qualification: ${error instanceof Error ? error.message : String(error)}`,
+      statusCode: 500,
+    };
+  }
+}
+
+/**
+ * Delete a qualification
+ */
+export async function deleteQualification(
+  qualificationId: string
+): Promise<ApiResponse<any>> {
+  if (
+    !qualificationId ||
+    typeof qualificationId !== "string" ||
+    qualificationId.trim() === ""
+  ) {
+    return {
+      success: false,
+      error:
+        "Invalid qualificationId: qualificationId must be a non-empty string",
+      statusCode: 400,
+    };
+  }
+
+  const client = generateClient();
+
+  try {
+    const mutation = buildQueryWithFragments(`
+      mutation DeleteQualification($input: DeleteQualificationInput!) {
+        deleteQualification(input: $input) {
+          ...QualificationFields
+        }
+      }
+    `);
+
+    const result = await client.graphql({
+      query: mutation,
+      variables: {
+        input: { id: qualificationId },
+      },
+      authMode: "userPool",
+    });
+
+    if ("data" in result && result.data?.deleteQualification) {
+      return {
+        success: true,
+        data: result.data.deleteQualification,
+        statusCode: 200,
+      };
+    } else {
+      return {
+        success: false,
+        error: "Unexpected response format from GraphQL operation",
+        statusCode: 500,
+      };
+    }
+  } catch (error) {
+    console.error("Error deleting Qualification:", error);
+    return {
+      success: false,
+      error: `Failed to delete Qualification: ${error instanceof Error ? error.message : String(error)}`,
+      statusCode: 500,
+    };
+  }
+}
