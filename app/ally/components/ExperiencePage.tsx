@@ -107,17 +107,50 @@ export default function ExperiencePage({
             pastJobs: data,
           });
 
-          topicResults.push(topicMatcherData);
+          console.log(`Raw response for topic ${i + 1}:`, topicMatcherData);
+          console.log(`Response type:`, typeof topicMatcherData);
+          console.log(`Is array:`, Array.isArray(topicMatcherData));
+
+          // Ensure we're pushing the actual data, not a wrapper
+          if (topicMatcherData && typeof topicMatcherData === "object") {
+            if (Array.isArray(topicMatcherData)) {
+              topicResults.push(topicMatcherData);
+              console.log(
+                `Pushed array of length ${topicMatcherData.length} for topic ${i + 1}`
+              );
+            } else if (topicMatcherData.pastJobs) {
+              topicResults.push(topicMatcherData.pastJobs);
+              console.log(
+                `Pushed pastJobs array of length ${topicMatcherData.pastJobs.length} for topic ${i + 1}`
+              );
+            } else {
+              console.warn(
+                `Unexpected response structure for topic ${i + 1}:`,
+                topicMatcherData
+              );
+              topicResults.push([]);
+            }
+          } else {
+            console.warn(`No valid data for topic ${i + 1}`);
+            topicResults.push([]);
+          }
+
           console.log(`Completed topic ${i + 1}/${totalTopics}:`, topic.title);
 
-          // Small delay to be gentle on rate limits
+          // Longer delay to reduce timeouts
           if (i < job.topics.length - 1) {
-            await new Promise((resolve) => setTimeout(resolve, 500));
+            await new Promise((resolve) => setTimeout(resolve, 2000)); // Increased to 2 seconds
           }
         } catch (error) {
           console.error(`Failed to process topic ${i + 1}:`, error);
+          console.error(`Error details:`, error.message, error.stack);
           // Push empty array to maintain array alignment
           topicResults.push([]);
+
+          // Wait longer after an error before trying the next one
+          if (i < job.topics.length - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 3000)); // 3 seconds after error
+          }
         }
       }
 

@@ -3,9 +3,9 @@ import OpenAI from "openai";
 import { type NextRequest } from "next/server";
 import { responsesApiSchemas } from "@/lib/utils/responseSchemas";
 
-// Add runtime configuration and timeout
+// Back to nodejs runtime with more aggressive optimizations
 export const runtime = "nodejs";
-export const maxDuration = 120; // 120 seconds (2 minutes)
+export const maxDuration = 30; // Maximum for Amplify free hosting
 export const dynamic = "force-dynamic";
 
 // Function to simplify complex schemas for better performance
@@ -120,120 +120,53 @@ export async function POST(req: NextRequest) {
     console.log("Starting OpenAI request...");
     const startTime = Date.now();
 
-    // Create a simplified version of the schema for faster processing
-    const simplifiedSchema = {
-      ...selectedJsonSchema,
-      // Remove descriptions and reduce complexity
-      additionalProperties: false,
-    };
+    // Use the simplest possible approach - chat completions with basic JSON
+    console.log("Using simple chat completions for reliability...");
 
-    // If the schema is very large, try to simplify it further
-    const schemaSize = JSON.stringify(selectedJsonSchema).length;
-    let finalSchema = selectedJsonSchema;
-
-    if (schemaSize > 3000) {
-      console.log(
-        `Large schema detected (${schemaSize} chars), attempting optimization...`
-      );
-      finalSchema = simplifySchema(selectedJsonSchema);
-    }
-
-    // Create the OpenAI request with additional timeout configuration
-    const completionPromise = client.responses.create(
+    const completion = await client.chat.completions.create(
       {
-        model: data.useVision ? "gpt-4o" : "gpt-4o-mini",
-        input: data.input,
-        text: {
-          format: {
-            type: "json_schema",
-            name: schemaName,
-            strict: true, // Use strict mode for better performance
-            schema: finalSchema,
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "user",
+            content: `Return job matches as JSON array. Input (first 1500 chars): ${data.input.substring(0, 1500)}`,
           },
-        },
-        temperature: data.temperature ?? 0,
-        store: false,
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0,
+        max_tokens: 1000, // Limit response size
       },
       {
-        // Add OpenAI client timeout
-        timeout: 85000, // 85 seconds
+        timeout: 10000, // Very short timeout
       }
     );
 
-    // Race between the API call and timeout (with multiple attempts)
-    let completion;
-    try {
-      completion = (await Promise.race([
-        completionPromise,
-        new Promise(
-          (_, reject) =>
-            setTimeout(() => reject(new Error("OpenAI request timeout")), 90000) // 90 seconds
-        ),
-      ])) as any;
-    } catch (timeoutError) {
-      // If it times out, try a simpler request
-      console.log("First attempt timed out, trying with simpler parameters...");
-
-      const fallbackPromise = client.responses.create(
-        {
-          model: "gpt-4o-mini", // Force mini model
-          input:
-            data.input.length > 8000
-              ? data.input.substring(0, 8000) + "..."
-              : data.input, // Truncate if needed
-          text: {
-            format: {
-              type: "json_schema",
-              name: schemaName,
-              strict: true,
-              schema: {
-                type: "object",
-                properties: {
-                  result: { type: "string" },
-                },
-                required: ["result"],
-                additionalProperties: false,
-              },
-            },
-          },
-          temperature: 0, // Use temperature 0 for faster processing
-          store: false,
-        },
-        {
-          timeout: 60000, // Shorter timeout for fallback
-        }
-      );
-
-      completion = (await Promise.race([
-        fallbackPromise,
-        new Promise((_, reject) =>
-          setTimeout(
-            () => reject(new Error("OpenAI fallback request timeout")),
-            65000
-          )
-        ),
-      ])) as any;
-    }
+    // Just make the request without Promise.race initially
+    console.log("Making direct OpenAI request...");
+    const completion = await completionPromise;
 
     console.log(`OpenAI request completed in ${Date.now() - startTime}ms`);
 
     console.log(`\n=== RESPONSE DEBUG ===`);
-    console.log(`Response received: ${!!completion.output_text}`);
-    console.log(`Output text length: ${completion.output_text?.length || 0}`);
     console.log(
-      `Raw output (first 300 chars): ${completion.output_text?.substring(0, 300)}...`
+      `Response received: ${!!completion.choices?.[0]?.message?.content}`
+    );
+    const content = completion.choices?.[0]?.message?.content;
+    console.log(`Content length: ${content?.length || 0}`);
+    console.log(
+      `Raw content (first 300 chars): ${content?.substring(0, 300)}...`
     );
     console.log(`======================\n`);
 
-    if (completion.output_text) {
+    if (content) {
       try {
-        const parsedContent = JSON.parse(completion.output_text);
+        const parsedContent = JSON.parse(content);
         console.log(
           `Successfully parsed JSON with keys:`,
           Object.keys(parsedContent)
         );
 
-        // Return the parsed object as JSON - this is the key fix
+        // Return the parsed object as JSON
         return new Response(JSON.stringify(parsedContent), {
           status: 200,
           headers: {
@@ -249,10 +182,10 @@ export async function POST(req: NextRequest) {
           completion.output_text
         );
 
-        // FIXED: Try to extract JSON from the raw output if it's malformed
+        // Try to extract JSON from the raw content if it's malformed
         try {
           // Sometimes the AI returns JSON wrapped in markdown or with extra text
-          const jsonMatch = completion.output_text.match(/\{[\s\S]*\}/);
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
             const extractedJson = JSON.parse(jsonMatch[0]);
             console.log(
@@ -260,7 +193,11 @@ export async function POST(req: NextRequest) {
             );
             return new Response(JSON.stringify(extractedJson), {
               status: 200,
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                "X-Debug-Time": `${Date.now() - requestStartTime}ms`,
+                "X-Debug-Stage": "extracted-success",
+              },
             });
           }
         } catch (extractError) {
@@ -270,15 +207,19 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        // FIXED: Return a proper error response instead of invalid JSON
+        // Return a proper error response instead of invalid JSON
         return new Response(
           JSON.stringify({
             error: "Invalid JSON response from AI",
-            raw_output: completion.output_text.substring(0, 500), // Limit length for debugging
+            raw_output: content.substring(0, 500), // Limit length for debugging
           }),
           {
             status: 500,
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "X-Debug-Time": `${Date.now() - requestStartTime}ms`,
+              "X-Debug-Stage": "parse-error",
+            },
           }
         );
       }
@@ -289,7 +230,11 @@ export async function POST(req: NextRequest) {
         JSON.stringify({ error: "No content in AI response" }),
         {
           status: 500,
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "X-Debug-Time": `${Date.now() - requestStartTime}ms`,
+            "X-Debug-Stage": "no-content",
+          },
         }
       );
     }
