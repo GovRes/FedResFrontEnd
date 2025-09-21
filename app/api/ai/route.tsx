@@ -5,15 +5,22 @@ import { responsesApiSchemas } from "@/lib/utils/responseSchemas";
 
 // Add runtime configuration and timeout
 export const runtime = "nodejs";
-export const maxDuration = 60; // 60 seconds
+export const maxDuration = 120; // 120 seconds (2 minutes)
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  const requestStartTime = Date.now();
   const apiKey = process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
     console.error("Missing API key");
-    return new Response("Missing API key", { status: 500 });
+    return new Response("Missing API key", {
+      status: 500,
+      headers: {
+        "X-Debug-Time": `${Date.now() - requestStartTime}ms`,
+        "X-Debug-Stage": "api-key-missing",
+      },
+    });
   }
 
   const client = new OpenAI({ apiKey });
@@ -35,13 +42,24 @@ export async function POST(req: NextRequest) {
   }
 
   // Check for large inputs that might cause timeouts
-  if (data.input.length > 100000) {
-    // 100k characters
+  if (data.input.length > 50000) {
+    // Reduced from 100k to 50k
     console.warn(`Large input detected: ${data.input.length} characters`);
-    return new Response(JSON.stringify({ error: "Input too large" }), {
-      status: 413,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        error: "Input too large",
+        inputLength: data.input.length,
+        maxLength: 50000,
+      }),
+      {
+        status: 413,
+        headers: {
+          "Content-Type": "application/json",
+          "X-Debug-Time": `${Date.now() - requestStartTime}ms`,
+          "X-Debug-Stage": "input-too-large",
+        },
+      }
+    );
   }
 
   // Debug logging
@@ -51,36 +69,87 @@ export async function POST(req: NextRequest) {
   console.log(`Input preview: ${data.input.substring(0, 300)}...`);
   console.log(`Temperature: ${data.temperature ?? 0}`);
   console.log(`Use vision: ${data.useVision ?? false}`);
+  console.log(
+    `JSON Schema size: ${JSON.stringify(selectedJsonSchema).length} characters`
+  );
+  console.log(
+    `JSON Schema preview: ${JSON.stringify(selectedJsonSchema).substring(0, 500)}...`
+  );
   console.log(`===========================\n`);
 
   try {
     console.log("Starting OpenAI request...");
     const startTime = Date.now();
 
-    // Create the OpenAI request
-    const completionPromise = client.responses.create({
-      model: data.useVision ? "gpt-4o" : "gpt-4o-mini",
-      input: data.input,
-      text: {
-        format: {
-          type: "json_schema",
-          name: schemaName,
-          strict: false,
-          schema: selectedJsonSchema,
+    // Create the OpenAI request with additional timeout configuration
+    const completionPromise = client.responses.create(
+      {
+        model: data.useVision ? "gpt-4o" : "gpt-4o-mini",
+        input: data.input,
+        text: {
+          format: {
+            type: "json_schema",
+            name: schemaName,
+            strict: false, // Try setting to true for faster processing
+            schema: selectedJsonSchema,
+          },
         },
+        temperature: data.temperature ?? 0,
+        store: false,
       },
-      temperature: data.temperature ?? 0,
-      store: false,
-    });
+      {
+        // Add OpenAI client timeout
+        timeout: 85000, // 85 seconds
+      }
+    );
 
-    // Race between the API call and timeout
-    const completion = (await Promise.race([
-      completionPromise,
-      new Promise(
-        (_, reject) =>
-          setTimeout(() => reject(new Error("OpenAI request timeout")), 50000) // 50 seconds
-      ),
-    ])) as any;
+    // Race between the API call and timeout (with multiple attempts)
+    let completion;
+    try {
+      completion = (await Promise.race([
+        completionPromise,
+        new Promise(
+          (_, reject) =>
+            setTimeout(() => reject(new Error("OpenAI request timeout")), 90000) // 90 seconds
+        ),
+      ])) as any;
+    } catch (timeoutError) {
+      // If it times out, try a simpler request
+      console.log("First attempt timed out, trying with simpler parameters...");
+
+      const fallbackPromise = client.responses.create(
+        {
+          model: "gpt-4o-mini", // Force mini model
+          input:
+            data.input.length > 8000
+              ? data.input.substring(0, 8000) + "..."
+              : data.input, // Truncate if needed
+          text: {
+            format: {
+              type: "json_schema",
+              name: schemaName,
+              strict: true, // Use strict mode
+              schema: selectedJsonSchema,
+            },
+          },
+          temperature: 0, // Use temperature 0 for faster processing
+          store: false,
+        },
+        {
+          timeout: 60000, // Shorter timeout for fallback
+        }
+      );
+
+      completion = (await Promise.race([
+        fallbackPromise,
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("OpenAI fallback request timeout")),
+            65000
+          )
+        ),
+      ])) as any;
+    }
 
     console.log(`OpenAI request completed in ${Date.now() - startTime}ms`);
 
@@ -103,7 +172,11 @@ export async function POST(req: NextRequest) {
         // Return the parsed object as JSON - this is the key fix
         return new Response(JSON.stringify(parsedContent), {
           status: 200,
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "X-Debug-Time": `${Date.now() - requestStartTime}ms`,
+            "X-Debug-Stage": "success",
+          },
         });
       } catch (parseError) {
         console.error("Failed to parse structured output:", parseError);
@@ -172,7 +245,14 @@ export async function POST(req: NextRequest) {
           message:
             "The AI request took too long to complete. Please try again.",
         }),
-        { status: 504, headers: { "Content-Type": "application/json" } }
+        {
+          status: 504,
+          headers: {
+            "Content-Type": "application/json",
+            "X-Debug-Time": `${Date.now() - requestStartTime}ms`,
+            "X-Debug-Stage": "openai-timeout",
+          },
+        }
       );
     }
 
