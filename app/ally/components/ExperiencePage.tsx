@@ -89,28 +89,38 @@ export default function ExperiencePage({
         return;
       }
 
-      let completedCount = 0;
       const totalTopics = job.topics.length;
 
-      // Process each topic with AI matcher
-      const topicPromises = job.topics.map(
-        async (topic: TopicType, index: number) => {
-          console.log(`Processing topic ${index + 1}/${totalTopics}:`, topic);
+      // CHANGED: Process each topic serially instead of in parallel
+      const topicResults = [];
+      for (let i = 0; i < job.topics.length; i++) {
+        const topic = job.topics[i];
+        console.log(`Processing topic ${i + 1}/${totalTopics}:`, topic);
+
+        try {
+          setLoadingText(
+            `AI matching topics: ${i + 1}/${totalTopics} topics (${topic.title})`
+          );
+
           const topicMatcherData = await topicPastJobMatcher({
             topic,
             pastJobs: data,
           });
 
-          completedCount++;
-          setLoadingText(
-            `AI matching topics: ${completedCount}/${totalTopics} topics (${topic.title})`
-          );
+          topicResults.push(topicMatcherData);
+          console.log(`Completed topic ${i + 1}/${totalTopics}:`, topic.title);
 
-          return topicMatcherData;
+          // Small delay to be gentle on rate limits
+          if (i < job.topics.length - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+          }
+        } catch (error) {
+          console.error(`Failed to process topic ${i + 1}:`, error);
+          // Push empty array to maintain array alignment
+          topicResults.push([]);
         }
-      );
+      }
 
-      const topicResults = await Promise.all(topicPromises);
       console.log("Topic matcher results:", topicResults);
       console.log("About to process topicResults with flatMap...");
 
@@ -350,7 +360,7 @@ export default function ExperiencePage({
         "✅ Qualifications created and associated - processing complete"
       );
       console.log(
-        "⌛ Step NOT marked complete - user must confirm each qualification with paragraphs"
+        "⏱️ Step NOT marked complete - user must confirm each qualification with paragraphs"
       );
       console.log("AI processing completed successfully");
     } catch (error) {
