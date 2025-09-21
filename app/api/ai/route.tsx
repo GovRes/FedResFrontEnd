@@ -8,6 +8,45 @@ export const runtime = "nodejs";
 export const maxDuration = 120; // 120 seconds (2 minutes)
 export const dynamic = "force-dynamic";
 
+// Function to simplify complex schemas for better performance
+function simplifySchema(schema: any): any {
+  if (typeof schema !== "object" || schema === null) {
+    return schema;
+  }
+
+  const simplified = { ...schema };
+
+  // Remove descriptions to reduce size
+  delete simplified.description;
+  delete simplified.examples;
+
+  // Simplify array items with many nullable properties
+  if (simplified.type === "array" && simplified.items) {
+    simplified.items = simplifySchema(simplified.items);
+  }
+
+  // For objects with many nullable properties, make them required or remove nulls
+  if (simplified.type === "object" && simplified.properties) {
+    const newProperties: any = {};
+    Object.keys(simplified.properties).forEach((key) => {
+      const prop = simplified.properties[key];
+      if (Array.isArray(prop.type) && prop.type.includes("null")) {
+        // Remove null from type array, make it just the main type
+        const mainType = prop.type.find((t: string) => t !== "null");
+        newProperties[key] = {
+          ...prop,
+          type: mainType || "string",
+        };
+      } else {
+        newProperties[key] = simplifySchema(prop);
+      }
+    });
+    simplified.properties = newProperties;
+  }
+
+  return simplified;
+}
+
 export async function POST(req: NextRequest) {
   const requestStartTime = Date.now();
   const apiKey = process.env.OPENAI_API_KEY;
@@ -81,6 +120,24 @@ export async function POST(req: NextRequest) {
     console.log("Starting OpenAI request...");
     const startTime = Date.now();
 
+    // Create a simplified version of the schema for faster processing
+    const simplifiedSchema = {
+      ...selectedJsonSchema,
+      // Remove descriptions and reduce complexity
+      additionalProperties: false,
+    };
+
+    // If the schema is very large, try to simplify it further
+    const schemaSize = JSON.stringify(selectedJsonSchema).length;
+    let finalSchema = selectedJsonSchema;
+
+    if (schemaSize > 3000) {
+      console.log(
+        `Large schema detected (${schemaSize} chars), attempting optimization...`
+      );
+      finalSchema = simplifySchema(selectedJsonSchema);
+    }
+
     // Create the OpenAI request with additional timeout configuration
     const completionPromise = client.responses.create(
       {
@@ -90,8 +147,8 @@ export async function POST(req: NextRequest) {
           format: {
             type: "json_schema",
             name: schemaName,
-            strict: false, // Try setting to true for faster processing
-            schema: selectedJsonSchema,
+            strict: true, // Use strict mode for better performance
+            schema: finalSchema,
           },
         },
         temperature: data.temperature ?? 0,
@@ -128,8 +185,15 @@ export async function POST(req: NextRequest) {
             format: {
               type: "json_schema",
               name: schemaName,
-              strict: true, // Use strict mode
-              schema: selectedJsonSchema,
+              strict: true,
+              schema: {
+                type: "object",
+                properties: {
+                  result: { type: "string" },
+                },
+                required: ["result"],
+                additionalProperties: false,
+              },
             },
           },
           temperature: 0, // Use temperature 0 for faster processing
