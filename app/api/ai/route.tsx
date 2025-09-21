@@ -1,7 +1,12 @@
-// Clean route.tsx - Responses API only
+// Clean route.tsx - Responses API only with timeout fixes
 import OpenAI from "openai";
 import { type NextRequest } from "next/server";
 import { responsesApiSchemas } from "@/lib/utils/responseSchemas";
+
+// Add runtime configuration and timeout
+export const runtime = "nodejs";
+export const maxDuration = 60; // 60 seconds
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -29,6 +34,16 @@ export async function POST(req: NextRequest) {
     return new Response("Missing input parameter", { status: 400 });
   }
 
+  // Check for large inputs that might cause timeouts
+  if (data.input.length > 100000) {
+    // 100k characters
+    console.warn(`Large input detected: ${data.input.length} characters`);
+    return new Response(JSON.stringify({ error: "Input too large" }), {
+      status: 413,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   // Debug logging
   console.log(`\n=== RESPONSES API DEBUG ===`);
   console.log(`Schema name: ${schemaName}`);
@@ -39,7 +54,11 @@ export async function POST(req: NextRequest) {
   console.log(`===========================\n`);
 
   try {
-    const completion = await client.responses.create({
+    console.log("Starting OpenAI request...");
+    const startTime = Date.now();
+
+    // Create the OpenAI request
+    const completionPromise = client.responses.create({
       model: data.useVision ? "gpt-4o" : "gpt-4o-mini",
       input: data.input,
       text: {
@@ -53,6 +72,17 @@ export async function POST(req: NextRequest) {
       temperature: data.temperature ?? 0,
       store: false,
     });
+
+    // Race between the API call and timeout
+    const completion = (await Promise.race([
+      completionPromise,
+      new Promise(
+        (_, reject) =>
+          setTimeout(() => reject(new Error("OpenAI request timeout")), 50000) // 50 seconds
+      ),
+    ])) as any;
+
+    console.log(`OpenAI request completed in ${Date.now() - startTime}ms`);
 
     console.log(`\n=== RESPONSE DEBUG ===`);
     console.log(`Response received: ${!!completion.output_text}`);
@@ -133,6 +163,18 @@ export async function POST(req: NextRequest) {
     console.error("Error code:", error.code);
     console.error("Full error:", error);
     console.error("==================\n");
+
+    // Handle timeout specifically
+    if (error.message === "OpenAI request timeout") {
+      return new Response(
+        JSON.stringify({
+          error: "Request timeout",
+          message:
+            "The AI request took too long to complete. Please try again.",
+        }),
+        { status: 504, headers: { "Content-Type": "application/json" } }
+      );
+    }
 
     if (error.type === "invalid_request_error") {
       return new Response(
