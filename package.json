@@ -17,7 +17,7 @@
     "@aws-amplify/ui-react": "^6.7.2",
     "@aws-amplify/ui-react-storage": "^3.5.0",
     "@hookform/resolvers": "^5.2.1",
-    "ai": "^4.3.17",
+    "ai": "4.3.17",
     "aws-amplify": "^6.15.3",
     "axios": "^1.8.2",
     "jest": "^30.0.4",
