@@ -1,5 +1,271 @@
 import { type NextRequest } from "next/server";
 
+// TypeScript interfaces for the question extractor
+interface Response {
+  identifier: string | null;
+  text: string;
+  type: "radio" | "checkbox" | "dropdown" | "text";
+}
+
+interface Question {
+  number: string | null;
+  text: string; // exact question text without instructions
+  responses: Response[];
+  responseCount: number;
+}
+
+interface Section {
+  name: string;
+  questions: Question[];
+}
+
+interface ExtractedData {
+  sections: Section[];
+  totalQuestions: number;
+}
+
+// Question extraction function - filters out demographic questions but keeps exact text
+function extractQuestionsAndResponses(htmlContent: string): ExtractedData {
+  // Use JSDOM for server-side HTML parsing
+  const { JSDOM } = require("jsdom");
+  const dom = new JSDOM(htmlContent);
+  const document = dom.window.document;
+
+  // Find all question containers
+  const questionContainers: NodeListOf<Element> = document.querySelectorAll(
+    "div.col-md-10.col-md-offset-1.row.push-down-25"
+  );
+
+  const extractedData: ExtractedData = {
+    sections: [],
+    totalQuestions: 0,
+  };
+
+  for (const container of questionContainers) {
+    // Extract question text
+    const questionElement = container.querySelector(
+      'span[data-bind*="textDecode: QuestionText"]'
+    );
+    if (!questionElement) continue;
+
+    const fullQuestionText = questionElement.textContent?.trim() || "";
+
+    // Skip empty questions
+    if (!fullQuestionText || fullQuestionText.length < 10) continue;
+
+    // Filter out demographic questions
+    if (isDemographicQuestion(fullQuestionText)) continue;
+
+    // Extract question number
+    const questionNumElement = container.querySelector(
+      'span[data-bind*="text: QuestionDisplayIdentifier"]'
+    );
+    const questionNumber = questionNumElement?.textContent?.trim() || null;
+
+    // Clean question text - remove instructions but keep the exact question
+    const cleanedQuestionText = cleanQuestionText(fullQuestionText);
+
+    // Extract responses
+    const responses: Response[] = [];
+
+    // Radio button and checkbox responses
+    const labels = container.querySelectorAll("label");
+    for (const label of Array.from(labels)) {
+      const input = label.querySelector(
+        'input[type="radio"], input[type="checkbox"]'
+      ) as HTMLInputElement;
+      if (input) {
+        // Get the response identifier (A, B, C, etc.)
+        const identifierSpan = label.querySelector(
+          'span[data-bind*="text: ResponseDisplayIdentifier"]'
+        );
+        const identifier = identifierSpan?.textContent?.trim() || null;
+
+        // Get the response text (keep exact text)
+        const responseSpan = label.querySelector("span.response-Text");
+        if (responseSpan) {
+          const responseText = responseSpan.textContent?.trim() || "";
+          if (responseText) {
+            responses.push({
+              identifier,
+              text: responseText,
+              type: (input.type as "radio" | "checkbox") || "radio",
+            });
+          }
+        }
+      }
+    }
+
+    // Handle dropdown responses
+    const selectElement = container.querySelector(
+      "select"
+    ) as HTMLSelectElement;
+    if (selectElement) {
+      const options = selectElement.querySelectorAll("option");
+      for (const option of Array.from(options)) {
+        const optionText = option.textContent?.trim() || "";
+        if (optionText && optionText !== "--Select--") {
+          responses.push({
+            identifier: option.getAttribute("value") || "",
+            text: optionText,
+            type: "dropdown",
+          });
+        }
+      }
+    }
+
+    // Handle text input
+    const textInput = container.querySelector('input[type="text"]');
+    if (textInput && responses.length === 0) {
+      responses.push({
+        identifier: null,
+        text: "[Text Input Field]",
+        type: "text",
+      });
+    }
+
+    // Create question object if it has responses and isn't demographic
+    if (responses.length > 0) {
+      const question: Question = {
+        number: questionNumber,
+        text: cleanedQuestionText,
+        responses,
+        responseCount: responses.length,
+      };
+
+      // Categorize by section (only for non-demographic questions)
+      const sectionName = categorizeNonDemographicQuestion(cleanedQuestionText);
+
+      // Find or create section
+      let section = extractedData.sections.find((s) => s.name === sectionName);
+      if (!section) {
+        section = { name: sectionName, questions: [] };
+        extractedData.sections.push(section);
+      }
+
+      section.questions.push(question);
+      extractedData.totalQuestions++;
+    }
+  }
+
+  return extractedData;
+}
+
+// Check if question is demographic/eligibility related
+function isDemographicQuestion(questionText: string): boolean {
+  const text = questionText.toLowerCase();
+
+  const demographicKeywords = [
+    "veteran",
+    "military",
+    "armed forces",
+    "disability",
+    "spouse",
+    "federal employee",
+    "government employee",
+    "sf-50",
+    "dd-214",
+    "reinstatement",
+    "ctap",
+    "ictap",
+    "schedule a",
+    "land management",
+    "interchange agreement",
+    "opm",
+    "reasonable accommodation",
+    "grade you are willing to accept",
+    "lowest grade",
+    "drug screening",
+    "political appointee",
+    "schedule c",
+    "recruiter id",
+    "background investigation",
+  ];
+
+  return demographicKeywords.some((keyword) => text.includes(keyword));
+}
+
+// Clean question text - remove instructions but keep exact question
+function cleanQuestionText(fullText: string): string {
+  // Split by common instruction markers
+  const instructionMarkers = [
+    "To verify eligibility",
+    "To verify your eligibility",
+    "For more information",
+    "NOTE:",
+    "Note:",
+    "Please note:",
+    "You must submit",
+    "You can find out",
+    "Such documentation must be",
+  ];
+
+  let cleanText = fullText;
+
+  // Remove instruction sections
+  for (const marker of instructionMarkers) {
+    const markerIndex = cleanText.indexOf(marker);
+    if (markerIndex !== -1) {
+      cleanText = cleanText.substring(0, markerIndex).trim();
+    }
+  }
+
+  // Clean up HTML tags and excessive whitespace
+  cleanText = cleanText
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return cleanText;
+}
+
+// Categorize non-demographic questions
+function categorizeNonDemographicQuestion(questionText: string): string {
+  const text = questionText.toLowerCase();
+
+  if (
+    text.includes("budget") ||
+    text.includes("financial") ||
+    text.includes("funding")
+  ) {
+    return "Budget Analysis Experience";
+  }
+  if (
+    text.includes("communication") ||
+    text.includes("verbal") ||
+    text.includes("oral")
+  ) {
+    return "Communication Skills";
+  }
+  if (
+    text.includes("experience") &&
+    (text.includes("perform") || text.includes("task"))
+  ) {
+    return "Job-Related Experience";
+  }
+  if (
+    text.includes("training") ||
+    text.includes("education") ||
+    text.includes("knowledge")
+  ) {
+    return "Qualifications & Training";
+  }
+  if (
+    text.includes("verify") ||
+    text.includes("accurate") ||
+    text.includes("documentation")
+  ) {
+    return "Assessment Verification";
+  }
+
+  return "General Job Requirements";
+}
+
+function categorizeQuestion(questionText: string): string {
+  // This function is no longer used - replaced by categorizeNonDemographicQuestion
+  return "General";
+}
+
 export async function POST(req: NextRequest) {
   const data = await req.json();
   const { url } = data;
@@ -59,10 +325,27 @@ export async function POST(req: NextRequest) {
       const questionnaireContent =
         await scrapeQuestionnaireWithBrowserless(questionnaireLink);
 
+      // Extract questions and responses from the questionnaire content
+      let extractedQuestions: ExtractedData | null = null;
+      if (questionnaireContent) {
+        try {
+          extractedQuestions =
+            extractQuestionsAndResponses(questionnaireContent);
+          console.log(
+            `Extracted ${extractedQuestions.totalQuestions} questions from questionnaire`
+          );
+        } catch (extractionError) {
+          console.error(
+            "Error extracting questions from questionnaire:",
+            extractionError
+          );
+        }
+      }
+
       const response = {
         questionnaireLink: questionnaireLink,
         jobId: jobId ? jobId[1] : null,
-        content: questionnaireContent,
+        content: extractedQuestions,
       };
 
       return new Response(JSON.stringify(response), {
@@ -169,7 +452,7 @@ function cleanTextForAI(text: string): string {
         ""
       )
       // Clean up common patterns
-      .replace(/\*\s+/g, "• ") // Convert asterisks to bullet points
+      .replace(/\*\s+/g, "â€¢ ") // Convert asterisks to bullet points
       .replace(/^\s*[\d]+\.\s*/gm, "") // Remove numbered list markers at start of lines
       // Remove navigation breadcrumbs
       .replace(/Home\s*>\s*[^>]*>\s*/gi, "")

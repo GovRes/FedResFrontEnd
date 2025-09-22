@@ -30,6 +30,7 @@ ${userRequest}`;
     input: combinedInput,
     name: "topics",
     temperature: 0.3,
+    route: "/api/ai-topic-categorizer",
   });
 
   console.log("topicsCategorizer res:", res.topics);

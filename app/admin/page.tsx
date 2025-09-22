@@ -27,6 +27,11 @@ export default function AdminPage() {
       >
         Delete all QualificationApplication records
       </button>
+      <button
+        onClick={async () => await deleteAllModelRecords("Application", true)}
+      >
+        Delete all Application records
+      </button>
     </div>
   );
 }

@@ -120,8 +120,8 @@ export async function POST(req: NextRequest) {
     console.log("Starting OpenAI request...");
     const startTime = Date.now();
 
-    // Use the simplest possible approach - chat completions with basic JSON
-    console.log("Using simple chat completions for reliability...");
+    // Use the actual input from the request instead of hardcoded prompt
+    console.log("Using the provided prompt for keyword extraction...");
 
     const completion = await client.chat.completions.create(
       {
@@ -129,11 +129,11 @@ export async function POST(req: NextRequest) {
         messages: [
           {
             role: "user",
-            content: `Return job matches as JSON array. Input (first 1500 chars): ${data.input.substring(0, 1500)}`,
+            content: data.input, // Use the full input instead of hardcoded message
           },
         ],
         response_format: { type: "json_object" },
-        temperature: 0,
+        temperature: data.temperature || 0,
         max_tokens: 1000, // Limit response size
       },
       {

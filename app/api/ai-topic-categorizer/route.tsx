@@ -1,4 +1,4 @@
-// Clean route.tsx - Responses API only with timeout fixes
+// Updated route.tsx - Fixed to properly use prompts and return topics array
 import OpenAI from "openai";
 import { type NextRequest } from "next/server";
 import { responsesApiSchemas } from "@/lib/utils/responseSchemas";
@@ -82,7 +82,6 @@ export async function POST(req: NextRequest) {
 
   // Check for large inputs that might cause timeouts
   if (data.input.length > 50000) {
-    // Reduced from 100k to 50k
     console.warn(`Large input detected: ${data.input.length} characters`);
     return new Response(
       JSON.stringify({
@@ -108,20 +107,16 @@ export async function POST(req: NextRequest) {
   console.log(`Input preview: ${data.input.substring(0, 300)}...`);
   console.log(`Temperature: ${data.temperature ?? 0}`);
   console.log(`Use vision: ${data.useVision ?? false}`);
-  console.log(
-    `JSON Schema size: ${JSON.stringify(selectedJsonSchema).length} characters`
-  );
-  console.log(
-    `JSON Schema preview: ${JSON.stringify(selectedJsonSchema).substring(0, 500)}...`
-  );
   console.log(`===========================\n`);
 
   try {
     console.log("Starting OpenAI request...");
     const startTime = Date.now();
 
-    // Use the simplest possible approach - chat completions with basic JSON
-    console.log("Using simple chat completions for reliability...");
+    // Simplify the schema for better performance
+    const simplifiedSchema = simplifySchema(selectedJsonSchema);
+
+    console.log("Using structured outputs with simplified schema...");
 
     const completion = await client.chat.completions.create(
       {
@@ -129,34 +124,28 @@ export async function POST(req: NextRequest) {
         messages: [
           {
             role: "user",
-            content: `Return job matches as JSON array. Input (first 1500 chars): ${data.input.substring(0, 1500)}`,
+            content: data.input, // Use the full prompt as provided
           },
         ],
-        response_format: { type: "json_object" },
-        temperature: 0,
-        max_tokens: 1000, // Limit response size
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: schemaName,
+            schema: simplifiedSchema,
+            strict: false, // Allow some flexibility to prevent errors
+          },
+        },
+        temperature: data.temperature ?? 0,
+        max_tokens: 4000,
       },
       {
-        timeout: 10000, // Very short timeout
+        timeout: 25000, // Keep within the 30s function limit
       }
     );
 
-    // Just make the request without Promise.race initially
-    console.log("Making direct OpenAI request...");
-    const result = await completion;
-
     console.log(`OpenAI request completed in ${Date.now() - startTime}ms`);
 
-    console.log(`\n=== RESPONSE DEBUG ===`);
-    console.log(
-      `Response received: ${!!result.choices?.[0]?.message?.content}`
-    );
-    const content = result.choices?.[0]?.message?.content;
-    console.log(`Content length: ${content?.length || 0}`);
-    console.log(
-      `Raw content (first 300 chars): ${content?.substring(0, 300)}...`
-    );
-    console.log(`======================\n`);
+    const content = completion.choices?.[0]?.message?.content;
 
     if (content) {
       try {
@@ -166,7 +155,22 @@ export async function POST(req: NextRequest) {
           Object.keys(parsedContent)
         );
 
-        // Return the parsed object as JSON
+        // Ensure we return the correct structure for topics
+        if (schemaName === "topics" && parsedContent.topics) {
+          return new Response(
+            JSON.stringify({ topics: parsedContent.topics }),
+            {
+              status: 200,
+              headers: {
+                "Content-Type": "application/json",
+                "X-Debug-Time": `${Date.now() - requestStartTime}ms`,
+                "X-Debug-Stage": "success",
+              },
+            }
+          );
+        }
+
+        // For other schemas, return as-is
         return new Response(JSON.stringify(parsedContent), {
           status: 200,
           headers: {
@@ -177,20 +181,32 @@ export async function POST(req: NextRequest) {
         });
       } catch (parseError) {
         console.error("Failed to parse structured output:", parseError);
-        console.error(
-          "Raw output that failed to parse:",
-          result.choices[0].message.content
-        );
+        console.error("Raw output that failed to parse:", content);
 
         // Try to extract JSON from the raw content if it's malformed
         try {
-          // Sometimes the AI returns JSON wrapped in markdown or with extra text
           const jsonMatch = content.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
             const extractedJson = JSON.parse(jsonMatch[0]);
             console.log(
               "Successfully extracted and parsed JSON from malformed response"
             );
+
+            // Handle topics case for extracted JSON too
+            if (schemaName === "topics" && extractedJson.topics) {
+              return new Response(
+                JSON.stringify({ topics: extractedJson.topics }),
+                {
+                  status: 200,
+                  headers: {
+                    "Content-Type": "application/json",
+                    "X-Debug-Time": `${Date.now() - requestStartTime}ms`,
+                    "X-Debug-Stage": "extracted-success",
+                  },
+                }
+              );
+            }
+
             return new Response(JSON.stringify(extractedJson), {
               status: 200,
               headers: {
@@ -211,7 +227,7 @@ export async function POST(req: NextRequest) {
         return new Response(
           JSON.stringify({
             error: "Invalid JSON response from AI",
-            raw_output: content.substring(0, 500), // Limit length for debugging
+            raw_output: content.substring(0, 500),
           }),
           {
             status: 500,
@@ -225,7 +241,6 @@ export async function POST(req: NextRequest) {
       }
     } else {
       console.error("No content in the completion response");
-      console.error("Full response object:", completion);
       return new Response(
         JSON.stringify({ error: "No content in AI response" }),
         {
@@ -247,7 +262,7 @@ export async function POST(req: NextRequest) {
     console.error("==================\n");
 
     // Handle timeout specifically
-    if (error.message === "OpenAI request timeout") {
+    if (error.code === "ECONNABORTED" || error.message?.includes("timeout")) {
       return new Response(
         JSON.stringify({
           error: "Request timeout",
@@ -272,7 +287,14 @@ export async function POST(req: NextRequest) {
           message: error.message,
           code: error.code,
         }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: {
+            "Content-Type": "application/json",
+            "X-Debug-Time": `${Date.now() - requestStartTime}ms`,
+            "X-Debug-Stage": "invalid-request",
+          },
+        }
       );
     }
 
@@ -282,7 +304,14 @@ export async function POST(req: NextRequest) {
         message: error.message || "Unknown error",
         details: error.toString(),
       }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+          "X-Debug-Time": `${Date.now() - requestStartTime}ms`,
+          "X-Debug-Stage": "general-error",
+        },
+      }
     );
   }
 }

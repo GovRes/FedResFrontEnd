@@ -23,6 +23,7 @@ Please identify which past jobs are most relevant to this topic and explain the 
     const res = await sendMessages({
       input: combinedInput,
       name: "pastJobs",
+      route: "/api/ai-topic-past-job-matcher",
       temperature: 0.1, // Consistent results for matching logic
     });
 

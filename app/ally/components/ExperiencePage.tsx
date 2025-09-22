@@ -143,7 +143,12 @@ export default function ExperiencePage({
           }
         } catch (error) {
           console.error(`Failed to process topic ${i + 1}:`, error);
-          console.error(`Error details:`, error.message, error.stack);
+          console.error(
+            `Error details:`,
+            error instanceof Error
+              ? { message: error.message, stack: error.stack }
+              : String(error)
+          );
           // Push empty array to maintain array alignment
           topicResults.push([]);
 

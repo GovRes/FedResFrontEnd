@@ -3,14 +3,16 @@ export async function sendMessages({
   name,
   useVision = false,
   temperature = 0,
+  route = "/api/ai",
 }: {
   input: string;
   name: string;
+  route?: string;
   useVision?: boolean;
   temperature?: number;
 }) {
   try {
-    const res = await fetch("/api/ai", {
+    const res = await fetch(route, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ input, name, useVision, temperature }),

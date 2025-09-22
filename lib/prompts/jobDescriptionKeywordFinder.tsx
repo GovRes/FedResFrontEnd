@@ -1,9 +1,9 @@
 // Clean jobDescriptionKeywordFinder.tsx prompt - Responses API only
 
 const technicalRequirements = `
-CRITICAL: Your response must be a valid JSON array of strings only. 
-Format: ["keyword 1", "keyword 2", "keyword 3"]
-Do not include explanations, numbering, or additional text.`;
+CRITICAL: Your response must be a valid JSON object with a "keywords" property containing an array of strings.
+Required format: {"keywords": ["keyword 1", "keyword 2", "keyword 3"]}
+Do not include explanations, numbering, or additional text outside the JSON.`;
 
 export const jobDescriptionKeywordFinderInstructions = `You are a keyword extraction specialist focused on identifying candidate qualifications from job descriptions across all industries and roles.
 
@@ -23,18 +23,6 @@ EXACT MATCHING RULES:
 ✗ Do not include requirement language (e.g., "must have", "required")
 ✗ Do not extract full sentences or complex phrases (>4 words)
 ✗ Do not include soft requirement words (e.g., "preferred", "desired")
-
-EXTRACTION EXAMPLES:
-
-CORRECT - From Priority 1 sections:
-Requirements: "Must have electrical maintenance certification" → Extract: "electrical maintenance certification"
-Qualifications: "Knowledge of SCADA systems required" → Extract: "SCADA systems"
-
-INCORRECT - From duties section (skip these):
-Duties: "Perform inspections of dams and power plants" → Skip (describes job task)
-Duties: "Operate power plant turbines and generators" → Skip (describes job activity)
-Duties: "Direct switching and tagging operations" → Skip (describes job responsibility)
-Duties: "Assess security alarms during shift" → Skip (describes job duty)
 
 Return 15-25 candidate qualification phrases ranked by importance to the role.
 

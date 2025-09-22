@@ -19,6 +19,7 @@ ${jobDescription}`;
     input: combinedInput,
     name: "keywords",
     temperature: 0.1, // Low temperature for consistent keyword extraction
+    route: "/api/ai-job-description-keyword-finder",
   });
 
   const result = res.keywords as Array<string>;
