@@ -79,12 +79,13 @@ export const createOrFindSimilarTopics = async ({
         query ListTopics {
           listTopics {
             items {
-              id
-              title
-              keywords
-              description
-              jobId
               createdAt
+              description
+              id
+              importance
+              jobId
+              keywords
+              title
               updatedAt
             }
           }
@@ -130,22 +131,24 @@ export const createOrFindSimilarTopics = async ({
           query: `
             mutation CreateTopic($input: CreateTopicInput!) {
               createTopic(input: $input) {
-                id
-                title
-                keywords
-                description
-                jobId
                 createdAt
+                description
+                id
+                importance
+                jobId
+                keywords
+                title
                 updatedAt
               }
             }
           `,
           variables: {
             input: {
-              title: topic.title,
-              keywords: topic.keywords,
               description: topic.description,
+              importance: topic.importance,
               jobId: jobId,
+              keywords: topic.keywords,
+              title: topic.title,
             },
           },
           authMode: "userPool",
@@ -249,12 +252,13 @@ export const fetchTopicsByJobId = async (
         query GetTopicsByJobId($jobId: ID!) {
           listTopics(filter: { jobId: { eq: $jobId } }) {
             items {
-              id
-              title
-              keywords
-              description
-              jobId
               createdAt
+              description
+              id
+              importance
+              jobId
+              keywords
+              title
               updatedAt
             }
           }

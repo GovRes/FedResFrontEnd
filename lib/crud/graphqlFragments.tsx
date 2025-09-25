@@ -66,11 +66,12 @@ export const FRAGMENTS = {
   // Topic fields
   TopicFields: `
     fragment TopicFields on Topic {
-      id
-      title
-      keywords
       description
+      id
+      importance
       jobId
+      keywords
+      title
     }
   `,
 
