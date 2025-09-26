@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { seedRoles, type SeedResult } from "@/app/utils/seedRoles";
+import { seedRoles, type SeedResult } from "@/lib/utils/seedRoles";
 
 interface SeedRolesButtonProps {
   onSeedComplete?: (result: SeedResult) => void;

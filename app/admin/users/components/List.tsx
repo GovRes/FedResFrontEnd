@@ -1,3 +1,4 @@
+"use client";
 import { useUserOperations } from "@/lib/hooks/useUserOperations";
 import { useEffect } from "react";
 import UserItem from "./UserItem";

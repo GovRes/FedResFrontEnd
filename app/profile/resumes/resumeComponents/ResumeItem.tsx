@@ -1,9 +1,9 @@
 "use client";
 
-import { ResumeType } from "@/app/utils/responseSchemas";
+import { ResumeType } from "@/lib/utils/responseSchemas";
 import styles from "./resumeStyles.module.css";
 import { GrDownload, GrTrash } from "react-icons/gr";
-import { getFileUrl, deleteFile } from "@/app/utils/client-utils";
+import { getFileUrl, deleteFile } from "@/lib/utils/client-utils";
 import { useEffect, useState } from "react";
 
 export default function ResumeItem({

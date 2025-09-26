@@ -1,9 +1,9 @@
 "use client";
-import { fetchModelRecord } from "@/app/crud/genericFetch";
+import { fetchModelRecord } from "@/lib/crud/genericFetch";
 import { GrEdit } from "react-icons/gr";
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
-import { PastJobType } from "@/app/utils/responseSchemas";
+import { PastJobType } from "@/lib/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
 import PastJobItem from "@/app/ally/return-resume/components/PastJobItem";
 export default function AwardPage({
@@ -18,8 +18,8 @@ export default function AwardPage({
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      const volunteerData = await fetchModelRecord("PastJob", id);
-      setVolunteer(volunteerData);
+      const { data } = await fetchModelRecord("PastJob", id);
+      setVolunteer(data);
       setLoading(false);
     }
     fetchData();
@@ -32,7 +32,9 @@ export default function AwardPage({
       <div>
         <PastJobItem pastJob={volunteer} />
         <Link href={`/profile/volunteers/${id}/edit`}>
-          <button>Edit Item</button>
+          <button>
+            <GrEdit />
+          </button>
         </Link>
       </div>
     );

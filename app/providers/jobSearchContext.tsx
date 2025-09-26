@@ -7,7 +7,7 @@ import {
   useContext,
   useState,
 } from "react";
-import { JobSearchObject } from "../utils/responseSchemas";
+import { JobSearchObject } from "../../lib/utils/responseSchemas";
 
 export interface JobSearchContextType {
   searchResults: any[];

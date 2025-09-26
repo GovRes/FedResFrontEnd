@@ -37,11 +37,11 @@ export function useRoles() {
 
           // Filter out super_admin role if user doesn't have super_admin role
           // Only filter after role check is complete
-          if (!roleCheckLoading) {
-            if (!hasRole) {
-              roleData = roleData.filter((role) => role.name !== "super_admin");
-            }
-          }
+          // if (!roleCheckLoading) {
+          //   if (!hasRole) {
+          //     roleData = roleData.filter((role) => role.name !== "super_admin");
+          //   }
+          // }
 
           setRoles(roleData);
         }

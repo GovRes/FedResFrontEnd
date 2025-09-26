@@ -8,15 +8,15 @@ import {
   ApplicationProvider,
   useApplication,
 } from "@/app/providers/applicationContext";
-import { getApplicationWithJob } from "@/app/crud/application";
-import { StepsType } from "@/app/utils/responseSchemas";
+import { getApplicationWithJob } from "@/lib/crud/application";
+import { StepsType } from "@/lib/utils/responseSchemas";
 import { defaultSteps } from "@/app/providers/applicationContext";
 import { Loader } from "../components/loader/Loader";
 
 // Replace the ApplicationLoader component in layout.tsx with this:
 
 function ApplicationLoader({ children }: { children: ReactNode }) {
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
   const {
@@ -40,11 +40,11 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
   // Handle applicationId changes and data loading
   useEffect(() => {
     async function loadApplicationData() {
-      setIsLoading(true);
+      setLoading(true);
 
       if (applicationId) {
         try {
-          const applicationRes = await getApplicationWithJob({
+          const { data: applicationRes } = await getApplicationWithJob({
             id: applicationId,
           });
 
@@ -79,7 +79,7 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
         return;
       }
 
-      setIsLoading(false);
+      setLoading(false);
     }
 
     loadApplicationData();
@@ -87,12 +87,12 @@ function ApplicationLoader({ children }: { children: ReactNode }) {
     applicationId,
     pathname,
     router,
-    setIsLoading,
+    setLoading,
     setSteps,
     setInitialRedirectComplete,
   ]);
 
-  if (isLoading && pathname === "/ally") {
+  if (loading && pathname === "/ally") {
     return <Loader text="Loading your application progress..." />;
   }
 

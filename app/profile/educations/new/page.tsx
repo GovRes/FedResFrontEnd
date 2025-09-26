@@ -1,10 +1,10 @@
 "use client";
 import { useState } from "react";
 import EducationForm from "../components/EducationForm";
-import { EducationType, educationZodSchema } from "@/app/utils/responseSchemas";
+import { EducationType, educationZodSchema } from "@/lib/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
 import { useRouter } from "next/navigation";
-import { createModelRecord } from "@/app/crud/genericCreate";
+import { createModelRecord } from "@/lib/crud/genericCreate";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { z } from "zod";
 
@@ -26,8 +26,11 @@ export default function NewEducationPage() {
         userId: user.userId,
       };
 
-      const res = await createModelRecord("Education", completeEducationData);
-      router.push(`/profile/educations/${res.id}`);
+      const { data } = await createModelRecord(
+        "Education",
+        completeEducationData
+      );
+      router.push(`/profile/educations/${data.id}`);
     } catch (error) {
       console.error("Error creating education:", error);
       setLoading(false);

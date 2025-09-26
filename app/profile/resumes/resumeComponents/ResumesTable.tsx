@@ -1,5 +1,5 @@
 import styles from "./resumeStyles.module.css";
-import { ResumeType } from "@/app/utils/responseSchemas";
+import { ResumeType } from "@/lib/utils/responseSchemas";
 import ResumeItem from "./ResumeItem";
 
 export default function ResumesTable({

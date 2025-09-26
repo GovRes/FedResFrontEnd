@@ -3,8 +3,8 @@ import {
   AwardType,
   EducationType,
   PastJobType,
-} from "@/app/utils/responseSchemas";
-import { useContext, useEffect, useState } from "react";
+} from "@/lib/utils/responseSchemas";
+import { useEffect, useState } from "react";
 import PastJobItem from "./components/PastJobItem";
 import EducationExperienceItem from "./components/EducationItem";
 import { fetchUserAttributes } from "aws-amplify/auth";
@@ -12,9 +12,8 @@ import styles from "./resume.module.css";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { Loader } from "@/app/components/loader/Loader";
 import AwardItem from "./components/AwardItem";
-import { getApplicationAssociations } from "@/app/crud/application";
+import { getApplicationAssociations } from "@/lib/crud/application";
 import { useApplication } from "@/app/providers/applicationContext";
-import { set } from "zod";
 
 export default function ReturnResume() {
   interface UserAttributes {
@@ -53,7 +52,11 @@ export default function ReturnResume() {
     async function loadApplicationAssociations() {
       setLoading(true);
       try {
-        const [awardRes, educationRes, pastJobRes] = await Promise.all([
+        const [
+          { data: awardRes },
+          { data: educationRes },
+          { data: pastJobRes },
+        ] = await Promise.all([
           getApplicationAssociations({
             applicationId,
             associationType: "Award",

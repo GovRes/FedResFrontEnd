@@ -1,10 +1,6 @@
-"use client";
-
-import { UserType } from "@/app/utils/userAttributeUtils";
-import { GrStarOutline, GrTrash } from "react-icons/gr";
 import Link from "next/link";
-import styles from "./userTableStyles.module.css"; // Adjust the path as needed
-import { JobType } from "@/app/utils/responseSchemas";
+import { GrTrash } from "react-icons/gr";
+import { JobType } from "@/lib/utils/responseSchemas";
 
 export default function FederalJobItem({
   job,

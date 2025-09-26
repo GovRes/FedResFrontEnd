@@ -1,5 +1,5 @@
 // src/lib/hooks/useCurrentUser.ts
-
+"use client";
 import { useState, useEffect } from "react";
 import { userManagementService } from "@/lib/services/UserManagementService";
 import type { UserProfile, UserUpdateData } from "@/lib/types/user";
@@ -12,9 +12,8 @@ export function useCurrentUser() {
   const updateProfile = async (updates: UserUpdateData): Promise<boolean> => {
     try {
       setError(null);
-      const success = await userManagementService.updateCurrentUserProfile(
-        updates
-      );
+      const success =
+        await userManagementService.updateCurrentUserProfile(updates);
 
       if (success) {
         // Refresh profile after successful update

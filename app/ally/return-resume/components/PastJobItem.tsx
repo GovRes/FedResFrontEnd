@@ -1,4 +1,4 @@
-import { QualificationType, PastJobType } from "@/app/utils/responseSchemas";
+import { QualificationType, PastJobType } from "@/lib/utils/responseSchemas";
 import QualificationItem from "./QualificationItem";
 import styles from "../resume.module.css";
 
@@ -21,6 +21,7 @@ export default function PastJobItem({ pastJob }: { pastJob: PastJobType }) {
       year: "numeric",
     })}`;
   }
+  console.log(pastJob);
   return (
     <div className={styles.jobItem}>
       <div className={styles.jobItemBasicInfo}>

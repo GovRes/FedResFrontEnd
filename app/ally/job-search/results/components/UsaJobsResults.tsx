@@ -1,18 +1,17 @@
 "use client";
-import React, { useContext, useState } from "react";
+import React, { useState } from "react";
 import UsaJobsResultsItem from "./UsaJobsResultsItem";
 import styles from "../../../ally.module.css";
 import Modal from "@/app/components/modal/Modal";
-import { formatJobDescription } from "@/app/utils/usaJobsSearch";
-import indefiniteArticle from "@/app/utils/indefiniteArticles";
-import { createAndSaveApplication } from "@/app/crud/application";
+import { formatJobDescription } from "@/lib/utils/usaJobsSearch";
+import indefiniteArticle from "@/lib/utils/indefiniteArticles";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { useApplication } from "@/app/providers/applicationContext";
-import { navigateToNextIncompleteStep } from "@/app/utils/nextStepNavigation";
-import { createOrGetJob } from "@/app/crud/job";
 import { useRouter } from "next/navigation";
-import processUSAJob from "@/app/utils/processUSAJob";
-import createApplication from "@/app/utils/createApplication";
+import processUSAJob from "@/lib/utils/processUSAJob";
+import QuestionnaireNotFound from "./QuestionnaireNotFound";
+import createApplicationAndNavigate from "@/app/ally/components/createApplicationAndNav";
+import { Loader } from "@/app/components/loader/Loader";
 export interface MatchedObjectDescriptor {
   PositionTitle: string;
   DepartmentName: string;
@@ -46,15 +45,17 @@ export default function UsaJobsResults({
 }: {
   searchResults: Result[];
 }) {
-  const { steps, setJob, applicationId, setApplicationId, completeStep } =
-    useApplication();
   const { user } = useAuthenticator();
+  const { steps, setApplicationId, completeStep } = useApplication();
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [currentJob, setCurrentJob] = useState<Result | null>();
   const [loading, setLoading] = useState<boolean>(false);
-  const [jobResult, setJobResult] = useState<any>(null);
+  const [loadingText, setLoadingText] = useState<string>(
+    "Processing job, please wait..."
+  );
   const [questionnaireFound, setQuestionnaireFound] = useState<boolean>(false);
+  const [jobResult, setJobResult] = useState<any>(null);
   function selectJob({ job }: { job: Result }) {
     setModalOpen(true);
     setCurrentJob(job);
@@ -68,26 +69,27 @@ export default function UsaJobsResults({
         let formattedJobDescription = formatJobDescription({ job: currentJob });
 
         // Create or get the job
-        const jobResult = await processUSAJob(formattedJobDescription);
+        const jobResult = await processUSAJob(
+          formattedJobDescription,
+          setLoadingText
+        );
         console.log("Job processing result:", jobResult);
-        if (jobResult?.jobId) {
+        if (jobResult) {
           setJobResult(jobResult);
-          setQuestionnaireFound(jobResult?.questionnaireFound || false);
-          setJob(formattedJobDescription);
-          // Navigate to next step
-          createApplication({
-            completeStep,
+        }
+        if (!jobResult?.questionnaireFound) {
+          setQuestionnaireFound(false);
+        }
+        if (jobResult?.questionnaireFound && jobResult?.jobId) {
+          console.log("Creating application with questionnaire");
+          await createApplicationAndNavigate({
             jobId: jobResult.jobId,
             userId: user.userId,
             setLoading,
-            setApplicationId,
-          });
-          navigateToNextIncompleteStep({
             steps,
-            router,
-            currentStepId: "usa-jobs",
-            applicationId,
+            setApplicationId,
             completeStep,
+            router,
           });
         }
       } catch (error) {
@@ -99,6 +101,21 @@ export default function UsaJobsResults({
         };
       }
     }
+  }
+
+  if (loading) {
+    return <Loader text={loadingText} />;
+  }
+
+  if (!loading && jobResult && !questionnaireFound) {
+    return (
+      <QuestionnaireNotFound
+        jobId={jobResult.jobId}
+        returnToSearch={returnToSearch}
+        userId={user.userId}
+        setLoading={setLoading}
+      />
+    );
   }
 
   return (

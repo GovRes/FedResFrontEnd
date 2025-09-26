@@ -1,35 +1,39 @@
+"use client";
 import {
   GenericFieldWithLabel,
   SubmitButton,
 } from "@/app/components/forms/Inputs";
-import { set, z } from "zod";
-import { useState, useEffect } from "react";
+import { z } from "zod";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import processUSAJob from "@/app/utils/processUSAJob";
-import { formatJobDescriptionFromTextFetch } from "@/app/utils/usaJobsFormatting";
-import { createAndSaveApplication } from "@/app/crud/application";
+import processUSAJob from "@/lib/utils/processUSAJob";
 import { useApplication } from "@/app/providers/applicationContext";
-import { navigateToNextIncompleteStep } from "@/app/utils/nextStepNavigation";
 import { useAuthenticator } from "@aws-amplify/ui-react";
-import { useLoading } from "@/app/providers/loadingContext";
-import { useRouter } from "next/navigation";
 import JobNotFound from "./JobNotFound";
 import QuestionnaireNotFound from "./QuestionnaireNotFound";
-import createApplication from "@/app/utils/createApplication";
+import { usaJobObjectExtractor } from "@/lib/aiProcessing/usaJobObjectExtractor";
+import { JobType } from "@/lib/utils/responseSchemas";
+import { Loader } from "@/app/components/loader/Loader";
+import createApplicationAndNavigate from "../../components/createApplicationAndNav";
+import { getJobByUsaJobsId } from "@/lib/crud/job";
+import { useRouter } from "next/navigation";
+
 const stringFieldSchema = z.object({
   value: z.string(),
 });
 
 export default function PastJobUrl() {
-  const { applicationId, job, steps, setJob, setApplicationId, completeStep } =
-    useApplication();
-  const { setIsLoading } = useLoading();
+  const { completeStep, steps, setApplicationId, setJob } = useApplication();
+  const router = useRouter();
   const { user } = useAuthenticator();
   const [loading, setLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState(
+    "Processing job URL, please wait..."
+  );
   const [questionnaireFound, setQuestionnaireFound] = useState(false);
   const [searchSent, setSearchSent] = useState(false);
   const [jobResult, setJobResult] = useState<any>(null);
-  const router = useRouter();
+  const [isCreatingApplication, setIsCreatingApplication] = useState(false);
 
   const onSubmit = async (data: { value: string }): Promise<void> => {
     setSearchSent(true);
@@ -41,47 +45,56 @@ export default function PastJobUrl() {
       const jobId = matchResult ? matchResult[1] : null;
 
       if (jobId) {
-        console.log("Job ID extracted from URL:", jobId);
-        const jobRes = await fetch(`/api/jobs/${jobId}`).then((res) =>
-          res.json()
-        );
-        console.log("Job data fetched:", jobRes);
-
-        const formattedJobDescription = formatJobDescriptionFromTextFetch({
-          job: jobRes.data[0],
-        });
-        console.log("Formatted job description:", formattedJobDescription);
-
-        const jobResult = await processUSAJob(formattedJobDescription);
-        console.log("Job processing result:", jobResult);
-
-        setJobResult(jobResult);
-        setQuestionnaireFound(jobResult?.questionnaireFound || false);
-        setJob(formattedJobDescription);
-
-        // If questionnaire found, automatically create application and navigate
-        if (jobResult?.questionnaireFound && jobResult?.jobId) {
-          console.log("Creating application with questionnaire");
-          const newApplicationId = await createApplication({
-            completeStep,
-            jobId: jobResult.jobId,
+        setLoadingText("Fetching job...");
+        const { data, statusCode } = await getJobByUsaJobsId(jobId);
+        if (statusCode === 200 && data) {
+          if (data.questionnaire) {
+            setQuestionnaireFound(true);
+            setIsCreatingApplication(true);
+          }
+          createApplicationAndNavigate({
+            jobId: data.id,
             userId: user.userId,
-            setLoading: setLoading,
+            setLoading,
+            steps,
             setApplicationId,
+            completeStep,
+            router,
           });
+        } else {
+          const jobRes = await fetch(`/api/jobs/${jobId}`).then((res) =>
+            res.json()
+          );
+          console.log("Job data fetched:", jobRes);
+          setLoadingText("Reading job posting...");
+          const formattedJobDescription = (await usaJobObjectExtractor({
+            jobObject: jobRes.data[0],
+          })) as JobType;
+          setLoadingText("Processing job data...");
+          const jobResult = await processUSAJob(
+            formattedJobDescription,
+            setLoadingText
+          );
+          console.log("Job processing result:", jobResult);
 
-          if (newApplicationId) {
-            console.log("Navigating to next step");
-            // Use a small delay to ensure context updates have propagated
-            setTimeout(() => {
-              navigateToNextIncompleteStep({
-                steps,
-                router,
-                currentStepId: "usa-jobs",
-                applicationId: newApplicationId, // Use the new ID directly
-                completeStep,
-              });
-            }, 100);
+          setJobResult(jobResult);
+          setQuestionnaireFound(jobResult?.questionnaireFound || false);
+          setJob(formattedJobDescription);
+
+          // If questionnaire found, automatically create application and navigate
+          if (jobResult?.questionnaireFound && jobResult?.jobId) {
+            console.log("Creating application with questionnaire");
+            setLoadingText("Starting your application....");
+            setIsCreatingApplication(true);
+            createApplicationAndNavigate({
+              jobId: jobResult.jobId,
+              userId: user.userId,
+              setLoading,
+              steps,
+              setApplicationId,
+              completeStep,
+              router,
+            });
           }
         }
       }
@@ -111,34 +124,12 @@ export default function PastJobUrl() {
     setSearchSent(false);
     setQuestionnaireFound(false);
     setJobResult(null);
+    setIsCreatingApplication(false);
   };
 
-  const proceedWithoutQuestionnaire = async () => {
-    if (jobResult?.jobId) {
-      const newApplicationId = await createApplication({
-        completeStep,
-        jobId: jobResult.jobId,
-        userId: user.userId,
-        setLoading: setLoading,
-        setApplicationId,
-      });
-      if (newApplicationId) {
-        console.log("Navigating to next step");
-        setTimeout(() => {
-          navigateToNextIncompleteStep({
-            steps,
-            router,
-            currentStepId: "usa-jobs",
-            applicationId: newApplicationId, // Use the new ID directly
-            completeStep,
-          });
-        }, 100);
-      }
-    }
-  };
-
-  if (loading) {
-    return <div>Loading...</div>;
+  // Show loader if loading OR if creating application
+  if (loading || isCreatingApplication) {
+    return <Loader text={loadingText} />;
   }
 
   if (!searchSent) {
@@ -167,35 +158,7 @@ export default function PastJobUrl() {
     );
   }
 
-  if (searchSent && !questionnaireFound) {
-    return (
-      <div>
-        <div>
-          We could not find a questionnaire for this job. Please try another job
-          URL. We will eventually have an interface that will allow you to paste
-          the questionnaire. In the meantime, you can either move forward based
-          only on the job information we were able to retrieve, or return to
-          search.
-        </div>
-        <button onClick={resetSearch}>Back to paste a different job URL</button>
-        <button onClick={proceedWithoutQuestionnaire}>
-          Go forward with less information
-        </button>
-      </div>
-    );
-  }
-
-  if (searchSent && !jobResult && !loading) {
-    return (
-      <JobNotFound
-        setJobResult={setJobResult}
-        setQuestionnaireFound={setQuestionnaireFound}
-        setSearchSent={setSearchSent}
-      />
-    );
-  }
-
-  if (searchSent && jobResult && !loading && !questionnaireFound) {
+  if (searchSent && !questionnaireFound && jobResult) {
     return (
       <QuestionnaireNotFound
         jobResult={jobResult}
@@ -206,14 +169,10 @@ export default function PastJobUrl() {
         setSearchSent={setSearchSent}
       />
     );
-  } else if (searchSent && jobResult && questionnaireFound && applicationId) {
-    return (
-      <div>
-        <div>
-          We found a questionnaire for this job! You can now proceed to fill out
-          the application.
-        </div>
-      </div>
-    );
   }
+
+  if (searchSent && !jobResult && !loading) {
+    return <JobNotFound resetSearch={resetSearch} />;
+  }
+  return null;
 }

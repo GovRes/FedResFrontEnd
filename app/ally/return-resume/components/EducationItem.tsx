@@ -1,4 +1,4 @@
-import { EducationType } from "@/app/utils/responseSchemas";
+import { EducationType } from "@/lib/utils/responseSchemas";
 import styles from "../resume.module.css";
 
 export default function EducationItem({

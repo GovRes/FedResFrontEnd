@@ -1,10 +1,10 @@
 "use client";
 import { useState } from "react";
 import AwardForm from "../components/AwardForm";
-import { AwardType, awardZodSchema } from "@/app/utils/responseSchemas";
+import { AwardType, awardZodSchema } from "@/lib/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
 import { useRouter } from "next/navigation";
-import { createModelRecord } from "@/app/crud/genericCreate";
+import { createModelRecord } from "@/lib/crud/genericCreate";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { z } from "zod";
 
@@ -26,8 +26,8 @@ export default function NewAwardPage() {
         userId: user.userId,
       };
 
-      const res = await createModelRecord("Award", completeAwardData);
-      router.push(`/profile/awards/${res.id}`);
+      const { data } = await createModelRecord("Award", completeAwardData);
+      router.push(`/profile/awards/${data.id}`);
     } catch (error) {
       console.error("Error creating award:", error);
       setLoading(false);

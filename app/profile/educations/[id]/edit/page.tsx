@@ -1,9 +1,9 @@
 "use client";
 import { Loader } from "@/app/components/loader/Loader";
-import { fetchModelRecord } from "@/app/crud/genericFetch";
+import { fetchModelRecord } from "@/lib/crud/genericFetch";
 import EducationForm from "../../components/EducationForm";
-import { updateModelRecord } from "@/app/crud/genericUpdate";
-import { EducationType, educationZodSchema } from "@/app/utils/responseSchemas";
+import { updateModelRecord } from "@/lib/crud/genericUpdate";
+import { EducationType, educationZodSchema } from "@/lib/utils/responseSchemas";
 import { useEffect, useState } from "react";
 import { use } from "react";
 import { useRouter } from "next/navigation";
@@ -47,8 +47,8 @@ export default function EditEducationPage({
     async function fetchData() {
       setLoading(true);
       try {
-        const fetchedEducationData = await fetchModelRecord("Education", id);
-        setEducationData(fetchedEducationData);
+        const { data } = await fetchModelRecord("Education", id);
+        setEducationData(data);
       } catch (error) {
         console.error("Error fetching education:", error);
       }

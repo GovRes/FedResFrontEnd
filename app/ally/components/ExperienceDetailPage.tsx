@@ -1,14 +1,18 @@
 // FixedPastJobQualificationsPage.tsx
-import React, { use, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { EditableParagraphProvider } from "@/app/providers/editableParagraphContext";
 import ChatLayout from "@/app/components/chat/ChatLayout";
 import { Loader } from "@/app/components/loader/Loader";
 import { useApplication } from "@/app/providers/applicationContext";
-import { getApplicationAssociations } from "@/app/crud/application";
-import { updatePastJobWithQualifications } from "@/app/crud/pastJob";
-import { PastJobType, QualificationType } from "@/app/utils/responseSchemas";
-import { BaseItem } from "../../providers/chatContext";
+import { getApplicationAssociations } from "@/lib/crud/application";
+import { fetchPastJobWithQualifications } from "@/lib/crud/pastJob";
+import { updateModelRecord } from "@/lib/crud/genericUpdate";
+import {
+  ApplicationType,
+  PastJobType,
+  QualificationType,
+} from "@/lib/utils/responseSchemas";
 import { usePastJobDetailsStep } from "@/app/providers/useApplicationStep";
 
 export default function ExperienceDetailPage({
@@ -37,17 +41,14 @@ export default function ExperienceDetailPage({
     }
   }, []);
 
-  // Get job ID from URL
-  const getJobIdFromUrl = () => {
-    const path = window.location.pathname;
-    const match = path.match(/\/past-job-details\/([^\/]+)$/);
-    return match && match[1];
-  };
-
   // Calculate if all qualifications are confirmed
   const allQualificationsConfirmed =
-    pastJob?.qualifications?.every((q) => q.userConfirmed) || false;
-
+    (pastJob?.qualifications.length > 0 &&
+      pastJob?.qualifications?.every(
+        (q: QualificationType) => q.userConfirmed
+      )) ||
+    false;
+  console.log("all quals confirmed", allQualificationsConfirmed);
   // Only use the completion hook when not specifically in edit mode
   // This prevents the step from being marked as incomplete when editing
   const { isStepComplete } = usePastJobDetailsStep(
@@ -67,25 +68,33 @@ export default function ExperienceDetailPage({
 
       try {
         // 1. Get all past jobs for this application
-        const pastJobs = (await getApplicationAssociations({
+        const { data: pastJobs } = await getApplicationAssociations({
           applicationId: applicationId,
           associationType: "PastJob",
-        })) as PastJobType[];
+        });
+        console.log("Fetched past jobs data:", pastJobs);
         // 2. Find the specific job by ID
-        const job = pastJobs.find((j) => j.id === id);
-        if (job) {
+        console.log("Looking for job with ID:", id);
+        const pastJob = pastJobs?.find((j) => j.id === id);
+
+        if (pastJob) {
+          console.log("Found job:", pastJob);
           // 3. Ensure qualifications is properly formatted
-          const formattedJob: PastJobType = {
-            ...job,
-            qualifications: Array.isArray(job.qualifications)
-              ? job.qualifications.map((qual) => ({
-                  ...qual,
-                  userConfirmed: qual.userConfirmed || false,
-                }))
+          const formattedPastJob: PastJobType = {
+            ...pastJob,
+            qualifications: Array.isArray(pastJob.qualifications)
+              ? pastJob.qualifications
+                  .filter((qual: QualificationType) =>
+                    qual.applicationIds?.includes(applicationId)
+                  )
+                  .map((qual: QualificationType) => ({
+                    ...qual,
+                    userConfirmed: qual.userConfirmed || false,
+                  }))
               : [],
           };
-
-          setPastJob(formattedJob);
+          console.log("Formatted past job:", formattedPastJob);
+          setPastJob(formattedPastJob);
           setLoading(false);
         } else {
           // Job not found - redirect to find the next job
@@ -103,38 +112,110 @@ export default function ExperienceDetailPage({
     }
   }, [applicationId, router]);
 
-  // Save a qualification
-  const saveQualification = async (qualification: QualificationType) => {
+  // NEW: Create a specialized save function for nested items that handles the parent-child relationship
+  const saveNestedQualification = async (qualification: QualificationType) => {
+    console.log("=== SAVING NESTED QUALIFICATION ===");
+    console.log("Input qualification:", qualification);
+    console.log(
+      "Qualification being saved:",
+      JSON.stringify(qualification, null, 2)
+    );
+
     try {
       if (!pastJob) {
+        console.error("No past job loaded");
         return Promise.reject(new Error("No past job loaded"));
       }
-      if (pastJob && pastJob.qualifications) {
-        // Ensure the qualification is properly formatted}
 
-        // 1. Update the qualification in the pastJob
+      // Use the generic update function to update just the qualification
+      // Extract topicId properly - it's required and can't be empty
+      const topicId = qualification.topic?.id || qualification.topicId;
+
+      if (!topicId) {
+        console.error(
+          "Missing topicId - this is required for qualification update"
+        );
+        return Promise.reject(new Error("Missing required topicId"));
+      }
+
+      const qualificationUpdateData = {
+        title: qualification.title || "",
+        conversationThreadId: qualification.conversationThreadId || null,
+        description: qualification.description || "",
+        paragraph: qualification.paragraph || "",
+        question: qualification.question || "",
+        userConfirmed: qualification.userConfirmed || false,
+        topicId: topicId,
+        userId: qualification.userId || pastJob.userId,
+      };
+
+      console.log("Using generic update with data:", qualificationUpdateData);
+      console.log("Extracted topicId:", topicId);
+
+      let updateResult;
+      try {
+        updateResult = await updateModelRecord(
+          "Qualification",
+          qualification.id,
+          qualificationUpdateData
+        );
+      } catch (detailedError) {
+        console.error("Detailed error from updateModelRecord:", detailedError);
+        if (
+          detailedError &&
+          typeof detailedError === "object" &&
+          "errors" in detailedError
+        ) {
+          console.error("GraphQL Errors:", detailedError.errors);
+        }
+        throw detailedError;
+      }
+
+      console.log("Generic update result:", updateResult);
+
+      if (updateResult.success) {
+        console.log("✅ Generic update successful");
+
+        // Update local state
         const updatedJob = {
           ...pastJob,
-          qualifications: pastJob.qualifications.map((q) =>
-            q.id === qualification.id ? qualification : q
-          ),
+          qualifications:
+            pastJob.qualifications?.map((q: QualificationType) =>
+              q.id === qualification.id ? qualification : q
+            ) || [],
         };
-        if (updatedJob && updatedJob.id) {
-          // 2. Save to backend API
-          await updatePastJobWithQualifications(
-            updatedJob.id,
-            updatedJob,
-            updatedJob.qualifications
-          );
+        setPastJob(updatedJob);
 
-          // 3. Update local state
-          setPastJob(updatedJob);
-
-          return Promise.resolve();
+        // Verify the save worked by fetching fresh data
+        console.log("Fetching fresh data to verify save...");
+        const verificationResult = await fetchPastJobWithQualifications(
+          pastJob.id
+        );
+        if (verificationResult.success && verificationResult.data) {
+          const freshQualification =
+            verificationResult.data.qualifications?.find(
+              (q: any) => q.id === qualification.id
+            );
+          if (freshQualification?.paragraph) {
+            console.log(
+              "✅ VERIFICATION: Paragraph persisted correctly:",
+              freshQualification.paragraph.substring(0, 100) + "..."
+            );
+          } else {
+            console.log("❌ VERIFICATION: Paragraph was NOT persisted");
+            console.log("Fresh qualification object:", freshQualification);
+          }
         }
+
+        return Promise.resolve();
+      } else {
+        console.log("❌ Generic update failed:", updateResult.error);
+        return Promise.reject(
+          new Error(updateResult.error || "Failed to update qualification")
+        );
       }
     } catch (error) {
-      console.error("Error saving qualification:", error);
+      console.error("Error saving nested qualification:", error);
       return Promise.reject(error);
     }
   };
@@ -144,16 +225,18 @@ export default function ExperienceDetailPage({
     if (!applicationId) return null;
 
     try {
-      const pastJobs = (await getApplicationAssociations({
+      const { data: pastJobs } = await getApplicationAssociations({
         applicationId: applicationId,
         associationType: "PastJob",
-      })) as PastJobType[];
+      });
 
       // Find a job with at least one unconfirmed qualification
-      return pastJobs.find(
-        (job) =>
-          job.id !== pastJob?.id && // Not the current job
-          job.qualifications?.some((qual) => !qual.userConfirmed)
+      return pastJobs?.find(
+        (pjob) =>
+          pjob.id !== pastJob?.id && // Not the current job
+          pjob.qualifications?.some(
+            (qual: QualificationType) => !qual.userConfirmed
+          )
       );
     } catch (error) {
       console.error("Error finding next job:", error);
@@ -186,7 +269,6 @@ export default function ExperienceDetailPage({
   if (loading) {
     return <Loader text="Loading job experience details" />;
   }
-
   // If no past job found
   if (
     !pastJob ||
@@ -206,9 +288,9 @@ export default function ExperienceDetailPage({
     <EditableParagraphProvider>
       <ChatLayout
         additionalContext={[pastJob]}
-        items={pastJob.qualifications}
+        items={pastJob.qualifications ?? []}
         currentStepId={currentStepId}
-        saveFunction={saveQualification}
+        saveFunction={saveNestedQualification}
         onComplete={handleComplete}
         assistantName={assistantName}
         assistantInstructions={`${assistantInstructions}
@@ -227,7 +309,7 @@ export default function ExperienceDetailPage({
         sidebarTitle={`Qualifications from ${pastJob.title} at ${pastJob.organization} that might apply to ${job?.title}`}
         heading={`${pastJob.title} at ${pastJob.organization} - Applicable Work Experience`}
         isNestedView={true}
-        parentId={pastJob.id}
+        parentId={pastJob.id!}
         nestedItemsKey="qualifications"
         isEditMode={isEditingMode}
       />

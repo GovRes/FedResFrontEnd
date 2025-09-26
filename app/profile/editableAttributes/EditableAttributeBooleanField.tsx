@@ -1,12 +1,9 @@
+"use client";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import styles from "./editableAttributeStyles.module.css";
-import {
-  handleUpdateUserAttribute,
-  updateUserTypeAttribute,
-  UserType,
-} from "@/app/utils/userAttributeUtils";
+import { UserType } from "@/lib/utils/userAttributeUtils";
 import { ToggleWithLabel } from "@/app/components/forms/Inputs";
 import SubmitCancelButtonArray from "@/app/components/editableAttributes/SubmitCancelButtonArray";
 import EditButton from "@/app/components/editableAttributes/EditButton";

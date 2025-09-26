@@ -1,9 +1,7 @@
 "use client";
 import { useApplication } from "@/app/providers/applicationContext";
-
-import { navigateToNextIncompleteStep } from "@/app/utils/nextStepNavigation";
+import createApplicationAndNavigate from "../../components/createApplicationAndNav";
 import { useRouter } from "next/navigation";
-import createApplication from "@/app/utils/createApplication";
 export default function questionnaireNotFound({
   jobResult,
   userId,
@@ -19,8 +17,8 @@ export default function questionnaireNotFound({
   setQuestionnaireFound: React.Dispatch<React.SetStateAction<boolean>>;
   setSearchSent: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
+  const { steps, setApplicationId, completeStep } = useApplication();
   const router = useRouter();
-  const { completeStep, steps, setApplicationId } = useApplication();
   return (
     <div>
       <div>
@@ -41,28 +39,16 @@ export default function questionnaireNotFound({
       </button>
       <button
         onClick={async () => {
-          // Use jobResult.jobId instead of job.data[0].id
           if (jobResult && jobResult.jobId) {
-            console.log("Button clicked, creating application");
-            const result = await await createApplication({
-              completeStep,
+            await createApplicationAndNavigate({
               jobId: jobResult.jobId,
-              userId: userId,
-              setLoading: setLoading,
+              userId,
+              setLoading,
+              steps,
               setApplicationId,
+              completeStep,
+              router,
             });
-            console.log("Create application result:", result);
-            if (result?.success) {
-              navigateToNextIncompleteStep({
-                steps,
-                router,
-                currentStepId: "usa-jobs",
-                applicationId: result.id,
-                completeStep: result.completeStep,
-              });
-            } else {
-              console.error("Failed to create application:", result?.error);
-            }
           }
         }}
       >

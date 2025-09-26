@@ -1,10 +1,10 @@
 "use client";
-import { EducationType } from "@/app/utils/responseSchemas";
+import { EducationType } from "@/lib/utils/responseSchemas";
 import { useEffect, useState } from "react";
-import InitialReview from "@/app/components/ally/InitialReview";
+import InitialReview from "@/app/ally/components/InitialReview";
 import { Loader } from "@/app/components/loader/Loader";
 import { useAuthenticator } from "@aws-amplify/ui-react";
-import { listUserModelRecords } from "@/app/crud/genericListForUser";
+import { listUserModelRecords } from "@/lib/crud/genericListForUser";
 
 export default function EducationPage({}) {
   const [localEducations, setLocalEducations] = useState<EducationType[]>([]);
@@ -15,14 +15,14 @@ export default function EducationPage({}) {
     async function getEducation() {
       if (!user) return;
       setLoading(true);
-      let res = await listUserModelRecords("Education", user.userId);
-      if (res.items.length > 0) {
-        setLocalEducations(res.items);
+      let { data } = await listUserModelRecords("Education", user.userId);
+      if (data && data.items.length > 0) {
+        setLocalEducations(data.items);
       }
       setLoading(false);
     }
     getEducation();
-  }, [JSON.stringify(user)]);
+  }, [user?.userId]);
   if (loading) {
     return <Loader text="Loading education" />;
   }

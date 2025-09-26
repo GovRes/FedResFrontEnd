@@ -1,4 +1,4 @@
-import { TopicType } from "@/app/utils/responseSchemas";
+import { TopicType } from "@/lib/utils/responseSchemas";
 import {
   AwaitedReactNode,
   JSXElementConstructor,

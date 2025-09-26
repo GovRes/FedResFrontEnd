@@ -5,7 +5,7 @@ import Sidebar from "./Sidebar";
 import ChatInterface from "./ChatInterface";
 import ProgressTracker from "./ProgressTracker";
 import styles from "./chatInterface.module.css";
-import { PastJobType } from "@/app/utils/responseSchemas";
+import { PastJobType } from "@/lib/utils/responseSchemas";
 
 type ChatLayoutProps<T extends BaseItem> = {
   additionalContext?: PastJobType[];

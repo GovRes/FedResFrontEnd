@@ -1,10 +1,11 @@
+"use client";
 import { useEffect, useState } from "react";
 // import UserItem from "./UserItem";
 import { Loader } from "@/app/components/loader/Loader";
-import { listModelRecords } from "@/app/crud/genericFetch";
+import { listModelRecords } from "@/lib/crud/genericFetch";
 import FederalJobItem from "./FederalJobItem";
-import { deleteModelRecord } from "@/app/crud/genericDelete";
-import { JobType } from "@/app/utils/responseSchemas";
+import { deleteModelRecord } from "@/lib/crud/genericDelete";
+import { JobType } from "@/lib/utils/responseSchemas";
 
 export default function FederalJobsList() {
   const [loading, setLoading] = useState(true);
@@ -13,9 +14,15 @@ export default function FederalJobsList() {
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      const federalJobs = await listModelRecords("Job");
-      setFederalJobs(federalJobs.items);
-      setLoading(false);
+      const { data } = await listModelRecords("Job");
+      if (data && data.items && data.items.length > 0) {
+        setFederalJobs(data.items);
+        setLoading(false);
+      } else {
+        setLoading(false);
+        console.log("No federal jobs found");
+        return;
+      }
     }
     fetchData();
   }, []);

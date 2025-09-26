@@ -2,7 +2,10 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useEditableParagraph } from "./editableParagraphContext";
-import { PastJobType } from "../utils/responseSchemas";
+import {
+  PastJobType,
+  QualificationType,
+} from "../../lib/utils/responseSchemas";
 
 // Generic item type that can be extended by specific item types
 export type BaseItem = {
@@ -10,7 +13,7 @@ export type BaseItem = {
   title: string;
   description?: string;
   userConfirmed?: boolean;
-  paragraph?: string;
+  paragraph?: string | null;
   [key: string]: any;
 };
 
@@ -27,7 +30,7 @@ type ChatContextType = {
 
   // Operations
   saveItem: (item: BaseItem) => Promise<void>;
-  saveParagraph: () => Promise<void>;
+  saveParagraph: (threadId?: string) => Promise<void>;
   setParagraphData: (data: string | null) => void;
 
   // Meta info
@@ -165,24 +168,22 @@ export function ChatProvider({
   const saveItem = async (item: BaseItem) => {
     try {
       const updatedItems = items.map((i) => (i.id === item.id ? item : i));
+      console.log(168, updatedItems);
       setItems(updatedItems);
 
-      // If we're in a nested view, we need to update the parent item
-      if (nestedItemsKey && parentId) {
-        // Find the parent item
-        const parentItem = items.find((i) => i.id === parentId);
-        if (parentItem) {
-          // Update the nested items
-          parentItem[nestedItemsKey] = parentItem[nestedItemsKey].map(
-            (ni: BaseItem) => (ni.id === item.id ? item : ni)
-          );
-          // Save the parent item
-          await saveFunction(parentItem);
-        }
-      } else {
-        // Save directly
-        await saveFunction(item);
-      }
+      // Always use the saveFunction - it now handles nested logic in the parent component
+      console.log(186, "saving item", item);
+      const handleSave = (qualification: QualificationType) => {
+        console.log("=== ABOUT TO SAVE QUALIFICATION ===");
+        console.log("Qualification object:", qualification);
+        console.log("TopicId available:", qualification.topicId);
+        console.log("Topic object available:", qualification.topic);
+        console.log("Topic object ID:", qualification.topic?.id);
+
+        return saveFunction(qualification);
+      };
+      await handleSave(item as QualificationType);
+      // await saveFunction(item);
 
       // If we were editing this item, finish editing
       if (isEditingExistingParagraph && itemBeingEdited === item.id) {
@@ -195,9 +196,8 @@ export function ChatProvider({
       return Promise.reject(error);
     }
   };
-
   // Save paragraph to the current item
-  const saveParagraph = async () => {
+  const saveParagraph = async (conversationThreadId?: string) => {
     if (!paragraphData || !currentItem)
       return Promise.reject("No paragraph data or current item");
 
@@ -205,9 +205,12 @@ export function ChatProvider({
       ...currentItem,
       paragraph: paragraphData,
       userConfirmed: true,
+      conversationThreadId:
+        conversationThreadId || currentItem.conversationThreadId, // Use passed threadId or existing one
     };
 
-    await saveItem(updatedItem);
+    const res = await saveItem(updatedItem);
+    console.log(res);
 
     // Only clear paragraph data if we're not in edit mode
     if (!isEditingExistingParagraph) {

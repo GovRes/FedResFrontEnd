@@ -1,12 +1,11 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import InitialReview from "@/app/components/ally/InitialReview";
-import { PastJobType } from "@/app/utils/responseSchemas";
+import InitialReview from "@/app/ally/components/InitialReview";
+import { PastJobType } from "@/lib/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
-import { listUserModelRecords } from "@/app/crud/genericListForUser";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { useApplication } from "@/app/providers/applicationContext";
-import { fetchUserAssociations } from "@/app/crud/userAssociations";
+import { fetchUserAssociations } from "@/lib/crud/userAssociations";
 export default function pastJobsPage() {
   const [localPastJobs, setLocalPastJobs] = useState<PastJobType[]>([]);
   const { job } = useApplication();
@@ -19,9 +18,9 @@ export default function pastJobsPage() {
       if (!user) return;
       setLoading(true);
       // Fetch past jobs
-      let res = await fetchUserAssociations("PastJob");
-      if (res.length > 0) {
-        const filteredJobs = res.filter(
+      let { data } = await fetchUserAssociations("PastJob");
+      if (data && data.length > 0) {
+        const filteredJobs = data?.filter(
           (job) => job.type === "PastJob"
         ) as PastJobType[];
         setLocalPastJobs(filteredJobs);
@@ -30,7 +29,7 @@ export default function pastJobsPage() {
     }
 
     fetchAndMatch();
-  }, [JSON.stringify(user), job?.topics]);
+  }, [user?.userId, job?.topics]);
 
   if (loading) {
     return <Loader text="fetching your saved jobs" />;

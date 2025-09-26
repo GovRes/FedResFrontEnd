@@ -6,7 +6,7 @@ import UsaJobsSearch from "@/app/ally/job-search/components/UsaJobsSearch";
 import { Loader } from "@/app/components/loader/Loader";
 import { fetchUserAttributes } from "aws-amplify/auth";
 import { useAuthenticator } from "@aws-amplify/ui-react";
-import { JobSearchObject } from "@/app/utils/responseSchemas";
+import { JobSearchObject } from "@/lib/utils/responseSchemas";
 
 export default function JobSearchPage() {
   const router = useRouter();

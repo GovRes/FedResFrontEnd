@@ -1,9 +1,9 @@
 "use client";
-import { fetchModelRecord } from "@/app/crud/genericFetch";
-import { GrEdit } from "react-icons/gr";
 import Link from "next/link";
+import { fetchModelRecord } from "@/lib/crud/genericFetch";
+import { GrEdit } from "react-icons/gr";
 import { use, useEffect, useState } from "react";
-import { AwardType } from "@/app/utils/responseSchemas";
+import { AwardType } from "@/lib/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
 export default function AwardPage({
   params,
@@ -16,8 +16,8 @@ export default function AwardPage({
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      const awardData = await fetchModelRecord("Award", id);
-      setAward(awardData);
+      const { data } = await fetchModelRecord("Award", id);
+      setAward(data);
       setLoading(false);
     }
     fetchData();

@@ -1,4 +1,4 @@
-import { TopicType } from "@/app/utils/responseSchemas";
+import { TopicType } from "@/lib/utils/responseSchemas";
 
 export default function TopicLI(topic: TopicType) {
   return (

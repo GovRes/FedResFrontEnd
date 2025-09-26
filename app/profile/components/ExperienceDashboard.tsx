@@ -1,18 +1,19 @@
+"use client";
 import { useEffect, useState } from "react";
-import NavigationLink from "@/app/components/loader/NavigationLink";
+import Link from "next/link";
 import ExperiencesTable from "./experienceComponents/ExperiencesTable";
 import {
   AwardType,
   EducationType,
   QualificationType,
   PastJobType,
-} from "@/app/utils/responseSchemas";
+} from "@/lib/utils/responseSchemas";
 import {
   fetchUserAssociations,
   AssociationType,
-} from "@/app/crud/userAssociations";
+} from "@/lib/crud/userAssociations";
 import { Loader } from "../../components/loader/Loader";
-import { pascalToDashed } from "@/app/utils/stringBuilders";
+import { pascalToDashed } from "@/lib/utils/stringBuilders";
 
 // Define a type that represents all possible item types
 
@@ -47,22 +48,24 @@ export default function ExperienceDashboard({
           associationType = "PastJob";
         }
         // Use the explicit type parameter for fetchUserAssociations
-        const itemsRes =
+        const { data: itemsRes } =
           await fetchUserAssociations<ExperienceItemType>(associationType);
         if (experienceType === "Volunteer") {
           // If the experienceType is "Volunteer", we need to filter the items
           // to only include those that are of type "Volunteer"
-          const filteredItems = itemsRes.filter(
-            (item): item is PastJobType =>
-              "type" in item && item.type === "Volunteer"
-          );
+          const filteredItems =
+            itemsRes?.filter(
+              (item): item is PastJobType =>
+                "type" in item && item.type === "Volunteer"
+            ) || [];
           setItems(filteredItems);
           return;
         } else if (experienceType === "PastJob") {
-          const filteredItems = itemsRes.filter(
-            (item): item is PastJobType =>
-              "type" in item && item.type === "PastJob"
-          );
+          const filteredItems =
+            itemsRes?.filter(
+              (item): item is PastJobType =>
+                "type" in item && item.type === "PastJob"
+            ) || [];
           const sortedItems = filteredItems.sort((a, b) =>
             a.organization > b.organization ? 1 : -1
           );
@@ -70,7 +73,7 @@ export default function ExperienceDashboard({
           return;
         }
         // Now itemsRes should match the expected type for setItems
-        setItems(itemsRes);
+        setItems(itemsRes || []);
       } catch (error) {
         console.error("Error fetching user items:", error);
       } finally {
@@ -94,9 +97,9 @@ export default function ExperienceDashboard({
         experienceType={experienceType}
         setItems={setItems}
       />
-      <NavigationLink href={`/profile/${pascalToDashed(experienceType)}s/new`}>
+      <Link href={`/profile/${pascalToDashed(experienceType)}s/new`}>
         <button>{buttonTextMapping[experienceType]}</button>
-      </NavigationLink>
+      </Link>
     </div>
   );
 }

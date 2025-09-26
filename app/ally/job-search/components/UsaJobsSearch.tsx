@@ -1,3 +1,4 @@
+"use client";
 import styles from "../../ally.module.css";
 import {
   SubmitButton,
@@ -9,19 +10,17 @@ import {
   agencies,
   positionScheduleType,
   travelPercentage,
-} from "@/app/utils/usaJobsCodes";
+} from "@/lib/utils/usaJobsCodes";
 import {
   JobSearchObject,
   jobSearchZodSchema,
-} from "@/app/utils/responseSchemas";
+} from "@/lib/utils/responseSchemas";
 import { Loader } from "@/app/components/loader/Loader";
 
-import { delayAllyChat } from "@/app/utils/allyChat";
-import { usaJobsSearch } from "@/app/utils/usaJobsSearch";
+import { delayAllyChat } from "@/lib/utils/allyChat";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useLoading } from "@/app/providers/loadingContext";
 
 export default function UsaJobsSearch({
   searchObject,
@@ -34,7 +33,6 @@ export default function UsaJobsSearch({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const { setIsLoading } = useLoading();
 
   const {
     formState: { errors, isValid },
@@ -69,10 +67,8 @@ export default function UsaJobsSearch({
 
     setLoading(false);
     if (results.length > 0) {
-      setIsLoading(true);
       router.push("/ally/job-search/results");
     } else {
-      setIsLoading(true);
       router.push("/ally/job-search/no-results");
     }
     setSearchResults(results);
