@@ -53,10 +53,11 @@ export const modelFields: Record<string, string[]> = {
     // Nested topics with their qualifications
     `topics {
       items {
-        id
-        title
-        keywords
         description
+        id
+        importance
+        keywords
+        title
         createdAt
         updatedAt
         qualifications {
@@ -76,7 +77,7 @@ export const modelFields: Record<string, string[]> = {
     }`,
   ],
   Resume: ["fileName", "userId"],
-  Topic: ["title", "keywords", "description", "jobId"],
+  Topic: ["description", "importance", "jobId", "keywords", "title"],
   PastJob: [
     "endDate",
     "gsLevel",

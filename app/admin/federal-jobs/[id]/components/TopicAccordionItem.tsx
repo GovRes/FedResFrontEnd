@@ -29,6 +29,7 @@ export default function TopicAccordionItem({ topic }: { topic: TopicType }) {
           <div>
             <div className={styles.accordionContent}>
               {topic.description}
+              {topic.importance && <div>Importance: {topic.importance}</div>}
 
               {topic.keywords && topic.keywords.length > 0 && (
                 <ul>

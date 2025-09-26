@@ -45,11 +45,12 @@ export const awardsArrayZodSchema = z.object({
 export type AwardType = z.infer<typeof awardZodSchema>;
 
 export const topicZodSchema = z.object({
+  description: z.string().nullish(),
   id: z.string(),
-  title: z.string(),
+  importance: z.number().min(0).max(1).nullish(),
   jobId: z.string(),
   keywords: z.array(z.string()),
-  description: z.string().nullish(),
+  title: z.string(),
 });
 
 export const topicsArrayZodSchema = z.object({
