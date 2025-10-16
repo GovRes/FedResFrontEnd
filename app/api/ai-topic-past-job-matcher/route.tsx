@@ -1,4 +1,4 @@
-// Fixed parsing logic
+// Fixed parsing logic with proper input handling
 import OpenAI from "openai";
 import { type NextRequest } from "next/server";
 
@@ -13,20 +13,34 @@ export async function POST(req: NextRequest) {
   const client = new OpenAI({ apiKey });
   const data = await req.json();
 
+  console.log("Received input length:", data.input?.length || 0);
+
   try {
+    // gpt-4o-mini has a 128k token context window, which is roughly 100k+ characters
+    // We can safely send much larger inputs. Let's limit to 50k characters to be safe.
+    const inputText = data.input.substring(0, 50000);
+
+    if (data.input.length > 50000) {
+      console.warn(
+        "Input was truncated from",
+        data.input.length,
+        "to 50000 characters"
+      );
+    }
+
     const completion = await client.chat.completions.create(
       {
         model: "gpt-4o-mini",
         messages: [
           {
             role: "user",
-            content: `${data.input.substring(0, 4000)}
+            content: `${inputText}
 
 Return valid JSON: {"pastJobs": [job_objects_with_qualifications]}`,
           },
         ],
-        max_tokens: 1000,
-        temperature: 0,
+        max_tokens: 2000, // Increased from 1000 to allow for more complete responses
+        temperature: 0.1,
       },
       { timeout: 15000 }
     );

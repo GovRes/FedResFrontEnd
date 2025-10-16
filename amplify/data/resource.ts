@@ -196,12 +196,13 @@ const schema = a.schema({
   Topic: a
     .model({
       id: a.id().required(),
-      title: a.string().required(),
-      keywords: a.string().array().required(),
       description: a.string(),
-      jobId: a.id().required(),
+      importance: a.float(),
       job: a.belongsTo("Job", "jobId"),
+      jobId: a.id().required(),
+      keywords: a.string().array().required(),
       qualifications: a.hasMany("Qualification", "topicId"),
+      title: a.string().required(),
     })
     .authorization((allow) => [
       allow.authenticated().to(["create", "read", "update", "delete"]),
