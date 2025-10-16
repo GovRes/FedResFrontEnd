@@ -10,13 +10,8 @@ import {
 } from "@/lib/crud/application";
 import { updatePastJobWithQualifications } from "@/lib/crud/pastJob";
 import { topicPastJobMatcher } from "@/lib/aiProcessing/topicPastJobMatcher";
-import {
-  PastJobApplicationsApiResponse,
-  PastJobType,
-  QualificationType,
-  TopicType,
-  JobType,
-} from "@/lib/utils/responseSchemas";
+import { PastJobType, QualificationType } from "@/lib/utils/responseSchemas";
+import { createQualification } from "@/lib/crud/qualifications";
 import styles from "@/app/ally/components/ally.module.css";
 import { navigateToNextIncompleteStep } from "@/lib/utils/nextStepNavigation";
 
@@ -74,6 +69,8 @@ export default function ExperiencePage({
       return;
     }
 
+    let userId: string | undefined;
+
     setLoadingText("AI matching topics to experiences...");
     console.log("Starting AI processing for application:", applicationId);
 
@@ -89,279 +86,263 @@ export default function ExperiencePage({
         return;
       }
 
+      // Extract userId from the first past job
+      userId = data[0]?.userId;
+      if (!userId) {
+        console.error("No userId found in past jobs data");
+        throw new Error(
+          "Unable to determine user ID for qualification creation"
+        );
+      }
+      console.log("Using userId:", userId);
+
       const totalTopics = job.topics.length;
 
-      // CHANGED: Process each topic serially instead of in parallel
-      const topicResults = [];
+      // Track all qualifications for final association
+      const allQualificationsToAssociate: QualificationType[] = [];
+
+      // Process each topic serially and immediately create qualifications
+      let currentPastJobsData = data;
+      console.log(currentPastJobsData);
+
       for (let i = 0; i < job.topics.length; i++) {
         const topic = job.topics[i];
-        console.log(`Processing topic ${i + 1}/${totalTopics}:`, topic);
+        console.log(
+          `\n=== Processing topic ${i + 1}/${totalTopics}: ${topic.title} ===`
+        );
 
         try {
           setLoadingText(
             `AI matching topics: ${i + 1}/${totalTopics} topics (${topic.title})`
           );
 
+          // Call AI to match this topic to past jobs
           const topicMatcherData = await topicPastJobMatcher({
             topic,
-            pastJobs: data,
+            pastJobs: currentPastJobsData,
           });
 
-          console.log(`Raw response for topic ${i + 1}:`, topicMatcherData);
-          console.log(`Response type:`, typeof topicMatcherData);
-          console.log(`Is array:`, Array.isArray(topicMatcherData));
+          console.log(`AI response for topic ${i + 1}:`, topicMatcherData);
 
-          // Ensure we're pushing the actual data, not a wrapper
+          // Extract past jobs from response
+          let matchedJobs: PastJobType[] = [];
           if (topicMatcherData && typeof topicMatcherData === "object") {
             if (Array.isArray(topicMatcherData)) {
-              topicResults.push(topicMatcherData);
-              console.log(
-                `Pushed array of length ${topicMatcherData.length} for topic ${i + 1}`
-              );
+              matchedJobs = topicMatcherData;
             } else if (topicMatcherData.pastJobs) {
-              topicResults.push(topicMatcherData.pastJobs);
-              console.log(
-                `Pushed pastJobs array of length ${topicMatcherData.pastJobs.length} for topic ${i + 1}`
-              );
-            } else {
+              matchedJobs = topicMatcherData.pastJobs;
+            }
+          }
+
+          console.log(
+            `AI matched ${matchedJobs.length} jobs for topic: ${topic.title}`
+          );
+
+          // Process each matched job immediately
+          for (const matchedJob of matchedJobs) {
+            if (!matchedJob.id || !matchedJob.qualifications?.length) {
+              console.log(`Skipping job - no ID or qualifications`);
+              continue;
+            }
+
+            // Get the current state of this job from the database
+            const currentJobState = currentPastJobsData.find(
+              (job: PastJobType) => job.id === matchedJob.id
+            );
+
+            if (!currentJobState) {
               console.warn(
-                `Unexpected response structure for topic ${i + 1}:`,
-                topicMatcherData
+                `Could not find job ${matchedJob.id} in current data`
               );
-              topicResults.push([]);
-            }
-          } else {
-            console.warn(`No valid data for topic ${i + 1}`);
-            topicResults.push([]);
-          }
-
-          console.log(`Completed topic ${i + 1}/${totalTopics}:`, topic.title);
-
-          // Longer delay to reduce timeouts
-          if (i < job.topics.length - 1) {
-            await new Promise((resolve) => setTimeout(resolve, 2000)); // Increased to 2 seconds
-          }
-        } catch (error) {
-          console.error(`Failed to process topic ${i + 1}:`, error);
-          console.error(
-            `Error details:`,
-            error instanceof Error
-              ? { message: error.message, stack: error.stack }
-              : String(error)
-          );
-          // Push empty array to maintain array alignment
-          topicResults.push([]);
-
-          // Wait longer after an error before trying the next one
-          if (i < job.topics.length - 1) {
-            await new Promise((resolve) => setTimeout(resolve, 3000)); // 3 seconds after error
-          }
-        }
-      }
-
-      console.log("Topic matcher results:", topicResults);
-      console.log("About to process topicResults with flatMap...");
-
-      // Flatten and filter matched jobs
-      const allMatchedJobs: PastJobType[] = topicResults
-        .flatMap((result) => {
-          console.log("Processing result in flatMap:", result);
-          if (!result) return [];
-          return Array.isArray(result) ? result : [result];
-        })
-        .filter((item): item is PastJobType => {
-          console.log("Filtering item:", item);
-          return Boolean(item);
-        });
-
-      console.log("=== BEFORE PROCESSING JOBS ===");
-      console.log("allMatchedJobs length:", allMatchedJobs.length);
-      console.log("allMatchedJobs:", allMatchedJobs);
-
-      if (allMatchedJobs.length === 0) {
-        console.log(
-          "No jobs to process - this explains why we never reach association"
-        );
-        return;
-      }
-
-      setLoadingText("Creating job qualifications...");
-
-      // Process each job to create/update qualifications
-      const processedJobs = new Map<string, Set<string>>();
-      const allQualificationsToAssociate: QualificationType[] = [];
-
-      console.log("=== CREATING UPDATE PROMISES ===");
-      const updatePromises = allMatchedJobs.map(
-        async (item: PastJobType, index: number) => {
-          console.log(
-            `Creating promise for job ${index + 1}/${allMatchedJobs.length}:`,
-            item.id
-          );
-          console.log(
-            `Job has ${item.qualifications?.length || 0} qualifications`
-          );
-
-          if (item.qualifications && item.qualifications.length > 0) {
-            console.log("qualifications for job:", item.qualifications);
-            console.log(
-              "Qualification IDs for job:",
-              item.qualifications.map((q: QualificationType) => q.id || "NO_ID")
-            );
-            console.log(
-              "Qualification titles for job:",
-              item.qualifications.map(
-                (q: QualificationType) => q.title || "NO_TITLE"
-              )
-            );
-          }
-
-          if (!item.qualifications || item.qualifications.length === 0) {
-            console.log(
-              `Skipping job ${item.id} instance ${index} as it has no qualifications`
-            );
-            return null;
-          }
-
-          try {
-            console.log(
-              `Updating past job ${item.id} with ${item.qualifications.length} qualifications`
-            );
-
-            // Ensure all qualifications start as unconfirmed and have valid topicId
-            const unconfirmedQualifications = item.qualifications.map(
-              (q: QualificationType) => ({
-                ...q,
-                userConfirmed: false,
-                paragraph: q.paragraph || "",
-                // Ensure topicId is not an empty string - DynamoDB doesn't allow empty strings in GSI keys
-                topicId:
-                  q.topicId && q.topicId.trim() !== "" ? q.topicId : undefined,
-              })
-            );
-
-            const updateResult = await updatePastJobWithQualifications(
-              item.id!,
-              item,
-              unconfirmedQualifications
-            );
-
-            if (!updateResult.success) {
-              throw new Error(
-                `Failed to update past job: ${updateResult.error}`
-              );
+              continue;
             }
 
-            console.log(
-              `Successfully updated job ${item.id} with qualifications`
+            // Get all existing topic IDs for this job from the database
+            const existingTopicIds = new Set(
+              (currentJobState.qualifications || [])
+                .map((q: QualificationType) => q.topic?.id)
+                .filter(Boolean)
             );
 
-            const updatedPastJob = updateResult.data;
             console.log(
-              "Qualification IDs after update:",
-              updatedPastJob.qualifications?.map((q: QualificationType) => q.id)
+              `Job "${matchedJob.title}" has ${existingTopicIds.size} existing qualifications`
+            );
+            console.log(`Existing topic IDs:`, Array.from(existingTopicIds));
+
+            // Filter out qualifications for topics that already exist in the database
+            const newQualifications = matchedJob.qualifications.filter(
+              (qual: QualificationType) => {
+                const qualTopicId = qual.topic?.id;
+
+                if (!qualTopicId) {
+                  console.log(
+                    `❌ Skipping qualification - no topic.id in topic object`
+                  );
+                  return false;
+                }
+
+                // Validate it looks like a UUID
+                if (qualTopicId.length < 20 || !qualTopicId.includes("-")) {
+                  console.log(
+                    `❌ Skipping qualification - topic.id doesn't look like UUID: "${qualTopicId}"`
+                  );
+                  return false;
+                }
+
+                if (existingTopicIds.has(qualTopicId)) {
+                  console.log(
+                    `⚠️  DUPLICATE DETECTED: Topic "${qual.topic?.title}" (${qualTopicId}) already exists, skipping`
+                  );
+                  return false;
+                }
+
+                console.log(
+                  `✅ NEW qualification: "${qual.topic?.title}" (${qualTopicId})`
+                );
+                return true;
+              }
             );
 
-            if (
-              updatedPastJob?.qualifications &&
-              updatedPastJob.qualifications.length > 0
-            ) {
-              const qualificationObjects = updatedPastJob.qualifications.map(
-                (qualification: any) =>
-                  ({
-                    id: qualification.id,
-                    title: qualification.title,
-                    description: qualification.description,
-                    paragraph: qualification.paragraph || "",
-                    question: qualification.question,
-                    userConfirmed: qualification.userConfirmed || false,
-                    topicId: qualification.topicId,
-                    userId: qualification.userId,
-                    topic: qualification.topic,
-                  }) as QualificationType
-              );
-
+            if (newQualifications.length === 0) {
               console.log(
-                `Extracted ${qualificationObjects.length} qualification objects from job ${item.id}`
+                `No new qualifications needed for job "${matchedJob.title}"`
               );
+              continue;
+            }
 
-              if (!processedJobs.has(item.id!)) {
-                processedJobs.set(item.id!, new Set());
+            console.log(
+              `Creating ${newQualifications.length} NEW qualifications for job "${matchedJob.title}"`
+            );
+
+            // Create the qualifications
+            const createdQualifications: QualificationType[] = [];
+
+            for (const qual of newQualifications) {
+              // CRITICAL: Only use topic.id from the topic object (should be a UUID)
+              const topicId = qual.topic?.id;
+
+              if (!topicId || topicId.trim() === "") {
+                console.error(`❌ Skipping qualification - missing topic.id`);
+                continue;
               }
 
-              const jobQualifications = processedJobs.get(item.id!)!;
-              qualificationObjects.forEach((qual: QualificationType) => {
-                if (!jobQualifications.has(qual.id!)) {
-                  jobQualifications.add(qual.id!);
-                  allQualificationsToAssociate.push(qual);
-                }
-              });
+              // Validate it's a UUID format
+              if (topicId.length < 20 || !topicId.includes("-")) {
+                console.error(
+                  `❌ Skipping qualification - topic.id "${topicId}" is not a UUID`
+                );
+                continue;
+              }
 
-              return qualificationObjects;
-            } else {
-              console.warn(
-                `No qualifications found in updated past job ${item.id} response`
+              if (!qual.title || qual.title.trim() === "") {
+                console.error(`❌ Skipping qualification - missing title`);
+                continue;
+              }
+
+              const newQualData = {
+                title: qual.title.trim(),
+                description:
+                  qual.description?.trim() ||
+                  qual.topic?.description?.trim() ||
+                  "No description provided",
+                paragraph: qual.paragraph?.trim() || "",
+                question: qual.question?.trim() || "",
+                userConfirmed: false,
+                topicId: topicId.trim(),
+                userId: userId,
+                topic: qual.topic,
+                pastJobId: matchedJob.id,
+              };
+
+              console.log(
+                `Creating qualification: "${newQualData.title}" with UUID: ${topicId}`
               );
-              return null;
+
+              const createResult = await createQualification(newQualData);
+
+              if (createResult.success && createResult.data) {
+                console.log(
+                  `✅ Created qualification ID: ${createResult.data.id}`
+                );
+                createdQualifications.push(
+                  createResult.data as QualificationType
+                );
+                allQualificationsToAssociate.push(
+                  createResult.data as QualificationType
+                );
+              } else {
+                console.error(
+                  `❌ Failed to create qualification:`,
+                  createResult.error
+                );
+              }
             }
-          } catch (error) {
-            console.error(
-              `Failed to process job ${item.id} instance ${index}:`,
-              error
-            );
-            return null;
+
+            // Update the past job with the new qualifications
+            if (createdQualifications.length > 0) {
+              console.log(
+                `Updating job ${matchedJob.id} with ${createdQualifications.length} new qualifications`
+              );
+
+              const updateResult = await updatePastJobWithQualifications(
+                matchedJob.id,
+                matchedJob,
+                createdQualifications
+              );
+
+              if (!updateResult.success) {
+                console.error(
+                  `❌ Failed to update past job:`,
+                  updateResult.error
+                );
+              } else {
+                console.log(`✅ Successfully updated job ${matchedJob.id}`);
+              }
+            }
+          }
+
+          console.log(
+            `✅ Completed topic ${i + 1}/${totalTopics}: ${topic.title}`
+          );
+
+          // Refresh past jobs data for next iteration so AI can see new qualifications
+          if (i < job.topics.length - 1) {
+            console.log("Refreshing past jobs data from database...");
+            const { data: refreshedData } = await getApplicationAssociations({
+              applicationId,
+              associationType: "PastJob",
+            });
+            if (refreshedData && refreshedData.length > 0) {
+              currentPastJobsData = refreshedData;
+              console.log("✅ Past jobs data refreshed");
+            }
+
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+          }
+        } catch (error) {
+          console.error(`❌ Failed to process topic ${i + 1}:`, error);
+
+          if (i < job.topics.length - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 3000));
           }
         }
-      );
+      }
 
-      console.log("Created", updatePromises.length, "update promises");
-
-      const updateResults = await Promise.allSettled(updatePromises);
+      console.log("\n=== ALL TOPICS PROCESSED ===");
       console.log(
-        "Promise.allSettled completed with",
-        updateResults.length,
-        "results"
+        `Total qualifications created: ${allQualificationsToAssociate.length}`
       );
 
-      // Check results and log any failures
-      updateResults.forEach((result, index) => {
-        if (result.status === "rejected") {
-          console.error(`Job ${index + 1} update failed:`, result.reason);
-        } else {
-          console.log(`Job ${index + 1} update succeeded`);
-        }
-      });
-
-      // Continue with successful results only
-      const successfulResults = updateResults
-        .filter(
-          (result): result is PromiseFulfilledResult<any> =>
-            result.status === "fulfilled"
-        )
-        .map((result) => result.value)
-        .filter(Boolean);
-
-      console.log(
-        `Processed ${successfulResults.length} job instances successfully`
-      );
-      console.log(
-        `Total unique qualifications to associate: ${allQualificationsToAssociate.length}`
-      );
-
+      // Associate all qualifications with the application
       if (allQualificationsToAssociate.length > 0) {
         setLoadingText("Associating qualifications with application...");
 
-        console.log("=== ASSOCIATION DEBUG ===");
+        console.log("=== ASSOCIATING WITH APPLICATION ===");
         console.log("Application ID:", applicationId);
         console.log(
           "Qualifications to associate:",
           allQualificationsToAssociate.length
         );
-        console.log(
-          "Qualification IDs:",
-          allQualificationsToAssociate.map((q) => q.id)
-        );
-        console.log("Qualification objects:", allQualificationsToAssociate);
 
         const associationResult = await associateItemsWithApplication({
           applicationId,
@@ -369,22 +350,18 @@ export default function ExperiencePage({
           associationType: "Qualification",
         });
 
-        console.log("Association result:", associationResult);
-        console.log("Association success:", associationResult.success);
-        console.log("Association data:", associationResult.data);
-        console.log("Association error:", associationResult.error);
-        console.log("=========================");
-
         if (associationResult.success) {
           console.log(
-            "Successfully associated qualifications with application"
+            "✅ Successfully associated qualifications with application"
           );
           if (associationResult.data) {
-            console.log("Created associations:", associationResult.data.length);
+            console.log(
+              `Created ${associationResult.data.length} associations`
+            );
           }
         } else {
           console.error(
-            "Failed to associate qualifications:",
+            "❌ Failed to associate qualifications:",
             associationResult.error
           );
           throw new Error(`Association failed: ${associationResult.error}`);
@@ -393,20 +370,12 @@ export default function ExperiencePage({
         console.log("No qualifications to associate with application");
       }
 
-      console.log("Completed processing all matched jobs");
-      console.log(
-        "✅ Qualifications created and associated - processing complete"
-      );
-      console.log(
-        "⏱️ Step NOT marked complete - user must confirm each qualification with paragraphs"
-      );
-      console.log("AI processing completed successfully");
+      console.log("✅ AI processing completed successfully");
     } catch (error) {
-      console.error("Error in AI processing:", error);
+      console.error("❌ Error in AI processing:", error);
       throw error;
     }
   }
-
   async function fetchJobsAndRedirect(): Promise<void> {
     if (!applicationId) {
       setError("No application ID found");
