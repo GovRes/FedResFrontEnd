@@ -246,6 +246,16 @@ export const FRAGMENTS = {
     }
   `,
 
+  PastJobBasicFields: `
+  fragment PastJobBasicFields on PastJob {
+    id
+    title
+    organization
+    responsibilities
+    type
+  }
+`,
+
   PastJobWithQualificationsFields: `
     fragment PastJobWithQualificationsFields on PastJob {
       ...PastJobFields

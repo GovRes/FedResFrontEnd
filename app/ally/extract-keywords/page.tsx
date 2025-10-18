@@ -51,10 +51,24 @@ export default function ExtractKeywords() {
             topics: topicRes,
           });
           console.log("Saved topics to backend", createTopicRes);
-          setJob({
-            ...job,
-            topics: topicRes,
-          });
+
+          // Use the topics from the database response, not the client-generated ones
+          if (createTopicRes.success && createTopicRes.data) {
+            const topicsWithDbIds = createTopicRes.data.map(
+              (item) => item.topic
+            );
+            setJob({
+              ...job,
+              topics: topicsWithDbIds, // Use database topics with real IDs
+            });
+            setTopics(topicsWithDbIds); // Also update local state
+          } else {
+            console.error(
+              "Failed to create/find topics:",
+              createTopicRes.error
+            );
+            // Handle error appropriately
+          }
 
           setLoading(false);
         }

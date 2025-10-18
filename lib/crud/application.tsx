@@ -520,7 +520,118 @@ export const getApplicationAssociations = async <T extends AssociationType>({
     };
   }
 };
+export const getApplicationPastJobs = async ({
+  applicationId,
+}: {
+  applicationId: string;
+}): Promise<ApiResponse<PastJobType[]>> => {
+  console.log(337, applicationId, "PastJob");
 
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
+  }
+
+  const client = generateClient();
+
+  try {
+    if (!applicationId) {
+      return {
+        success: false,
+        error: "applicationId is required",
+        statusCode: 400,
+      };
+    }
+
+    const query = buildQueryWithFragments(`
+  query ListPastJobApplications($filter: ModelPastJobApplicationFilterInput) {
+    listPastJobApplications(filter: $filter) {
+      items {
+        ...PastJobApplicationFields
+        pastJob {
+          ...PastJobBasicFields
+          qualifications {
+            items {
+              ...QualificationWithTopicFields
+            }
+          }
+        }
+      }
+    }
+  }
+`);
+
+    const junctionResponse = await client.graphql({
+      query,
+      variables: {
+        filter: { applicationId: { eq: applicationId } },
+      } as any,
+      authMode: "userPool",
+    });
+
+    if ("data" in junctionResponse) {
+      const junctionItems = junctionResponse.data.listPastJobApplications.items;
+      const associatedItemsWithDuplicates = junctionItems
+        .map((item: any) => item.pastJob)
+        .filter(Boolean);
+
+      const uniqueItems = deduplicateById(associatedItemsWithDuplicates);
+
+      const transformedItems = uniqueItems.map((item: any) => {
+        const hours = item.hours !== undefined ? String(item.hours) : undefined;
+        return {
+          ...item,
+          hours,
+          qualifications: (item.qualifications?.items || []).map(
+            (qualification: any) => {
+              // Extract applicationIds from the junction table
+              const applicationIds =
+                qualification.applications?.items?.map(
+                  (app: any) => app.applicationId
+                ) || [];
+
+              return {
+                id: qualification.id || "",
+                title: qualification.title || "",
+                description: qualification.description || "",
+                paragraph: qualification.paragraph,
+                question: qualification.question,
+                userConfirmed: qualification.userConfirmed || false,
+                userId: qualification.userId,
+                pastJobId: qualification.pastJobId,
+                topicId: qualification.topicId,
+                topic: qualification.topic || null,
+                applicationIds: applicationIds,
+              };
+            }
+          ),
+        };
+      });
+
+      return {
+        success: true,
+        data: transformedItems,
+        statusCode: 200,
+      };
+    }
+
+    return {
+      success: false,
+      error: `Unexpected response format from GraphQL operation for PastJob`,
+      statusCode: 500,
+    };
+  } catch (error) {
+    console.error(
+      `Error fetching PastJob associations for Application:`,
+      error
+    );
+    return {
+      success: false,
+      error: `Failed to fetch PastJob associations for Application`,
+      statusCode: 500,
+    };
+  }
+};
 /**
  * Get application with job details
  */
