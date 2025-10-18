@@ -97,6 +97,7 @@ export default function ExperiencePage({
       console.log("Using userId:", userId);
 
       const totalTopics = job.topics.length;
+      console.log("topics in line 100", job.topics);
 
       // Track all qualifications for final association
       const allQualificationsToAssociate: QualificationType[] = [];
@@ -108,7 +109,7 @@ export default function ExperiencePage({
       for (let i = 0; i < job.topics.length; i++) {
         const topic = job.topics[i];
         console.log(
-          `\n=== Processing topic ${i + 1}/${totalTopics}: ${topic.title} ===`
+          `\n=== Processing topic ${i + 1}/${totalTopics}: ${topic.title} ${topic.id} ===`
         );
 
         try {
