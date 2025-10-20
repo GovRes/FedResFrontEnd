@@ -1,11 +1,6 @@
 import { generateClient } from "aws-amplify/api";
-
-interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  statusCode: number;
-}
+import { handleError } from "../utils/errorHandler";
+import { ApiResponse } from "../utils/api";
 
 /**
  * The supported entity types that can be fetched for a user
@@ -101,11 +96,10 @@ export async function fetchUserAssociations<T extends EntityRecord>(
       };
     }
   } catch (error) {
-    console.error(`Error fetching user ${associationType}s:`, error);
+    const errorResult = handleError("fetch", `user ${associationType}s`, error);
     return {
       success: false,
-      error: `Failed to fetch user ${associationType}s: ${error instanceof Error ? error.message : String(error)}`,
-      statusCode: 500,
+      ...errorResult,
     };
   }
 }
@@ -265,11 +259,15 @@ export async function createIfNotExists<T extends EntityRecord>(
       };
     }
   } catch (error) {
-    console.error(`Error in createIfNotExists for ${associationType}:`, error);
+    const errorResult = handleError(
+      "create or find",
+      associationType,
+      error,
+      userId
+    );
     return {
       success: false,
-      error: `Failed to create or find ${associationType}: ${error instanceof Error ? error.message : String(error)}`,
-      statusCode: 500,
+      ...errorResult,
     };
   }
 }
@@ -333,10 +331,10 @@ export async function createAndSaveEntities<T extends EntityRecord>(
         });
       }
     } catch (error) {
-      console.error(`Error processing entity:`, error);
+      const errorResult = handleError("process", associationType, error);
       failed.push({
         input: entityInput,
-        error: error instanceof Error ? error.message : String(error),
+        error: errorResult.error,
       });
     }
   }
@@ -467,14 +465,14 @@ export async function createRelationship(
       };
     }
   } catch (error) {
-    console.error(
-      `Error creating relationship between ${parentType} and ${childType}:`,
+    const errorResult = handleError(
+      "create",
+      `relationship between ${parentType} and ${childType}`,
       error
     );
     return {
       success: false,
-      error: `Failed to create relationship between ${parentType} and ${childType}: ${error instanceof Error ? error.message : String(error)}`,
-      statusCode: 500,
+      ...errorResult,
     };
   }
 }
@@ -515,59 +513,3 @@ function getFieldsForType(associationType: AssociationType): string {
   const fields = [...commonFields, ...typeSpecificFields[associationType]];
   return fields.join("\n            ");
 }
-
-/**
- * Example usage:
- *
- * // Fetch user associations
- * const associationsResult = await fetchUserAssociations<EntityRecord>("Education", 100);
- * if (associationsResult.success && associationsResult.data) {
- *   console.log("User education records:", associationsResult.data);
- * } else {
- *   console.error(`Error ${associationsResult.statusCode}:`, associationsResult.error);
- * }
- *
- * // Create or find existing entity
- * const createResult = await createIfNotExists<EntityRecord>(
- *   "Education",
- *   {
- *     degree: "Bachelor of Science",
- *     major: "Computer Science",
- *     school: "University of Example",
- *     userId: "user123"
- *   },
- *   ["degree", "school"],
- *   "user123"
- * );
- * if (createResult.success && createResult.data) {
- *   console.log("Education record:", createResult.data);
- *   console.log("Was created:", createResult.statusCode === 201);
- * } else {
- *   console.error(`Error ${createResult.statusCode}:`, createResult.error);
- * }
- *
- * // Create multiple entities
- * const batchResult = await createAndSaveEntities<EntityRecord>(
- *   "Award",
- *   [
- *     { title: "Best Employee", date: "2023-01-01", userId: "user123" },
- *     { title: "Innovation Award", date: "2023-06-01", userId: "user123" }
- *   ],
- *   ["title", "date"],
- *   "user123"
- * );
- * if (batchResult.success && batchResult.data) {
- *   const { created, existing, failed } = batchResult.data;
- *   console.log(`Created: ${created.length}, Existing: ${existing.length}, Failed: ${failed.length}`);
- * } else {
- *   console.error(`Error ${batchResult.statusCode}:`, batchResult.error);
- * }
- *
- * // Create relationship
- * const relationshipResult = await createRelationship("Education", "edu123", "Qualification", "qual456");
- * if (relationshipResult.success && relationshipResult.data) {
- *   console.log("Relationship created with ID:", relationshipResult.data.id);
- * } else {
- *   console.error(`Error ${relationshipResult.statusCode}:`, relationshipResult.error);
- * }
- */

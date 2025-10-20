@@ -253,6 +253,7 @@ export const FRAGMENTS = {
     organization
     responsibilities
     type
+    userId
   }
 `,
 

@@ -1,11 +1,41 @@
 import { generateClient } from "aws-amplify/api";
-import { getModelFields, validateModelName } from "./modelUtils";
+import { buildQueryWithFragments } from "./graphqlFragments";
+import { validateAuth } from "../utils/authValidation";
+import { handleError } from "../utils/errorHandler";
+import {
+  validateAndSanitizeModelName,
+  validateAndSanitizeId,
+  validateAndSanitizeIdArray,
+  validateAndSanitizeObject,
+  sanitizeOrError,
+  validateLimit,
+  validateOrError,
+} from "../utils/validators";
+import { getRetryConfigForOperation } from "../utils/constants";
 
-interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  statusCode: number;
+import { withRetry, RetryConfig } from "../utils/retry";
+import { ApiResponse } from "../utils/api";
+
+const GRAPHQL_RETRY_CONFIG = getRetryConfigForOperation("read");
+
+function getFragmentForModel(modelName: string): string {
+  const fragmentMap: Record<string, string> = {
+    Application: "ApplicationFields",
+    Award: "AwardFields",
+    Education: "EducationFields",
+    Job: "JobDetailedFields",
+    Resume: "ResumeFields",
+    Topic: "TopicFields",
+    PastJob: "PastJobFields",
+    Qualification: "QualificationFields",
+    AwardApplication: "AwardApplicationFields",
+    EducationApplication: "EducationApplicationFields",
+    QualificationApplication: "QualificationApplicationFields",
+    PastJobApplication: "PastJobApplicationFields",
+    PastJobQualification: "PastJobApplicationFields",
+  };
+
+  return fragmentMap[modelName] || "";
 }
 
 /**
@@ -17,63 +47,79 @@ interface ApiResponse<T = any> {
  */
 export async function fetchModelRecord(
   modelName: string,
-  id: string
+  id: string,
+  retryConfig?: RetryConfig
 ): Promise<ApiResponse> {
-  const client = generateClient();
-
-  // Validate the model name
-  try {
-    validateModelName(modelName);
-  } catch (error) {
-    return {
-      success: false,
-      error: `Invalid model name: ${modelName}`,
-      statusCode: 400,
-    };
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
   }
 
+  // Validate and sanitize model name
+  const modelResult = sanitizeOrError(validateAndSanitizeModelName(modelName));
+  if (!modelResult.success) return modelResult.error;
+  const sanitizedModelName = modelResult.sanitized;
+
+  // Validate and sanitize ID
+  const idResult = sanitizeOrError(validateAndSanitizeId(id, "id"));
+  if (!idResult.success) return idResult.error;
+  const sanitizedId = idResult.sanitized;
+
+  const client = generateClient();
+
   try {
-    // Create the GraphQL query
-    const query = `
-      query Get${modelName}($id: ID!) {
-        get${modelName}(id: $id) {
-          id
-          createdAt
-          updatedAt
-          ${getModelFields(modelName)}
+    const fragmentName = getFragmentForModel(sanitizedModelName);
+
+    const query = buildQueryWithFragments(`
+      query Get${sanitizedModelName}($id: ID!) {
+        get${sanitizedModelName}(id: $id) {
+          ${
+            fragmentName
+              ? `...${fragmentName}`
+              : `
+            id
+            createdAt
+            updatedAt
+          `
+          }
         }
       }
-    `;
+    `);
 
-    // Execute the GraphQL query
-    const fetchResult = await client.graphql({
-      query: query,
-      variables: {
-        id,
-      },
-      authMode: "userPool",
-    });
+    const fetchResult = await withRetry(async () => {
+      return await client.graphql({
+        query: query,
+        variables: { id: sanitizedId },
+        authMode: "userPool",
+      });
+    }, retryConfig || GRAPHQL_RETRY_CONFIG);
 
-    // Verify successful fetch
-    if ("data" in fetchResult && fetchResult.data?.[`get${modelName}`]) {
+    if (
+      "data" in fetchResult &&
+      fetchResult.data?.[`get${sanitizedModelName}`]
+    ) {
       return {
         success: true,
-        data: fetchResult.data[`get${modelName}`],
+        data: fetchResult.data[`get${sanitizedModelName}`],
         statusCode: 200,
       };
     } else {
       return {
         success: false,
-        error: `${modelName} record with ID: ${id} not found`,
+        error: `${sanitizedModelName} record with ID: ${sanitizedId} not found`,
         statusCode: 404,
       };
     }
   } catch (error) {
-    console.error(`Error fetching ${modelName} record:`, error);
+    const errorResult = handleError(
+      "fetch",
+      sanitizedModelName,
+      error,
+      sanitizedId
+    );
     return {
       success: false,
-      error: `Failed to fetch ${modelName} record`,
-      statusCode: 500,
+      ...errorResult,
     };
   }
 }
@@ -85,106 +131,253 @@ export async function fetchModelRecord(
  * @param {Object} filter - Optional filter object for the query
  * @param {number} limit - Optional limit for the number of records to fetch
  * @param {string} nextToken - Optional pagination token
- * @returns {Promise<ApiResponse<{items: Object[], nextToken?: string}>>} - API response with array of fetched records and next pagination token if available
+ * @returns {Promise<ApiResponse<{items: Object[], nextToken?: string}>>} - API response with array of fetched records
  */
 export async function listModelRecords(
   modelName: string,
   filter?: object,
   limit?: number,
-  nextToken?: string
+  nextToken?: string,
+  retryConfig?: RetryConfig
 ): Promise<ApiResponse<{ items: any[]; nextToken?: string }>> {
-  const client = generateClient();
-
-  // Validate the model name
-  try {
-    validateModelName(modelName);
-  } catch (error) {
-    return {
-      success: false,
-      error: `Invalid model name: ${modelName}`,
-      statusCode: 400,
-    };
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
   }
 
+  // Validate and sanitize model name
+  const modelResult = sanitizeOrError(validateAndSanitizeModelName(modelName));
+  if (!modelResult.success) return modelResult.error;
+  const sanitizedModelName = modelResult.sanitized;
+
+  // Validate and sanitize filter if provided
+  let sanitizedFilter = filter;
+  if (filter !== undefined) {
+    const filterResult = sanitizeOrError(
+      validateAndSanitizeObject(filter, "filter", {
+        preserveFields: [
+          "eq",
+          "ne",
+          "gt",
+          "lt",
+          "ge",
+          "le",
+          "contains",
+          "notContains",
+          "between",
+          "beginsWith",
+        ],
+        escapeHtml: false,
+        maxLength: 5000,
+      })
+    );
+    if (!filterResult.success) return filterResult.error;
+    sanitizedFilter = filterResult.sanitized;
+  }
+
+  // Validate limit (no sanitization needed for numbers)
+  if (limit !== undefined) {
+    const limitValidation = validateOrError(validateLimit(limit));
+    if (limitValidation) return limitValidation;
+  }
+
+  // Sanitize nextToken if provided (it's a string from GraphQL)
+  let sanitizedNextToken = nextToken;
+  if (nextToken !== undefined && nextToken !== null) {
+    const tokenResult = sanitizeOrError(
+      validateAndSanitizeId(nextToken, "nextToken")
+    );
+    if (!tokenResult.success) return tokenResult.error;
+    sanitizedNextToken = tokenResult.sanitized;
+  }
+
+  const client = generateClient();
+
   try {
-    // Create the GraphQL query
-    const query = `
-      query List${modelName}s($filter: Model${modelName}FilterInput, $limit: Int, $nextToken: String) {
-        list${modelName}s(filter: $filter, limit: $limit, nextToken: $nextToken) {
+    const fragmentName = getFragmentForModel(sanitizedModelName);
+
+    const query = buildQueryWithFragments(`
+      query List${sanitizedModelName}s($filter: Model${sanitizedModelName}FilterInput, $limit: Int, $nextToken: String) {
+        list${sanitizedModelName}s(filter: $filter, limit: $limit, nextToken: $nextToken) {
           items {
-            id
-            createdAt
-            updatedAt
-            ${getModelFields(modelName)}
+            ${
+              fragmentName
+                ? `...${fragmentName}`
+                : `
+              id
+              createdAt
+              updatedAt
+            `
+            }
           }
           nextToken
         }
       }
-    `;
+    `);
 
-    // Execute the GraphQL query
-    const listResult = await client.graphql({
-      query: query,
-      variables: {
-        filter,
-        limit,
-        nextToken,
-      },
-      authMode: "userPool",
-    });
+    const listResult = await withRetry(async () => {
+      return await client.graphql({
+        query: query,
+        variables: {
+          filter: sanitizedFilter,
+          limit,
+          nextToken: sanitizedNextToken,
+        },
+        authMode: "userPool",
+      });
+    }, retryConfig || GRAPHQL_RETRY_CONFIG);
 
-    // Verify successful fetch
-    if ("data" in listResult && listResult.data?.[`list${modelName}s`]) {
+    if (
+      "data" in listResult &&
+      listResult.data?.[`list${sanitizedModelName}s`]
+    ) {
       return {
         success: true,
         data: {
-          items: listResult.data[`list${modelName}s`].items,
-          nextToken: listResult.data[`list${modelName}s`].nextToken,
+          items: listResult.data[`list${sanitizedModelName}s`].items || [],
+          nextToken: listResult.data[`list${sanitizedModelName}s`].nextToken,
         },
         statusCode: 200,
       };
     } else {
       return {
         success: false,
-        error: `Failed to list ${modelName} records`,
+        error: `Failed to list ${sanitizedModelName} records`,
         statusCode: 500,
       };
     }
   } catch (error) {
-    console.error(`Error listing ${modelName} records:`, error);
+    const errorResult = handleError("list", sanitizedModelName, error);
     return {
       success: false,
-      error: `Failed to list ${modelName} records`,
-      statusCode: 500,
+      ...errorResult,
     };
   }
 }
 
 /**
- * Example usage:
+ * Batch fetch multiple records by IDs
  *
- * // Fetch a single education record
- * const educationResult = await fetchModelRecord("Education", "abc123");
- * if (educationResult.success) {
- *   console.log("Education record:", educationResult.data);
- * } else {
- *   console.error(`Error ${educationResult.statusCode}:`, educationResult.error);
- * }
- *
- * // List all PastJob records for a specific user
- * const jobsResult = await listModelRecords("PastJob", { userId: { eq: "user123" } }, 10);
- * if (jobsResult.success && jobsResult.data) {
- *   const { items: userJobs, nextToken } = jobsResult.data;
- *   console.log("Jobs:", userJobs);
- *
- *   // Fetch the next page of results if nextToken exists
- *   if (nextToken) {
- *     const moreJobsResult = await listModelRecords("PastJob", { userId: { eq: "user123" } }, 10, nextToken);
- *     if (moreJobsResult.success && moreJobsResult.data) {
- *       console.log("More jobs:", moreJobsResult.data.items);
- *     }
- *   }
- * } else {
- *   console.error(`Error ${jobsResult.statusCode}:`, jobsResult.error);
- * }
+ * @param {string} modelName - The name of the model to fetch
+ * @param {string[]} ids - Array of IDs to fetch
+ * @returns {Promise<ApiResponse<{found: any[], notFound: string[]}>>} - API response with found records
  */
+export async function batchFetchModelRecords(
+  modelName: string,
+  ids: string[]
+): Promise<ApiResponse<{ found: any[]; notFound: string[] }>> {
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
+  }
+
+  // Validate and sanitize model name
+  const modelResult = sanitizeOrError(validateAndSanitizeModelName(modelName));
+  if (!modelResult.success) return modelResult.error;
+  const sanitizedModelName = modelResult.sanitized;
+
+  // Validate and sanitize IDs array
+  const idsResult = sanitizeOrError(validateAndSanitizeIdArray(ids, "ids"));
+  if (!idsResult.success) return idsResult.error;
+  const sanitizedIds = idsResult.sanitized;
+
+  const found: any[] = [];
+  const notFound: string[] = [];
+
+  for (const id of sanitizedIds) {
+    try {
+      // Use internal function to avoid double auth check
+      // IDs are already sanitized
+      const result = await fetchModelRecordInternal(sanitizedModelName, id);
+      if (result.success && result.data) {
+        found.push(result.data);
+      } else {
+        notFound.push(id);
+      }
+    } catch (error) {
+      const errorResult = handleError("fetch", sanitizedModelName, error, id);
+      console.error(
+        `Failed to fetch ${sanitizedModelName} with ID ${id}:`,
+        errorResult.error
+      );
+      notFound.push(id);
+    }
+  }
+
+  return {
+    success: true,
+    data: { found, notFound },
+    statusCode: 200,
+    ...(notFound.length > 0 && {
+      error: `${notFound.length} of ${sanitizedIds.length} ${sanitizedModelName} records not found`,
+    }),
+  };
+}
+
+/**
+ * Internal fetch function without auth check (for batch operations)
+ * modelName and id are already sanitized by the calling function
+ */
+async function fetchModelRecordInternal(
+  sanitizedModelName: string,
+  sanitizedId: string,
+  retryConfig?: RetryConfig
+): Promise<ApiResponse> {
+  const client = generateClient();
+
+  try {
+    const fragmentName = getFragmentForModel(sanitizedModelName);
+
+    const query = buildQueryWithFragments(`
+      query Get${sanitizedModelName}($id: ID!) {
+        get${sanitizedModelName}(id: $id) {
+          ${
+            fragmentName
+              ? `...${fragmentName}`
+              : `
+            id
+            createdAt
+            updatedAt
+          `
+          }
+        }
+      }
+    `);
+
+    const fetchResult = await withRetry(async () => {
+      return await client.graphql({
+        query: query,
+        variables: { id: sanitizedId },
+        authMode: "userPool",
+      });
+    }, retryConfig || GRAPHQL_RETRY_CONFIG);
+
+    if (
+      "data" in fetchResult &&
+      fetchResult.data?.[`get${sanitizedModelName}`]
+    ) {
+      return {
+        success: true,
+        data: fetchResult.data[`get${sanitizedModelName}`],
+        statusCode: 200,
+      };
+    } else {
+      return {
+        success: false,
+        error: `${sanitizedModelName} record with ID: ${sanitizedId} not found`,
+        statusCode: 404,
+      };
+    }
+  } catch (error) {
+    const errorResult = handleError(
+      "fetch",
+      sanitizedModelName,
+      error,
+      sanitizedId
+    );
+    return {
+      success: false,
+      ...errorResult,
+    };
+  }
+}
