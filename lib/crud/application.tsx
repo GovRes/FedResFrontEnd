@@ -1,4 +1,3 @@
-import { fetchAuthSession } from "aws-amplify/auth";
 import {
   AwardType,
   EducationType,
@@ -8,13 +7,18 @@ import {
 } from "../utils/responseSchemas";
 import { generateClient } from "aws-amplify/api";
 import { buildQueryWithFragments } from "./graphqlFragments";
-
-interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  statusCode: number;
-}
+import { validateAuth } from "../utils/authValidation";
+import { handleError } from "../utils/errorHandler";
+import {
+  validateAndSanitizeId,
+  validateAndSanitizeObject,
+  validateAndSanitizeNonEmptyString,
+  sanitizeOrError,
+  sanitizeString,
+} from "../utils/validators";
+import { withRetry, withBatchRetry, RetryConfig } from "../utils/retry";
+import { HTTP_STATUS, RETRY_CONFIG } from "../utils/constants";
+import { ApiResponse } from "../utils/api";
 
 type AssociationType =
   | "Award"
@@ -31,46 +35,351 @@ type AssociationTypeMap = {
   Resume: ResumeType;
 };
 
+// Configuration constants
+const JOIN_TABLE_CONFIG = {
+  AwardApplication: ["awardId", "applicationId"],
+  EducationApplication: ["educationId", "applicationId"],
+  PastJobApplication: ["pastJobId", "applicationId"],
+  QualificationApplication: ["qualificationId", "applicationId"],
+} as const;
+
+const JOIN_TABLES = Object.keys(JOIN_TABLE_CONFIG) as Array<
+  keyof typeof JOIN_TABLE_CONFIG
+>;
+const DEFAULT_RETRY_CONFIG: RetryConfig = {
+  maxAttempts: RETRY_CONFIG.DEFAULT_MAX_ATTEMPTS,
+  baseDelay: RETRY_CONFIG.DEFAULT_BASE_DELAY,
+  maxDelay: RETRY_CONFIG.DEFAULT_MAX_DELAY,
+};
+
+const READ_RETRY_CONFIG: RetryConfig = {
+  maxAttempts: RETRY_CONFIG.AGGRESSIVE_MAX_ATTEMPTS,
+  baseDelay: RETRY_CONFIG.AGGRESSIVE_BASE_DELAY,
+  maxDelay: RETRY_CONFIG.AGGRESSIVE_MAX_DELAY,
+};
+
+const WRITE_RETRY_CONFIG: RetryConfig = {
+  maxAttempts: RETRY_CONFIG.CONSERVATIVE_MAX_ATTEMPTS,
+  baseDelay: RETRY_CONFIG.CONSERVATIVE_BASE_DELAY,
+  maxDelay: RETRY_CONFIG.CONSERVATIVE_MAX_DELAY,
+};
+
+// Valid association types for sanitization
+const VALID_ASSOCIATION_TYPES: AssociationType[] = [
+  "Award",
+  "Education",
+  "PastJob",
+  "Qualification",
+  "Resume",
+];
+
 /**
- * Helper function to validate authentication
+ * Higher-order function to wrap API operations with auth, error handling, and client generation
  */
-async function validateAuth(): Promise<{
-  success: boolean;
-  error?: string;
-  statusCode?: number;
-}> {
+async function withApiWrapper<T>(
+  operation: (client: any) => Promise<ApiResponse<T>>
+): Promise<ApiResponse<T>> {
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse<T>;
+  }
+
+  const client = generateClient();
+
   try {
-    const session = await fetchAuthSession();
-    if (!session.tokens) {
-      return {
-        success: false,
-        error: "No valid authentication session found",
-        statusCode: 401,
-      };
-    }
-    return { success: true };
+    return await operation(client);
   } catch (error) {
-    console.error("No user is signed in");
+    // Let the operation handle its own error if it throws an ApiResponse
+    if (error && typeof error === "object" && "success" in error) {
+      return error as ApiResponse<T>;
+    }
+    // Handle unexpected errors by converting them to ApiResponse
+    const errorResult = handleError("operation", "API", error);
     return {
       success: false,
-      error: "User not authenticated",
-      statusCode: 401,
-    };
+      error: errorResult.error,
+      statusCode: errorResult.statusCode,
+    } as ApiResponse<T>;
   }
 }
 
 /**
- * Helper function to deduplicate items by ID
+ * Create success response
  */
-function deduplicateById<T extends { id: string }>(items: T[]): T[] {
+function successResponse<T>(
+  data: T,
+  statusCode: number = HTTP_STATUS.OK
+): ApiResponse<T> {
+  return {
+    success: true,
+    data,
+    statusCode,
+  };
+}
+
+/**
+ * Create error response for unexpected GraphQL format
+ */
+function unexpectedFormatError(context?: string): ApiResponse {
+  return {
+    success: false,
+    error: context
+      ? `Unexpected response format from GraphQL operation for ${context}`
+      : "Unexpected response format from GraphQL operation",
+    statusCode: 500,
+  };
+}
+
+/**
+ * Helper function to deduplicate items by ID with chunking for large datasets
+ * IMPROVED: Added chunking for better memory management
+ */
+function deduplicateById<T extends { id?: string | null }>(
+  items: T[],
+  chunkSize: number = 1000
+): T[] {
+  if (!Array.isArray(items) || items.length === 0) return [];
+
+  // For small arrays, use simple approach
+  if (items.length <= chunkSize) {
+    const seen = new Set<string>();
+    return items.filter((item) => {
+      if (!item.id) return false;
+      if (seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    });
+  }
+
+  // For large arrays, process in chunks with GC hints
   const seen = new Set<string>();
-  return items.filter((item) => {
-    if (seen.has(item.id)) {
-      return false;
+  const result: T[] = [];
+
+  for (let i = 0; i < items.length; i += chunkSize) {
+    const chunk = items.slice(i, i + chunkSize);
+
+    for (const item of chunk) {
+      if (item.id && !seen.has(item.id)) {
+        seen.add(item.id);
+        result.push(item);
+      }
     }
-    seen.add(item.id);
-    return true;
-  });
+
+    // Allow garbage collection between chunks
+    if (typeof global !== "undefined" && global.gc) {
+      global.gc();
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Extract application IDs from junction table items
+ */
+function extractApplicationIds(qualification: any): string[] {
+  return (
+    qualification.applications?.items?.map((app: any) => app.applicationId) ||
+    []
+  );
+}
+
+/**
+ * Transform a single qualification with its relationships
+ */
+function transformQualification(
+  qualification: any,
+  includeApplicationIds = true
+): any {
+  const base = {
+    id: qualification.id || "",
+    title: qualification.title || "",
+    description: qualification.description || "",
+    paragraph: qualification.paragraph,
+    question: qualification.question,
+    userConfirmed: qualification.userConfirmed || false,
+    userId: qualification.userId,
+    pastJobId: qualification.pastJobId,
+    topicId: qualification.topicId,
+    topic: qualification.topic || null,
+  };
+
+  if (includeApplicationIds) {
+    return { ...base, applicationIds: extractApplicationIds(qualification) };
+  }
+
+  return base;
+}
+
+/**
+ * Transform a single PastJob with its qualifications
+ */
+function transformPastJob(
+  pastJob: any,
+  includeApplicationIds = true
+): PastJobType {
+  const hours = pastJob.hours !== undefined ? String(pastJob.hours) : undefined;
+
+  const qualifications = (pastJob.qualifications?.items || []).map(
+    (qualification: any) =>
+      transformQualification(qualification, includeApplicationIds)
+  );
+
+  return { ...pastJob, hours, qualifications };
+}
+
+/**
+ * Transform a single Qualification with its pastJob relationship
+ */
+function transformQualificationWithPastJob(
+  qualification: any
+): QualificationType {
+  return {
+    ...qualification,
+    pastJob: qualification.pastJob || null,
+    topic: qualification.topic || null,
+  };
+}
+
+/**
+ * Transform junction table items to their associated entities
+ * IMPROVED: Added chunking for large datasets
+ */
+function extractAssociatedEntities<T extends { id?: string | null }>(
+  junctionItems: any[],
+  entityFieldName: string,
+  chunkSize: number = 1000
+): T[] {
+  if (!Array.isArray(junctionItems) || junctionItems.length === 0) return [];
+
+  // For small arrays, use simple approach
+  if (junctionItems.length <= chunkSize) {
+    return junctionItems
+      .map((item: any) => item[entityFieldName])
+      .filter(Boolean);
+  }
+
+  // For large arrays, process in chunks with GC hints
+  const result: T[] = [];
+
+  for (let i = 0; i < junctionItems.length; i += chunkSize) {
+    const chunk = junctionItems.slice(i, i + chunkSize);
+
+    for (const item of chunk) {
+      const entity = item[entityFieldName];
+      if (entity) {
+        result.push(entity);
+      }
+    }
+
+    // Allow garbage collection between chunks
+    if (typeof global !== "undefined" && global.gc) {
+      global.gc();
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Validate and sanitize association type
+ */
+function validateAndSanitizeAssociationType(associationType: string): {
+  isValid: boolean;
+  sanitized: AssociationType;
+  error?: string;
+} {
+  const sanitized = sanitizeString(associationType);
+
+  if (!VALID_ASSOCIATION_TYPES.includes(sanitized as AssociationType)) {
+    return {
+      isValid: false,
+      sanitized: sanitized as AssociationType,
+      error: `Invalid association type: ${sanitized}. Must be one of: ${VALID_ASSOCIATION_TYPES.join(", ")}`,
+    };
+  }
+
+  return {
+    isValid: true,
+    sanitized: sanitized as AssociationType,
+  };
+}
+
+/**
+ * Build query for association type
+ */
+function buildAssociationQuery(associationType: AssociationType): string {
+  const queryName = `list${associationType}Applications`;
+  const entityFieldName = `${associationType.charAt(0).toLowerCase() + associationType.slice(1)}`;
+
+  const queryMap: Record<AssociationType, string> = {
+    Award: `
+      query List${associationType}Applications($filter: Model${associationType}ApplicationFilterInput) {
+        ${queryName}(filter: $filter) {
+          items {
+            ...AwardApplicationFields
+            ${entityFieldName} {
+              ...AwardFields
+            }
+          }
+        }
+      }
+    `,
+    Education: `
+      query List${associationType}Applications($filter: Model${associationType}ApplicationFilterInput) {
+        ${queryName}(filter: $filter) {
+          items {
+            ...EducationApplicationFields
+            ${entityFieldName} {
+              ...EducationFields
+            }
+          }
+        }
+      }
+    `,
+    PastJob: `
+      query List${associationType}Applications($filter: Model${associationType}ApplicationFilterInput) {
+        ${queryName}(filter: $filter) {
+          items {
+            ...PastJobApplicationFields
+            ${entityFieldName} {
+              ...PastJobWithQualificationsFields
+            }
+          }
+        }
+      }
+    `,
+    Qualification: `
+      query List${associationType}Applications($filter: Model${associationType}ApplicationFilterInput) {
+        ${queryName}(filter: $filter) {
+          items {
+            ...QualificationApplicationFields
+            ${entityFieldName} {
+              ...QualificationWithPastJobFields
+            }
+          }
+        }
+      }
+    `,
+    Resume: `
+      query List${associationType}Applications($filter: Model${associationType}ApplicationFilterInput) {
+        ${queryName}(filter: $filter) {
+          items {
+            id
+            applicationId
+            ${entityFieldName}Id
+            ${entityFieldName} {
+              ...ResumeFields
+            }
+            createdAt
+            updatedAt
+          }
+        }
+      }
+    `,
+  };
+
+  return buildQueryWithFragments(queryMap[associationType]);
 }
 
 /**
@@ -80,43 +389,62 @@ export const associateItemsWithApplication = async ({
   applicationId,
   items,
   associationType,
+  retryConfig,
 }: {
   applicationId: string;
   items: { id: string }[] | string[];
   associationType: AssociationType;
+  retryConfig?: RetryConfig;
 }): Promise<ApiResponse> => {
   console.log(items, associationType);
 
-  const authCheck = await validateAuth();
-  if (!authCheck.success) {
-    return authCheck as ApiResponse;
-  }
+  return withApiWrapper(async (client) => {
+    // Validate and sanitize applicationId
+    const appIdResult = sanitizeOrError(
+      validateAndSanitizeId(applicationId, "applicationId")
+    );
+    if (!appIdResult.success) return appIdResult.error;
+    const sanitizedApplicationId = appIdResult.sanitized;
 
-  const client = generateClient();
-
-  try {
-    // Validate required parameters
-    if (!applicationId || !items || items.length === 0) {
+    // Validate items is a non-empty array
+    if (!Array.isArray(items) || items.length === 0) {
       return {
         success: false,
-        error: `applicationId and non-empty ${associationType} items array are required`,
+        error: "Invalid items: items must be a non-empty array",
         statusCode: 400,
       };
     }
 
-    // Map to get the item IDs whether we received objects with IDs or just ID strings
-    const itemIds = items.map((item) =>
+    // Sanitize items array - handle both string[] and {id: string}[]
+    const sanitizedItems: (string | { id: string })[] = items.map((item) => {
+      if (typeof item === "string") {
+        const idResult = validateAndSanitizeId(item, "item");
+        return idResult.isValid ? idResult.sanitized : item;
+      } else if (item && typeof item === "object" && "id" in item) {
+        const idResult = validateAndSanitizeId(item.id, "item.id");
+        return idResult.isValid ? { id: idResult.sanitized } : item;
+      }
+      return item;
+    });
+
+    // Validate and sanitize association type
+    const assocTypeResult = sanitizeOrError(
+      validateAndSanitizeAssociationType(associationType)
+    );
+    if (!assocTypeResult.success) return assocTypeResult.error;
+    const sanitizedAssociationType = assocTypeResult.sanitized;
+
+    const itemIds = sanitizedItems.map((item) =>
       typeof item === "string" ? item : item.id
     );
 
-    // Build the mutation name and field names based on the associationType
-    const mutationName = `create${associationType}Application`;
-    const itemIdFieldName = `${associationType.charAt(0).toLowerCase() + associationType.slice(1)}Id`;
-    const listQueryName = `list${associationType}Applications`;
+    const mutationName = `create${sanitizedAssociationType}Application`;
+    const itemIdFieldName = `${sanitizedAssociationType.charAt(0).toLowerCase() + sanitizedAssociationType.slice(1)}Id`;
+    const listQueryName = `list${sanitizedAssociationType}Applications`;
 
-    // STEP 1: Check for existing associations
+    // Check for existing associations
     const existingAssociationsQuery = buildQueryWithFragments(`
-      query List${associationType}Applications($filter: Model${associationType}ApplicationFilterInput) {
+      query List${sanitizedAssociationType}Applications($filter: Model${sanitizedAssociationType}ApplicationFilterInput) {
         ${listQueryName}(filter: $filter) {
           items {
             ${itemIdFieldName}
@@ -126,16 +454,17 @@ export const associateItemsWithApplication = async ({
       }
     `);
 
-    const existingResponse = await client.graphql({
-      query: existingAssociationsQuery,
-      variables: {
-        filter: { applicationId: { eq: applicationId } },
-      },
-      authMode: "userPool",
-    });
+    const existingResponse = await withRetry(async () => {
+      return await client.graphql({
+        query: existingAssociationsQuery,
+        variables: {
+          filter: { applicationId: { eq: sanitizedApplicationId } },
+        },
+        authMode: "userPool",
+      });
+    }, retryConfig || READ_RETRY_CONFIG);
 
-    // Get existing item IDs that are already associated
-    const existingItemIds = new Set();
+    const existingItemIds = new Set<string>();
     if (
       "data" in existingResponse &&
       existingResponse.data[listQueryName]?.items
@@ -145,37 +474,35 @@ export const associateItemsWithApplication = async ({
       });
     }
 
-    // STEP 2: Filter out items that are already associated
     const newItemIds = itemIds.filter((itemId) => !existingItemIds.has(itemId));
 
     if (newItemIds.length === 0) {
       console.log(
-        `All ${associationType} items are already associated with this application`
+        `All ${sanitizedAssociationType} items are already associated`
       );
-      return {
-        success: true,
-        data: [],
-        statusCode: 200,
-      };
+      return successResponse([], HTTP_STATUS.OK);
     }
 
     console.log(
       `Creating ${newItemIds.length} new associations out of ${itemIds.length} total items`
     );
 
-    // STEP 3: Create connections for new items only
-    const createdConnections = [];
-    const errors = [];
+    // Create connections for new items using withBatchRetry
+    interface JunctionTableRecord {
+      applicationId: string;
+      [key: string]: string;
+    }
 
-    for (const itemId of newItemIds) {
-      try {
+    const { successful, failed } = await withBatchRetry(
+      newItemIds,
+      async (itemId) => {
         const input = {
           [itemIdFieldName]: itemId,
-          applicationId,
+          applicationId: sanitizedApplicationId,
         };
 
         const createMutation = buildQueryWithFragments(`
-          mutation Create${associationType}Application($input: Create${associationType}ApplicationInput!) {
+          mutation Create${sanitizedAssociationType}Application($input: Create${sanitizedAssociationType}ApplicationInput!) {
             ${mutationName}(input: $input) {
               ${itemIdFieldName}
               applicationId
@@ -190,29 +517,25 @@ export const associateItemsWithApplication = async ({
         });
 
         if ("data" in response && response.data[mutationName]) {
-          createdConnections.push(response.data[mutationName]);
           console.log(
-            `Successfully created association for ${associationType} ${itemId}`
+            `Successfully created association for ${sanitizedAssociationType} ${itemId}`
           );
+          return response.data[mutationName] as JunctionTableRecord;
         } else {
-          errors.push(
-            `Failed to create association for ${associationType} ${itemId}: Unexpected response format`
+          throw new Error(
+            `Failed to create association for ${sanitizedAssociationType} ${itemId}: Unexpected response format`
           );
         }
-      } catch (error) {
-        console.error(
-          `Error creating association for ${associationType} ${itemId}:`,
-          error
-        );
-        errors.push(
-          `Failed to create association for ${associationType} ${itemId}: ${
-            error instanceof Error ? error.message : String(error)
-          }`
-        );
-      }
-    }
+      },
+      retryConfig || WRITE_RETRY_CONFIG
+    );
 
-    // STEP 4: Return results
+    const createdConnections = successful;
+    const errors = failed.map(
+      ({ item, error }) =>
+        `Failed to create association for ${sanitizedAssociationType} ${item}: ${error?.message || String(error)}`
+    );
+
     if (errors.length > 0 && createdConnections.length === 0) {
       return {
         success: false,
@@ -223,29 +546,13 @@ export const associateItemsWithApplication = async ({
       return {
         success: true,
         data: createdConnections,
-        statusCode: 207, // Multi-status
+        statusCode: HTTP_STATUS.MULTI_STATUS,
         error: `Some associations failed: ${errors.join("; ")}`,
       };
-    } else {
-      return {
-        success: true,
-        data: createdConnections,
-        statusCode: 201,
-      };
     }
-  } catch (error) {
-    console.error(
-      `Error associating ${associationType} with Application:`,
-      error
-    );
-    return {
-      success: false,
-      error: `Failed to associate ${associationType} with Application: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-      statusCode: 500,
-    };
-  }
+
+    return successResponse(createdConnections, HTTP_STATUS.CREATED);
+  });
 };
 
 /**
@@ -254,25 +561,24 @@ export const associateItemsWithApplication = async ({
 export const createAndSaveApplication = async ({
   jobId,
   userId,
+  retryConfig,
 }: {
   jobId: string;
   userId: string;
+  retryConfig?: RetryConfig;
 }): Promise<ApiResponse> => {
-  const authCheck = await validateAuth();
-  if (!authCheck.success) {
-    return authCheck as ApiResponse;
-  }
+  return withApiWrapper(async (client) => {
+    // Validate and sanitize jobId
+    const jobIdResult = sanitizeOrError(validateAndSanitizeId(jobId, "jobId"));
+    if (!jobIdResult.success) return jobIdResult.error;
+    const sanitizedJobId = jobIdResult.sanitized;
 
-  const client = generateClient();
-
-  try {
-    if (!jobId || !userId) {
-      return {
-        success: false,
-        error: "jobId and userId are required parameters",
-        statusCode: 400,
-      };
-    }
+    // Validate and sanitize userId
+    const userIdResult = sanitizeOrError(
+      validateAndSanitizeId(userId, "userId")
+    );
+    if (!userIdResult.success) return userIdResult.error;
+    const sanitizedUserId = userIdResult.sanitized;
 
     const createMutation = buildQueryWithFragments(`
       mutation CreateApplication($input: CreateApplicationInput!) {
@@ -282,35 +588,27 @@ export const createAndSaveApplication = async ({
       }
     `);
 
-    const response = await client.graphql({
-      query: createMutation,
-      variables: {
-        input: { jobId, userId },
-      },
-      authMode: "userPool",
-    });
+    const createVariables = {
+      input: { jobId: sanitizedJobId, userId: sanitizedUserId },
+    } as any;
+
+    const response = await withRetry(async () => {
+      return await client.graphql({
+        query: createMutation,
+        variables: createVariables,
+        authMode: "userPool",
+      });
+    }, retryConfig || WRITE_RETRY_CONFIG);
 
     if ("data" in response) {
-      return {
-        success: true,
-        data: response.data.createApplication,
-        statusCode: 201,
-      };
+      return successResponse(
+        response.data.createApplication,
+        HTTP_STATUS.CREATED
+      );
     }
 
-    return {
-      success: false,
-      error: "Unexpected response format from GraphQL operation",
-      statusCode: 500,
-    };
-  } catch (error) {
-    console.error("Error creating Application:", error);
-    return {
-      success: false,
-      error: "Failed to create Application",
-      statusCode: 500,
-    };
-  }
+    return unexpectedFormatError();
+  });
 };
 
 /**
@@ -319,342 +617,148 @@ export const createAndSaveApplication = async ({
 export const getApplicationAssociations = async <T extends AssociationType>({
   applicationId,
   associationType,
+  retryConfig,
 }: {
   applicationId: string;
   associationType: T;
+  retryConfig?: RetryConfig;
 }): Promise<ApiResponse<AssociationTypeMap[T][]>> => {
   console.log(337, applicationId, associationType);
 
-  const authCheck = await validateAuth();
-  if (!authCheck.success) {
-    return authCheck as ApiResponse;
-  }
-
-  const client = generateClient();
-
-  try {
-    if (!applicationId) {
-      return {
-        success: false,
-        error: "applicationId is required",
-        statusCode: 400,
-      };
-    }
-
-    const queryName = `list${associationType}Applications`;
-    const entityFieldName = `${associationType.charAt(0).toLowerCase() + associationType.slice(1)}`;
-
-    // Build query with appropriate fragments based on association type
-    const getQueryForAssociationType = () => {
-      switch (associationType) {
-        case "Award":
-          return buildQueryWithFragments(`
-            query List${associationType}Applications($filter: Model${associationType}ApplicationFilterInput) {
-              ${queryName}(filter: $filter) {
-                items {
-                  ...AwardApplicationFields
-                  ${entityFieldName} {
-                    ...AwardFields
-                  }
-                }
-              }
-            }
-          `);
-        case "Education":
-          return buildQueryWithFragments(`
-            query List${associationType}Applications($filter: Model${associationType}ApplicationFilterInput) {
-              ${queryName}(filter: $filter) {
-                items {
-                  ...EducationApplicationFields
-                  ${entityFieldName} {
-                    ...EducationFields
-                  }
-                }
-              }
-            }
-          `);
-        case "PastJob":
-          return buildQueryWithFragments(`
-            query List${associationType}Applications($filter: Model${associationType}ApplicationFilterInput) {
-              ${queryName}(filter: $filter) {
-                items {
-                  ...PastJobApplicationFields
-                  ${entityFieldName} {
-                    ...PastJobWithQualificationsFields
-                  }
-                }
-              }
-            }
-          `);
-        case "Qualification":
-          return buildQueryWithFragments(`
-            query List${associationType}Applications($filter: Model${associationType}ApplicationFilterInput) {
-              ${queryName}(filter: $filter) {
-                items {
-                  ...QualificationApplicationFields
-                  ${entityFieldName} {
-                    ...QualificationWithPastJobFields
-                  }
-                }
-              }
-            }
-          `);
-        case "Resume":
-          return buildQueryWithFragments(`
-            query List${associationType}Applications($filter: Model${associationType}ApplicationFilterInput) {
-              ${queryName}(filter: $filter) {
-                items {
-                  id
-                  applicationId
-                  ${entityFieldName}Id
-                  ${entityFieldName} {
-                    ...ResumeFields
-                  }
-                  createdAt
-                  updatedAt
-                }
-              }
-            }
-          `);
-        default:
-          return "";
-      }
-    };
-
-    const query = getQueryForAssociationType();
-
-    const junctionResponse = await client.graphql({
-      query,
-      variables: {
-        filter: { applicationId: { eq: applicationId } },
-      } as any,
-      authMode: "userPool",
-    });
-
-    if ("data" in junctionResponse) {
-      const junctionItems = junctionResponse.data[queryName].items;
-      const associatedItemsWithDuplicates = junctionItems
-        .map((item: any) => item[entityFieldName])
-        .filter(Boolean);
-
-      const uniqueItems = deduplicateById(associatedItemsWithDuplicates);
-
-      // Special handling for PastJob to transform qualifications
-      // Special handling for PastJob to transform qualifications
-      if (associationType === "PastJob") {
-        const transformedItems = uniqueItems.map((item: any) => {
-          const hours =
-            item.hours !== undefined ? String(item.hours) : undefined;
-          return {
-            ...item,
-            hours,
-            qualifications: (item.qualifications?.items || []).map(
-              (qualification: any) => {
-                // Extract applicationIds from the junction table
-                const applicationIds =
-                  qualification.applications?.items?.map(
-                    (app: any) => app.applicationId
-                  ) || [];
-
-                return {
-                  id: qualification.id || "",
-                  title: qualification.title || "",
-                  description: qualification.description || "",
-                  paragraph: qualification.paragraph,
-                  question: qualification.question,
-                  userConfirmed: qualification.userConfirmed || false,
-                  userId: qualification.userId,
-                  pastJobId: qualification.pastJobId,
-                  topicId: qualification.topicId,
-                  topic: qualification.topic || null,
-                  applicationIds: applicationIds, // Add the transformed applicationIds
-                };
-              }
-            ),
-          };
-        }) as AssociationTypeMap[T][];
-
-        return {
-          success: true,
-          data: transformedItems,
-          statusCode: 200,
-        };
-      }
-
-      // For Qualification, handle the simplified pastJob relationship
-      if (associationType === "Qualification") {
-        const transformedItems = uniqueItems.map((item: any) => ({
-          ...item,
-          pastJob: item.pastJob || null,
-          topic: item.topic || null,
-        })) as AssociationTypeMap[T][];
-
-        return {
-          success: true,
-          data: transformedItems,
-          statusCode: 200,
-        };
-      }
-
-      return {
-        success: true,
-        data: uniqueItems as AssociationTypeMap[T][],
-        statusCode: 200,
-      };
-    }
-
-    return {
-      success: false,
-      error: `Unexpected response format from GraphQL operation for ${associationType}`,
-      statusCode: 500,
-    };
-  } catch (error) {
-    console.error(
-      `Error fetching ${associationType} associations for Application:`,
-      error
+  return withApiWrapper(async (client) => {
+    // Validate and sanitize applicationId
+    const appIdResult = sanitizeOrError(
+      validateAndSanitizeId(applicationId, "applicationId")
     );
-    return {
-      success: false,
-      error: `Failed to fetch ${associationType} associations for Application`,
-      statusCode: 500,
-    };
-  }
+    if (!appIdResult.success) return appIdResult.error;
+    const sanitizedApplicationId = appIdResult.sanitized;
+
+    // Validate and sanitize association type
+    const assocTypeResult = sanitizeOrError(
+      validateAndSanitizeAssociationType(associationType)
+    );
+    if (!assocTypeResult.success) return assocTypeResult.error;
+    const sanitizedAssociationType = assocTypeResult.sanitized;
+
+    const queryName = `list${sanitizedAssociationType}Applications`;
+    const entityFieldName = `${sanitizedAssociationType.charAt(0).toLowerCase() + sanitizedAssociationType.slice(1)}`;
+    const query = buildAssociationQuery(sanitizedAssociationType);
+
+    const junctionResponse = await withRetry(async () => {
+      return await client.graphql({
+        query,
+        variables: {
+          filter: { applicationId: { eq: sanitizedApplicationId } },
+        } as any,
+        authMode: "userPool",
+      });
+    }, retryConfig || READ_RETRY_CONFIG);
+
+    if (!("data" in junctionResponse)) {
+      return unexpectedFormatError(sanitizedAssociationType);
+    }
+
+    const junctionItems = junctionResponse.data[queryName].items;
+    const associatedItems = extractAssociatedEntities(
+      junctionItems,
+      entityFieldName
+    );
+    const uniqueItems = deduplicateById(associatedItems);
+
+    // Type-specific transformations
+    if (sanitizedAssociationType === "PastJob") {
+      const transformedItems = uniqueItems.map((item: any) =>
+        transformPastJob(item, true)
+      ) as AssociationTypeMap[T][];
+      return successResponse(transformedItems);
+    }
+
+    if (sanitizedAssociationType === "Qualification") {
+      const transformedItems = uniqueItems.map((item: any) =>
+        transformQualificationWithPastJob(item)
+      ) as AssociationTypeMap[T][];
+      return successResponse(transformedItems);
+    }
+
+    return successResponse(uniqueItems as AssociationTypeMap[T][]);
+  });
 };
+
 export const getApplicationPastJobs = async ({
   applicationId,
+  retryConfig,
 }: {
   applicationId: string;
+  retryConfig?: RetryConfig;
 }): Promise<ApiResponse<PastJobType[]>> => {
   console.log(337, applicationId, "PastJob");
 
-  const authCheck = await validateAuth();
-  if (!authCheck.success) {
-    return authCheck as ApiResponse;
-  }
-
-  const client = generateClient();
-
-  try {
-    if (!applicationId) {
-      return {
-        success: false,
-        error: "applicationId is required",
-        statusCode: 400,
-      };
-    }
+  return withApiWrapper(async (client) => {
+    // Validate and sanitize applicationId
+    const appIdResult = sanitizeOrError(
+      validateAndSanitizeId(applicationId, "applicationId")
+    );
+    if (!appIdResult.success) return appIdResult.error;
+    const sanitizedApplicationId = appIdResult.sanitized;
 
     const query = buildQueryWithFragments(`
-  query ListPastJobApplications($filter: ModelPastJobApplicationFilterInput) {
-    listPastJobApplications(filter: $filter) {
-      items {
-        ...PastJobApplicationFields
-        pastJob {
-          ...PastJobBasicFields
-          qualifications {
-            items {
-              ...QualificationWithTopicFields
+      query ListPastJobApplications($filter: ModelPastJobApplicationFilterInput) {
+        listPastJobApplications(filter: $filter) {
+          items {
+            ...PastJobApplicationFields
+            pastJob {
+              ...PastJobBasicFields
+              qualifications {
+                items {
+                  ...QualificationWithTopicFields
+                }
+              }
             }
           }
         }
       }
-    }
-  }
-`);
+    `);
 
-    const junctionResponse = await client.graphql({
-      query,
-      variables: {
-        filter: { applicationId: { eq: applicationId } },
-      } as any,
-      authMode: "userPool",
-    });
-
-    if ("data" in junctionResponse) {
-      const junctionItems = junctionResponse.data.listPastJobApplications.items;
-      const associatedItemsWithDuplicates = junctionItems
-        .map((item: any) => item.pastJob)
-        .filter(Boolean);
-
-      const uniqueItems = deduplicateById(associatedItemsWithDuplicates);
-
-      const transformedItems = uniqueItems.map((item: any) => {
-        const hours = item.hours !== undefined ? String(item.hours) : undefined;
-        return {
-          ...item,
-          hours,
-          qualifications: (item.qualifications?.items || []).map(
-            (qualification: any) => {
-              // Extract applicationIds from the junction table
-              const applicationIds =
-                qualification.applications?.items?.map(
-                  (app: any) => app.applicationId
-                ) || [];
-
-              return {
-                id: qualification.id || "",
-                title: qualification.title || "",
-                description: qualification.description || "",
-                paragraph: qualification.paragraph,
-                question: qualification.question,
-                userConfirmed: qualification.userConfirmed || false,
-                userId: qualification.userId,
-                pastJobId: qualification.pastJobId,
-                topicId: qualification.topicId,
-                topic: qualification.topic || null,
-                applicationIds: applicationIds,
-              };
-            }
-          ),
-        };
+    const junctionResponse = await withRetry(async () => {
+      return await client.graphql({
+        query,
+        variables: {
+          filter: { applicationId: { eq: sanitizedApplicationId } },
+        } as any,
+        authMode: "userPool",
       });
+    }, retryConfig || READ_RETRY_CONFIG);
 
-      return {
-        success: true,
-        data: transformedItems,
-        statusCode: 200,
-      };
+    if (!("data" in junctionResponse)) {
+      return unexpectedFormatError("PastJob");
     }
 
-    return {
-      success: false,
-      error: `Unexpected response format from GraphQL operation for PastJob`,
-      statusCode: 500,
-    };
-  } catch (error) {
-    console.error(
-      `Error fetching PastJob associations for Application:`,
-      error
+    const junctionItems = junctionResponse.data.listPastJobApplications.items;
+    const associatedItems = extractAssociatedEntities(junctionItems, "pastJob");
+    const uniqueItems = deduplicateById(associatedItems);
+    const transformedItems = uniqueItems.map((item: any) =>
+      transformPastJob(item, true)
     );
-    return {
-      success: false,
-      error: `Failed to fetch PastJob associations for Application`,
-      statusCode: 500,
-    };
-  }
+
+    return successResponse(transformedItems);
+  });
 };
+
 /**
  * Get application with job details
  */
 export const getApplicationWithJob = async ({
   id,
+  retryConfig,
 }: {
   id: string;
+  retryConfig?: RetryConfig;
 }): Promise<ApiResponse> => {
-  const authCheck = await validateAuth();
-  if (!authCheck.success) {
-    return authCheck as ApiResponse;
-  }
-
-  const client = generateClient();
-
-  try {
-    if (!id) {
-      return {
-        success: false,
-        error: "Application id is required",
-        statusCode: 400,
-      };
-    }
+  return withApiWrapper(async (client) => {
+    // Validate and sanitize id
+    const idResult = sanitizeOrError(validateAndSanitizeId(id, "id"));
+    if (!idResult.success) return idResult.error;
+    const sanitizedId = idResult.sanitized;
 
     const query = buildQueryWithFragments(`
       query GetApplication($id: ID!) {
@@ -672,48 +776,34 @@ export const getApplicationWithJob = async ({
       }
     `);
 
-    const response = await client.graphql({
-      query,
-      variables: { id },
-      authMode: "userPool",
-    });
+    const response = await withRetry(async () => {
+      return await client.graphql({
+        query,
+        variables: { id: sanitizedId },
+        authMode: "userPool",
+      });
+    }, retryConfig || READ_RETRY_CONFIG);
 
-    if ("data" in response) {
-      const application = response.data.getApplication;
+    if (!("data" in response)) {
+      return unexpectedFormatError();
+    }
 
-      if (!application) {
-        return {
-          success: false,
-          error: `Application with id: ${id} not found`,
-          statusCode: 404,
-        };
-      }
-
-      // Flatten the topics.items array if it exists
-      if (application?.job?.topics?.items) {
-        application.job.topics = application.job.topics.items;
-      }
-
+    const application = response.data.getApplication;
+    if (!application) {
       return {
-        success: true,
-        data: application,
-        statusCode: 200,
+        success: false,
+        error: `Application with id: ${sanitizedId} not found`,
+        statusCode: 404,
       };
     }
 
-    return {
-      success: false,
-      error: "Unexpected response format from GraphQL operation",
-      statusCode: 500,
-    };
-  } catch (error) {
-    console.error("Error fetching Application:", error);
-    return {
-      success: false,
-      error: "Failed to fetch Application",
-      statusCode: 500,
-    };
-  }
+    // Flatten topics
+    if (application?.job?.topics?.items) {
+      application.job.topics = application.job.topics.items;
+    }
+
+    return successResponse(application);
+  });
 };
 
 /**
@@ -721,24 +811,16 @@ export const getApplicationWithJob = async ({
  */
 export const getApplicationWithJobAndQualifications = async ({
   id,
+  retryConfig,
 }: {
   id: string;
+  retryConfig?: RetryConfig;
 }): Promise<ApiResponse> => {
-  const authCheck = await validateAuth();
-  if (!authCheck.success) {
-    return authCheck as ApiResponse;
-  }
-
-  const client = generateClient();
-
-  try {
-    if (!id) {
-      return {
-        success: false,
-        error: "Application id is required",
-        statusCode: 400,
-      };
-    }
+  return withApiWrapper(async (client) => {
+    // Validate and sanitize id
+    const idResult = sanitizeOrError(validateAndSanitizeId(id, "id"));
+    if (!idResult.success) return idResult.error;
+    const sanitizedId = idResult.sanitized;
 
     const query = buildQueryWithFragments(`
       query GetApplication($id: ID!) {
@@ -764,73 +846,52 @@ export const getApplicationWithJobAndQualifications = async ({
       }
     `);
 
-    const response = await client.graphql({
-      query,
-      variables: { id },
-      authMode: "userPool",
-    });
+    const response = await withRetry(async () => {
+      return await client.graphql({
+        query,
+        variables: { id: sanitizedId },
+        authMode: "userPool",
+      });
+    }, retryConfig || READ_RETRY_CONFIG);
 
-    if ("data" in response) {
-      const application = response.data.getApplication;
+    if (!("data" in response)) {
+      return unexpectedFormatError();
+    }
 
-      if (!application) {
-        return {
-          success: false,
-          error: `Application with id: ${id} not found`,
-          statusCode: 404,
-        };
-      }
-
-      // Flatten the topics.items array
-      if (application?.job?.topics?.items) {
-        application.job.topics = application.job.topics.items;
-      }
-
+    const application = response.data.getApplication;
+    if (!application) {
       return {
-        success: true,
-        data: application,
-        statusCode: 200,
+        success: false,
+        error: `Application with id: ${sanitizedId} not found`,
+        statusCode: 404,
       };
     }
 
-    return {
-      success: false,
-      error: "Unexpected response format from GraphQL operation",
-      statusCode: 500,
-    };
-  } catch (error) {
-    console.error("Error fetching Application:", error);
-    return {
-      success: false,
-      error: "Failed to fetch Application",
-      statusCode: 500,
-    };
-  }
+    // Flatten topics
+    if (application?.job?.topics?.items) {
+      application.job.topics = application.job.topics.items;
+    }
+
+    return successResponse(application);
+  });
 };
 
 /**
  * Get application with all associations
+ * IMPROVED: More efficient transformation with better memory management
  */
 export const getApplicationWithAllAssociations = async ({
   id,
+  retryConfig,
 }: {
   id: string;
+  retryConfig?: RetryConfig;
 }): Promise<ApiResponse> => {
-  const authCheck = await validateAuth();
-  if (!authCheck.success) {
-    return authCheck as ApiResponse;
-  }
-
-  const client = generateClient();
-
-  try {
-    if (!id) {
-      return {
-        success: false,
-        error: "Application id is required",
-        statusCode: 400,
-      };
-    }
+  return withApiWrapper(async (client) => {
+    // Validate and sanitize id
+    const idResult = sanitizeOrError(validateAndSanitizeId(id, "id"));
+    if (!idResult.success) return idResult.error;
+    const sanitizedId = idResult.sanitized;
 
     const query = buildQueryWithFragments(`
       query GetApplicationWithAllAssociations($id: ID!) {
@@ -880,124 +941,92 @@ export const getApplicationWithAllAssociations = async ({
       }
     `);
 
-    const response = await client.graphql({
-      query,
-      variables: { id },
-      authMode: "userPool",
-    });
+    const response = await withRetry(async () => {
+      return await client.graphql({
+        query,
+        variables: { id: sanitizedId },
+        authMode: "userPool",
+      });
+    }, retryConfig || READ_RETRY_CONFIG);
 
-    if ("data" in response) {
-      const application = response.data.getApplication;
+    if (!("data" in response)) {
+      return unexpectedFormatError();
+    }
 
-      if (!application) {
-        return {
-          success: false,
-          error: `Application with id: ${id} not found`,
-          statusCode: 404,
-        };
-      }
-
-      // Transform the nested data structure
-      const transformedApplication = {
-        ...application,
-        job: {
-          ...application.job,
-          topics: application.job?.topics?.items || null,
-        },
-        // Transform each association type
-        awards: application.awards?.items
-          ? deduplicateById(
-              application.awards.items.map((item: any) => item.award)
-            )
-          : null,
-        educations: application.educations?.items
-          ? deduplicateById(
-              application.educations.items.map((item: any) => item.education)
-            )
-          : null,
-        pastJobs: application.pastJobs?.items
-          ? deduplicateById(
-              application.pastJobs.items.map((item: any) => {
-                const pastJob = item.pastJob;
-                return {
-                  ...pastJob,
-                  hours:
-                    pastJob.hours !== undefined
-                      ? String(pastJob.hours)
-                      : undefined,
-                  qualifications: (pastJob.qualifications?.items || []).map(
-                    (qualification: any) => ({
-                      id: qualification.id || "",
-                      title: qualification.title || "",
-                      description: qualification.description || "",
-                      paragraph: qualification.paragraph,
-                      question: qualification.question,
-                      userConfirmed: qualification.userConfirmed || false,
-                      userId: qualification.userId,
-                      pastJobId: qualification.pastJobId,
-                      topicId: qualification.topicId,
-                      topic: qualification.topic || null,
-                    })
-                  ),
-                };
-              })
-            )
-          : null,
-        qualifications: application.qualifications?.items
-          ? deduplicateById(
-              application.qualifications.items.map((item: any) => {
-                const qual = item.qualification;
-                return {
-                  ...qual,
-                  pastJob: qual.pastJob || null,
-                };
-              })
-            ).sort((a: QualificationType, b: QualificationType) => {
-              if (a.id < b.id) return -1;
-              return 1;
-            })
-          : null,
-        resumes: application.resumes?.items
-          ? deduplicateById(
-              application.resumes.items.map((item: any) => item.resume)
-            )
-          : null,
-      };
-
+    const application = response.data.getApplication;
+    if (!application) {
       return {
-        success: true,
-        data: transformedApplication,
-        statusCode: 200,
+        success: false,
+        error: `Application with id: ${sanitizedId} not found`,
+        statusCode: 404,
       };
     }
 
-    return {
-      success: false,
-      error: "Unexpected response format from GraphQL operation",
-      statusCode: 500,
+    // Transform the nested data structure with improved memory efficiency
+    const transformedApplication = {
+      ...application,
+      job: {
+        ...application.job,
+        topics: application.job?.topics?.items || null,
+      },
+      awards: application.awards?.items
+        ? deduplicateById(
+            extractAssociatedEntities<AwardType>(
+              application.awards.items,
+              "award"
+            )
+          )
+        : null,
+      educations: application.educations?.items
+        ? deduplicateById(
+            extractAssociatedEntities<EducationType>(
+              application.educations.items,
+              "education"
+            )
+          )
+        : null,
+      pastJobs: application.pastJobs?.items
+        ? deduplicateById(
+            extractAssociatedEntities<any>(
+              application.pastJobs.items,
+              "pastJob"
+            )
+          ).map((item: any) => transformPastJob(item, false))
+        : null,
+      qualifications: application.qualifications?.items
+        ? deduplicateById(
+            extractAssociatedEntities<any>(
+              application.qualifications.items,
+              "qualification"
+            )
+          )
+            .map((item: any) => transformQualificationWithPastJob(item))
+            .sort((a: QualificationType, b: QualificationType) => {
+              if (a.id < b.id) return -1;
+              return 1;
+            })
+        : null,
+      resumes: application.resumes?.items
+        ? deduplicateById(
+            extractAssociatedEntities<ResumeType>(
+              application.resumes.items,
+              "resume"
+            )
+          )
+        : null,
     };
-  } catch (error) {
-    console.error("Error fetching Application with all associations:", error);
-    return {
-      success: false,
-      error: "Failed to fetch Application with all associations",
-      statusCode: 500,
-    };
-  }
+
+    return successResponse(transformedApplication);
+  });
 };
 
 /**
  * List all applications
  */
-export const listApplications = async (): Promise<ApiResponse> => {
-  const authCheck = await validateAuth();
-  if (!authCheck.success) {
-    return authCheck as ApiResponse;
-  }
-
-  const client = generateClient();
-
-  try {
+export const listApplications = async (
+  retryConfig?: RetryConfig
+): Promise<ApiResponse> => {
+  return withApiWrapper(async (client) => {
     const query = buildQueryWithFragments(`
       query ListApplications {
         listApplications {
@@ -1008,32 +1037,19 @@ export const listApplications = async (): Promise<ApiResponse> => {
       }
     `);
 
-    const response = await client.graphql({
-      query,
-      authMode: "userPool",
-    });
+    const response = await withRetry(async () => {
+      return await client.graphql({
+        query,
+        authMode: "userPool",
+      });
+    }, retryConfig || READ_RETRY_CONFIG);
 
     if ("data" in response) {
-      return {
-        success: true,
-        data: response.data.listApplications.items,
-        statusCode: 200,
-      };
+      return successResponse(response.data.listApplications.items);
     }
 
-    return {
-      success: false,
-      error: "Unexpected response format from GraphQL operation",
-      statusCode: 500,
-    };
-  } catch (error) {
-    console.error("Error fetching Applications:", error);
-    return {
-      success: false,
-      error: "Failed to fetch Applications",
-      statusCode: 500,
-    };
-  }
+    return unexpectedFormatError();
+  });
 };
 
 /**
@@ -1041,24 +1057,18 @@ export const listApplications = async (): Promise<ApiResponse> => {
  */
 export const listUserApplications = async ({
   userId,
+  retryConfig,
 }: {
   userId: string;
+  retryConfig?: RetryConfig;
 }): Promise<ApiResponse> => {
-  const authCheck = await validateAuth();
-  if (!authCheck.success) {
-    return authCheck as ApiResponse;
-  }
-
-  const client = generateClient();
-
-  try {
-    if (!userId) {
-      return {
-        success: false,
-        error: "userId is required",
-        statusCode: 400,
-      };
-    }
+  return withApiWrapper(async (client) => {
+    // Validate and sanitize userId
+    const userIdResult = sanitizeOrError(
+      validateAndSanitizeId(userId, "userId")
+    );
+    if (!userIdResult.success) return userIdResult.error;
+    const sanitizedUserId = userIdResult.sanitized;
 
     const query = buildQueryWithFragments(`
       query ListApplications($filter: ModelApplicationFilterInput) {
@@ -1074,35 +1084,20 @@ export const listUserApplications = async ({
       }
     `);
 
-    const response = await client.graphql({
-      query,
-      variables: {
-        filter: { userId: { eq: userId } },
-      },
-      authMode: "userPool",
-    });
+    const response = await withRetry(async () => {
+      return await client.graphql({
+        query,
+        variables: { filter: { userId: { eq: sanitizedUserId } } },
+        authMode: "userPool",
+      });
+    }, retryConfig || READ_RETRY_CONFIG);
 
     if ("data" in response) {
-      return {
-        success: true,
-        data: response.data.listApplications.items,
-        statusCode: 200,
-      };
+      return successResponse(response.data.listApplications.items);
     }
 
-    return {
-      success: false,
-      error: "Unexpected response format from GraphQL operation",
-      statusCode: 500,
-    };
-  } catch (error) {
-    console.error("Error fetching user Applications:", error);
-    return {
-      success: false,
-      error: "Failed to fetch user Applications",
-      statusCode: 500,
-    };
-  }
+    return unexpectedFormatError();
+  });
 };
 
 /**
@@ -1111,30 +1106,33 @@ export const listUserApplications = async ({
 export const updateApplication = async ({
   id,
   input,
+  retryConfig,
 }: {
   id: string;
   input: {
     completedSteps?: string[];
     status?: string;
   };
+  retryConfig?: RetryConfig;
 }): Promise<ApiResponse> => {
-  const authCheck = await validateAuth();
-  if (!authCheck.success) {
-    return authCheck as ApiResponse;
-  }
+  return withApiWrapper(async (client) => {
+    // Validate and sanitize id
+    const idResult = sanitizeOrError(validateAndSanitizeId(id, "id"));
+    if (!idResult.success) return idResult.error;
+    const sanitizedId = idResult.sanitized;
 
-  const client = generateClient();
+    // Validate and sanitize input object
+    const inputResult = sanitizeOrError(
+      validateAndSanitizeObject(input, "input", {
+        preserveFields: [],
+        escapeHtml: false,
+        maxLength: 10000,
+      })
+    );
+    if (!inputResult.success) return inputResult.error;
+    const sanitizedInput = inputResult.sanitized;
 
-  try {
-    if (!id) {
-      return {
-        success: false,
-        error: "Application id is required",
-        statusCode: 400,
-      };
-    }
-
-    if (Object.keys(input).length === 0) {
+    if (Object.keys(sanitizedInput).length === 0) {
       return {
         success: false,
         error: "At least one field to update is required",
@@ -1150,84 +1148,54 @@ export const updateApplication = async ({
       }
     `);
 
-    const response = await client.graphql({
-      query: mutation,
-      variables: {
-        input: { id, ...input },
-      },
-      authMode: "userPool",
-    });
+    const updateVariables = {
+      input: { id: sanitizedId, ...sanitizedInput },
+    } as any;
+
+    const response = await withRetry(async () => {
+      return await client.graphql({
+        query: mutation,
+        variables: updateVariables,
+        authMode: "userPool",
+      });
+    }, retryConfig || WRITE_RETRY_CONFIG);
 
     if ("data" in response) {
-      return {
-        success: true,
-        data: response.data.updateApplication,
-        statusCode: 200,
-      };
+      return successResponse(response.data.updateApplication);
     }
 
-    return {
-      success: false,
-      error: "Unexpected response format from GraphQL operation",
-      statusCode: 500,
-    };
-  } catch (error) {
-    console.error("Error updating Application:", error);
-    return {
-      success: false,
-      error: "Failed to update Application",
-      statusCode: 500,
-    };
-  }
+    return unexpectedFormatError();
+  });
 };
 
 /**
  * Delete an application and all its associated join table entries
+ * IMPROVED: Uses Promise.allSettled for robust error handling
  */
 export const deleteApplication = async ({
   applicationId,
+  retryConfig,
 }: {
   applicationId: string;
+  retryConfig?: RetryConfig;
 }): Promise<ApiResponse> => {
-  const authCheck = await validateAuth();
-  if (!authCheck.success) {
-    return authCheck as ApiResponse;
-  }
+  return withApiWrapper(async (client) => {
+    // Validate and sanitize applicationId
+    const appIdResult = sanitizeOrError(
+      validateAndSanitizeId(applicationId, "applicationId")
+    );
+    if (!appIdResult.success) return appIdResult.error;
+    const sanitizedApplicationId = appIdResult.sanitized;
 
-  const client = generateClient();
+    const deletionErrors: string[] = [];
 
-  try {
-    if (!applicationId) {
-      return {
-        success: false,
-        error: "applicationId is required",
-        statusCode: 400,
-      };
-    }
-
-    // Define the join tables that need to be cleaned up
-    const joinTables = [
-      "AwardApplication",
-      "EducationApplication",
-      "PastJobApplication",
-      "QualificationApplication",
-    ];
-
-    const joinTableKeys = {
-      AwardApplication: ["awardId", "applicationId"],
-      EducationApplication: ["educationId", "applicationId"],
-      PastJobApplication: ["pastJobId", "applicationId"],
-      QualificationApplication: ["qualificationId", "applicationId"],
-    };
-
-    // Step 1: Delete all join table entries for each association type
-    await Promise.all(
-      joinTables.map(async (joinTable) => {
-        const keyFields =
-          joinTableKeys[joinTable as keyof typeof joinTableKeys];
+    // Delete all join table entries for each association type
+    // IMPROVED: Use Promise.allSettled instead of Promise.all
+    const joinTableResults = await Promise.allSettled(
+      JOIN_TABLES.map(async (joinTable) => {
+        const keyFields = JOIN_TABLE_CONFIG[joinTable];
         const [relatedIdField] = keyFields;
 
-        // List all join table entries for this application
         const listQuery = buildQueryWithFragments(`
           query List${joinTable}s($filter: Model${joinTable}FilterInput) {
             list${joinTable}s(filter: $filter) {
@@ -1238,85 +1206,122 @@ export const deleteApplication = async ({
           }
         `);
 
-        const listResponse = await client.graphql({
-          query: listQuery,
-          variables: {
-            filter: { applicationId: { eq: applicationId } },
-          },
-          authMode: "userPool",
-        });
+        const listVariables = {
+          filter: { applicationId: { eq: sanitizedApplicationId } },
+        } as any;
 
-        if (
-          "data" in listResponse &&
-          listResponse.data[`list${joinTable}s`]?.items
-        ) {
-          const joinItems = listResponse.data[`list${joinTable}s`].items;
+        try {
+          const listResponse = await withRetry(async () => {
+            return await client.graphql({
+              query: listQuery,
+              variables: listVariables,
+              authMode: "userPool",
+            });
+          }, retryConfig || READ_RETRY_CONFIG);
 
-          // Delete each join table entry using composite key
-          await Promise.all(
-            joinItems.map(async (item: any) => {
-              const deleteQuery = buildQueryWithFragments(`
-                mutation Delete${joinTable}($input: Delete${joinTable}Input!) {
-                  delete${joinTable}(input: $input) {
-                    ${keyFields.join("\n                    ")}
+          if (
+            "data" in listResponse &&
+            listResponse.data[`list${joinTable}s`]?.items
+          ) {
+            const joinItems = listResponse.data[`list${joinTable}s`].items;
+
+            // IMPROVED: Use Promise.allSettled for individual deletions
+            const deleteResults = await Promise.allSettled(
+              joinItems.map(async (item: any) => {
+                const deleteQuery = buildQueryWithFragments(`
+                  mutation Delete${joinTable}($input: Delete${joinTable}Input!) {
+                    delete${joinTable}(input: $input) {
+                      ${keyFields.join("\n                      ")}
+                    }
                   }
-                }
-              `);
+                `);
 
-              return client.graphql({
-                query: deleteQuery,
-                variables: {
+                const deleteVariables = {
                   input: {
                     [relatedIdField]: item[relatedIdField],
                     applicationId: item.applicationId,
                   },
-                },
-                authMode: "userPool",
-              });
-            })
+                } as any;
+
+                return withRetry(async () => {
+                  return client.graphql({
+                    query: deleteQuery,
+                    variables: deleteVariables,
+                    authMode: "userPool",
+                  });
+                }, retryConfig || DEFAULT_RETRY_CONFIG);
+              })
+            );
+
+            // Collect errors from failed deletions
+            deleteResults.forEach((result, index) => {
+              if (result.status === "rejected") {
+                deletionErrors.push(
+                  `Failed to delete ${joinTable} item ${index}: ${result.reason?.message || String(result.reason)}`
+                );
+              }
+            });
+          }
+        } catch (error) {
+          deletionErrors.push(
+            `Failed to process ${joinTable}: ${error instanceof Error ? error.message : String(error)}`
           );
         }
       })
     );
 
-    // Step 2: Delete the application itself
-    const deleteApplicationQuery = buildQueryWithFragments(`
-      mutation DeleteApplication($input: DeleteApplicationInput!) {
-        deleteApplication(input: $input) {
-          ...ApplicationFields
-        }
+    // Check for join table processing failures
+    joinTableResults.forEach((result, index) => {
+      if (result.status === "rejected") {
+        deletionErrors.push(
+          `Failed to process join table ${JOIN_TABLES[index]}: ${result.reason?.message || String(result.reason)}`
+        );
       }
-    `);
-
-    const deleteResponse = await client.graphql({
-      query: deleteApplicationQuery,
-      variables: {
-        input: { id: applicationId },
-      },
-      authMode: "userPool",
     });
 
-    if ("data" in deleteResponse) {
+    // Delete the application itself
+    try {
+      const deleteApplicationQuery = buildQueryWithFragments(`
+        mutation DeleteApplication($input: DeleteApplicationInput!) {
+          deleteApplication(input: $input) {
+            ...ApplicationFields
+          }
+        }
+      `);
+
+      const deleteVariables = { input: { id: sanitizedApplicationId } } as any;
+
+      const deleteResponse = await withRetry(async () => {
+        return await client.graphql({
+          query: deleteApplicationQuery,
+          variables: deleteVariables,
+          authMode: "userPool",
+        });
+      }, retryConfig || DEFAULT_RETRY_CONFIG);
+
+      if ("data" in deleteResponse) {
+        // If there were any deletion errors, include them in the response
+        if (deletionErrors.length > 0) {
+          return {
+            success: true,
+            data: deleteResponse.data.deleteApplication,
+            statusCode: HTTP_STATUS.MULTI_STATUS,
+            error: `Application deleted but some join table entries failed: ${deletionErrors.join("; ")}`,
+          };
+        }
+        return successResponse(deleteResponse.data.deleteApplication);
+      }
+
+      return unexpectedFormatError();
+    } catch (error) {
+      // Application deletion failed
       return {
-        success: true,
-        data: deleteResponse.data.deleteApplication,
-        statusCode: 200,
+        success: false,
+        error: `Failed to delete application: ${error instanceof Error ? error.message : String(error)}. Join table errors: ${deletionErrors.join("; ")}`,
+        statusCode: 500,
       };
     }
-
-    return {
-      success: false,
-      error: "Unexpected response format from GraphQL operation",
-      statusCode: 500,
-    };
-  } catch (error) {
-    console.error("Error deleting Application:", error);
-    return {
-      success: false,
-      error: "Failed to delete Application",
-      statusCode: 500,
-    };
-  }
+  });
 };
 
 /**
@@ -1326,39 +1331,44 @@ export const deleteJoinTableItem = async ({
   relatedId,
   applicationId,
   tableName,
+  retryConfig,
 }: {
   relatedId: string;
   applicationId: string;
   tableName: string;
+  retryConfig?: RetryConfig;
 }): Promise<ApiResponse> => {
-  const authCheck = await validateAuth();
-  if (!authCheck.success) {
-    return authCheck as ApiResponse;
-  }
+  return withApiWrapper(async (client) => {
+    // Validate and sanitize relatedId
+    const relatedIdResult = sanitizeOrError(
+      validateAndSanitizeId(relatedId, "relatedId")
+    );
+    if (!relatedIdResult.success) return relatedIdResult.error;
+    const sanitizedRelatedId = relatedIdResult.sanitized;
 
-  const client = generateClient();
+    // Validate and sanitize applicationId
+    const appIdResult = sanitizeOrError(
+      validateAndSanitizeId(applicationId, "applicationId")
+    );
+    if (!appIdResult.success) return appIdResult.error;
+    const sanitizedApplicationId = appIdResult.sanitized;
 
-  try {
-    if (!relatedId || !applicationId || !tableName) {
-      return {
-        success: false,
-        error: "relatedId, applicationId, and tableName are required",
-        statusCode: 400,
-      };
-    }
+    // Validate and sanitize tableName
+    const tableNameResult = sanitizeOrError(
+      validateAndSanitizeNonEmptyString(tableName, "tableName", {
+        escapeHtml: false,
+        maxLength: 100,
+      })
+    );
+    if (!tableNameResult.success) return tableNameResult.error;
+    const sanitizedTableName = tableNameResult.sanitized;
 
-    const joinTableKeys = {
-      AwardApplication: ["awardId", "applicationId"],
-      EducationApplication: ["educationId", "applicationId"],
-      PastJobApplication: ["pastJobId", "applicationId"],
-      QualificationApplication: ["qualificationId", "applicationId"],
-    };
-
-    const keyFields = joinTableKeys[tableName as keyof typeof joinTableKeys];
+    const keyFields =
+      JOIN_TABLE_CONFIG[sanitizedTableName as keyof typeof JOIN_TABLE_CONFIG];
     if (!keyFields) {
       return {
         success: false,
-        error: `Unknown table name: ${tableName}`,
+        error: `Unknown table name: ${sanitizedTableName}`,
         statusCode: 400,
       };
     }
@@ -1366,43 +1376,32 @@ export const deleteJoinTableItem = async ({
     const [relatedIdField] = keyFields;
 
     const deleteQuery = buildQueryWithFragments(`
-      mutation Delete${tableName}($input: Delete${tableName}Input!) {
-        delete${tableName}(input: $input) {
+      mutation Delete${sanitizedTableName}($input: Delete${sanitizedTableName}Input!) {
+        delete${sanitizedTableName}(input: $input) {
           ${keyFields.join("\n          ")}
         }
       }
     `);
 
-    const response = await client.graphql({
-      query: deleteQuery,
-      variables: {
-        input: {
-          [relatedIdField]: relatedId,
-          applicationId: applicationId,
-        },
+    const deleteVariables = {
+      input: {
+        [relatedIdField]: sanitizedRelatedId,
+        applicationId: sanitizedApplicationId,
       },
-      authMode: "userPool",
-    });
+    } as any;
+
+    const response = await withRetry(async () => {
+      return await client.graphql({
+        query: deleteQuery,
+        variables: deleteVariables,
+        authMode: "userPool",
+      });
+    }, retryConfig || DEFAULT_RETRY_CONFIG);
 
     if ("data" in response) {
-      return {
-        success: true,
-        data: response.data[`delete${tableName}`],
-        statusCode: 200,
-      };
+      return successResponse(response.data[`delete${sanitizedTableName}`]);
     }
 
-    return {
-      success: false,
-      error: `Unexpected response format from GraphQL operation when deleting ${tableName}`,
-      statusCode: 500,
-    };
-  } catch (error) {
-    console.error(`Error deleting ${tableName}:`, error);
-    return {
-      success: false,
-      error: `Failed to delete ${tableName}`,
-      statusCode: 500,
-    };
-  }
+    return unexpectedFormatError(sanitizedTableName);
+  });
 };

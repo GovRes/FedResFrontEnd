@@ -1,11 +1,36 @@
 import { generateClient } from "aws-amplify/api";
-import { getModelFields, validateModelName } from "./modelUtils";
+import { buildQueryWithFragments } from "./graphqlFragments";
+import { validateAuth } from "../utils/authValidation";
+import { handleError } from "../utils/errorHandler";
+import {
+  validateAndSanitizeModelName,
+  validateAndSanitizeId,
+  validateAndSanitizeObject,
+  validateAndSanitizeArray,
+  sanitizeOrError,
+} from "../utils/validators";
+import { getRetryConfigForOperation } from "../utils/constants";
+import { withRetry, withBatchRetry, RetryConfig } from "../utils/retry";
+import { ApiResponse } from "../utils/api";
+const GRAPHQL_RETRY_CONFIG = getRetryConfigForOperation("write");
+function getFragmentForModel(modelName: string): string {
+  const fragmentMap: Record<string, string> = {
+    Application: "ApplicationFields",
+    Award: "AwardFields",
+    Education: "EducationFields",
+    Job: "JobDetailedFields",
+    Resume: "ResumeFields",
+    Topic: "TopicFields",
+    PastJob: "PastJobFields",
+    Qualification: "QualificationFields",
+    AwardApplication: "AwardApplicationFields",
+    EducationApplication: "EducationApplicationFields",
+    QualificationApplication: "QualificationApplicationFields",
+    PastJobApplication: "PastJobApplicationFields",
+    PastJobQualification: "PastJobApplicationFields",
+  };
 
-interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  statusCode: number;
+  return fragmentMap[modelName] || "";
 }
 
 /**
@@ -19,44 +44,42 @@ interface ApiResponse<T = any> {
 export async function updateModelRecord(
   modelName: string,
   id: string,
-  input: object
+  input: object,
+  retryConfig?: RetryConfig
 ): Promise<ApiResponse> {
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
+  }
+
+  // Validate and sanitize model name
+  const modelResult = sanitizeOrError(validateAndSanitizeModelName(modelName));
+  if (!modelResult.success) return modelResult.error;
+  const sanitizedModelName = modelResult.sanitized;
+
+  // Validate and sanitize ID
+  const idResult = sanitizeOrError(validateAndSanitizeId(id, "id"));
+  if (!idResult.success) return idResult.error;
+  const sanitizedId = idResult.sanitized;
+
+  // Validate and sanitize input object
+  const inputResult = sanitizeOrError(
+    validateAndSanitizeObject(input, "input", {
+      preserveFields: ["id", "createdAt", "updatedAt", "userId", "jobId"],
+      escapeHtml: false,
+      maxLength: 10000,
+    })
+  );
+  if (!inputResult.success) return inputResult.error;
+  const sanitizedInput = inputResult.sanitized;
+
   const client = generateClient();
-
-  // Validate the model name
-  try {
-    validateModelName(modelName);
-  } catch (error) {
-    return {
-      success: false,
-      error: `Invalid model name: ${modelName}`,
-      statusCode: 400,
-    };
-  }
-
-  // Validate the ID
-  if (!id || typeof id !== "string" || id.trim() === "") {
-    return {
-      success: false,
-      error: "Invalid ID: ID must be a non-empty string",
-      statusCode: 400,
-    };
-  }
-
-  // Validate the input
-  if (!input || typeof input !== "object") {
-    return {
-      success: false,
-      error: "Invalid input: input must be a non-null object",
-      statusCode: 400,
-    };
-  }
 
   try {
     // Add the ID to the input object
     const updateInput = {
-      id,
-      ...input,
+      id: sanitizedId,
+      ...sanitizedInput,
     };
 
     // Extract fields we don't want to include in the update operation
@@ -93,68 +116,67 @@ export async function updateModelRecord(
       };
     }
 
-    // Create the GraphQL mutation query
-    const mutation = `
-      mutation Update${modelName}($input: Update${modelName}Input!) {
-        update${modelName}(input: $input) {
-          id
-          createdAt
-          updatedAt
-          ${getModelFields(modelName)}
+    const fragmentName = getFragmentForModel(sanitizedModelName);
+
+    // Create the GraphQL mutation query using fragments
+    const mutation = buildQueryWithFragments(`
+      mutation Update${sanitizedModelName}($input: Update${sanitizedModelName}Input!) {
+        update${sanitizedModelName}(input: $input) {
+          ${
+            fragmentName
+              ? `...${fragmentName}`
+              : `
+            id
+            createdAt
+            updatedAt
+          `
+          }
         }
       }
-    `;
+    `);
 
     // Execute the GraphQL mutation
-    const updateResult = await client.graphql({
-      query: mutation,
-      variables: {
-        input: filteredUpdateData,
-      },
-      authMode: "userPool",
-    });
+    const updateResult = await withRetry(async () => {
+      return await client.graphql({
+        query: mutation,
+        variables: {
+          input: filteredUpdateData,
+        },
+        authMode: "userPool",
+      });
+    }, retryConfig || GRAPHQL_RETRY_CONFIG);
 
     // Verify successful update
-    if ("data" in updateResult && updateResult.data?.[`update${modelName}`]) {
+    if (
+      "data" in updateResult &&
+      updateResult.data?.[`update${sanitizedModelName}`]
+    ) {
       return {
         success: true,
-        data: updateResult.data[`update${modelName}`],
+        data: updateResult.data[`update${sanitizedModelName}`],
         statusCode: 200,
       };
     } else {
       return {
         success: false,
-        error: `${modelName} record with ID: ${id} not found or could not be updated`,
+        error: `${sanitizedModelName} record with ID: ${sanitizedId} not found or could not be updated`,
         statusCode: 404,
       };
     }
   } catch (error) {
-    console.error(`Error updating ${modelName} record:`, error);
-
-    // Add this detailed error logging:
-    if (error && typeof error === "object" && "errors" in error) {
-      console.error("GraphQL Errors:", error.errors);
-    }
-    // Check if it's a "not found" error
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    if (
-      errorMessage.toLowerCase().includes("not found") ||
-      errorMessage.toLowerCase().includes("does not exist")
-    ) {
-      return {
-        success: false,
-        error: `${modelName} record with ID: ${id} not found`,
-        statusCode: 404,
-      };
-    }
-
+    const errorResult = handleError(
+      "update",
+      sanitizedModelName,
+      error,
+      sanitizedId
+    );
     return {
       success: false,
-      error: `Failed to update ${modelName} record with ID: ${id}`,
-      statusCode: 500,
+      ...errorResult,
     };
   }
 }
+
 /**
  * Helper function for batch updating of multiple records of the same model type
  *
@@ -171,16 +193,42 @@ export async function batchUpdateModelRecords(
     failed: { id: string; input: object; error: string }[];
   }>
 > {
-  if (!Array.isArray(updates) || updates.length === 0) {
-    return {
-      success: false,
-      error: "Invalid input: updates must be a non-empty array",
-      statusCode: 400,
-    };
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
   }
 
-  // Validate the structure of updates array
-  const invalidUpdates = updates.filter(
+  // Validate and sanitize model name
+  const modelResult = sanitizeOrError(validateAndSanitizeModelName(modelName));
+  if (!modelResult.success) return modelResult.error;
+  const sanitizedModelName = modelResult.sanitized;
+
+  // Validate and sanitize updates array
+  const updatesResult = sanitizeOrError(
+    validateAndSanitizeArray(updates, "updates", (update) => {
+      // Sanitize each update object
+      const idResult = validateAndSanitizeId(update.id, "id");
+      const inputResult = validateAndSanitizeObject(update.input, "input", {
+        preserveFields: ["id", "createdAt", "updatedAt", "userId", "jobId"],
+        escapeHtml: false,
+        maxLength: 10000,
+      });
+
+      if (!idResult.isValid || !inputResult.isValid) {
+        return update; // Keep original if sanitization fails
+      }
+
+      return {
+        id: idResult.sanitized,
+        input: inputResult.sanitized,
+      };
+    })
+  );
+  if (!updatesResult.success) return updatesResult.error;
+  const sanitizedUpdates = updatesResult.sanitized;
+
+  // Validate the structure of sanitized updates array
+  const invalidUpdates = sanitizedUpdates.filter(
     (update) =>
       !update ||
       typeof update !== "object" ||
@@ -203,10 +251,12 @@ export async function batchUpdateModelRecords(
   const failed: { id: string; input: object; error: string }[] = [];
 
   // Process each update sequentially to avoid overwhelming the API
-  for (const update of updates) {
+  for (const update of sanitizedUpdates) {
     try {
-      const result = await updateModelRecord(
-        modelName,
+      // Use internal function to avoid double auth check
+      // Data is already sanitized
+      const result = await updateModelRecordInternal(
+        sanitizedModelName,
         update.id,
         update.input
       );
@@ -216,18 +266,21 @@ export async function batchUpdateModelRecords(
         failed.push({
           id: update.id,
           input: update.input,
-          error: result.error || `Failed to update ${modelName} record`,
+          error:
+            result.error || `Failed to update ${sanitizedModelName} record`,
         });
       }
     } catch (error) {
-      console.error(
-        `Failed to update ${modelName} with ID ${update.id}:`,
-        error
+      const errorResult = handleError(
+        "update",
+        sanitizedModelName,
+        error,
+        update.id
       );
       failed.push({
         id: update.id,
         input: update.input,
-        error: error instanceof Error ? error.message : String(error),
+        error: errorResult.error,
       });
     }
   }
@@ -235,12 +288,12 @@ export async function batchUpdateModelRecords(
   // Determine overall success status
   const hasUpdated = updated.length > 0;
   const hasFailed = failed.length > 0;
-  const allFailed = failed.length === updates.length;
+  const allFailed = failed.length === sanitizedUpdates.length;
 
   if (allFailed) {
     return {
       success: false,
-      error: `Failed to update all ${updates.length} ${modelName} records`,
+      error: `Failed to update all ${sanitizedUpdates.length} ${sanitizedModelName} records`,
       statusCode: 500,
     };
   }
@@ -250,52 +303,121 @@ export async function batchUpdateModelRecords(
     data: { updated, failed },
     statusCode: hasUpdated ? 200 : 500,
     ...(hasFailed && {
-      error: `${failed.length} of ${updates.length} ${modelName} records failed to update`,
+      error: `${failed.length} of ${sanitizedUpdates.length} ${sanitizedModelName} records failed to update`,
     }),
   };
 }
+
 /**
- * Example usage:
- *
- * // Update a single education record
- * const updateResult = await updateModelRecord("Education", "abc123", {
- *   school: "Updated University",
- *   degree: "Master of Science",
- *   major: "Computer Science"
- * });
- *
- * if (updateResult.success && updateResult.data) {
- *   console.log("Updated education record:", updateResult.data);
- * } else {
- *   console.error(`Error ${updateResult.statusCode}:`, updateResult.error);
- * }
- *
- * // Update multiple PastJob records
- * const batchUpdateResult = await batchUpdateModelRecords("PastJob", [
- *   {
- *     id: "job1",
- *     input: {
- *       title: "Senior Software Engineer",
- *       organization: "Updated Tech Co"
- *     }
- *   },
- *   {
- *     id: "job2",
- *     input: {
- *       title: "Lead Web Developer",
- *       organization: "Updated Agency Inc"
- *     }
- *   }
- * ]);
- *
- * if (batchUpdateResult.success && batchUpdateResult.data) {
- *   const { updated, failed } = batchUpdateResult.data;
- *   console.log(`Successfully updated ${updated.length} job records:`, updated);
- *
- *   if (failed.length > 0) {
- *     console.warn(`${failed.length} job records failed to update:`, failed);
- *   }
- * } else {
- *   console.error(`Error ${batchUpdateResult.statusCode}:`, batchUpdateResult.error);
- * }
+ * Internal update function without auth check (for batch operations)
+ * This prevents double authentication checks in batch operations
+ * Input is already sanitized by the calling function
  */
+async function updateModelRecordInternal(
+  sanitizedModelName: string,
+  sanitizedId: string,
+  sanitizedInput: object,
+  retryConfig?: RetryConfig
+): Promise<ApiResponse> {
+  const client = generateClient();
+
+  try {
+    // Add the ID to the input object
+    const updateInput = {
+      id: sanitizedId,
+      ...sanitizedInput,
+    };
+
+    // Extract fields we don't want to include in the update operation
+    const { createdAt, updatedAt, ...withoutTimestamps } = updateInput as any;
+
+    // Remove relationship fields that can't be sent directly in an update mutation
+    const fieldsToRemove = [
+      "qualifications",
+      "applications",
+      "educations",
+      "resumes",
+      "awards",
+      "topics",
+      "pastJobs",
+    ];
+
+    const filteredUpdateData = { ...withoutTimestamps };
+    for (const field of fieldsToRemove) {
+      if (field in filteredUpdateData) {
+        delete filteredUpdateData[field];
+      }
+    }
+
+    // Check if there are any fields left to update after filtering
+    const fieldsToUpdate = Object.keys(filteredUpdateData).filter(
+      (key) => key !== "id"
+    );
+    if (fieldsToUpdate.length === 0) {
+      return {
+        success: false,
+        error: "No valid fields to update after filtering",
+        statusCode: 400,
+      };
+    }
+
+    const fragmentName = getFragmentForModel(sanitizedModelName);
+
+    // Create the GraphQL mutation query using fragments
+    const mutation = buildQueryWithFragments(`
+      mutation Update${sanitizedModelName}($input: Update${sanitizedModelName}Input!) {
+        update${sanitizedModelName}(input: $input) {
+          ${
+            fragmentName
+              ? `...${fragmentName}`
+              : `
+            id
+            createdAt
+            updatedAt
+          `
+          }
+        }
+      }
+    `);
+
+    // Execute the GraphQL mutation
+    const updateResult = await withRetry(async () => {
+      return await client.graphql({
+        query: mutation,
+        variables: {
+          input: filteredUpdateData,
+        },
+        authMode: "userPool",
+      });
+    }, retryConfig || GRAPHQL_RETRY_CONFIG);
+
+    // Verify successful update
+    if (
+      "data" in updateResult &&
+      updateResult.data?.[`update${sanitizedModelName}`]
+    ) {
+      return {
+        success: true,
+        data: updateResult.data[`update${sanitizedModelName}`],
+        statusCode: 200,
+      };
+    } else {
+      return {
+        success: false,
+        error: `${sanitizedModelName} record with ID: ${sanitizedId} not found or could not be updated`,
+        statusCode: 404,
+      };
+    }
+  } catch (error) {
+    const errorResult = handleError(
+      "update",
+      sanitizedModelName,
+      error,
+      sanitizedId
+    );
+    return {
+      success: false,
+      ...errorResult,
+    };
+  }
+}
