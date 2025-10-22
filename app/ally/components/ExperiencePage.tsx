@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { Loader } from "@/app/components/loader/Loader";
 import { useApplication } from "@/app/providers/applicationContext";
 import {
-  getApplicationAssociations,
   associateItemsWithApplication,
+  getApplicationPastJobs,
 } from "@/lib/crud/application";
 import { updatePastJobWithQualifications } from "@/lib/crud/pastJob";
 import { topicPastJobMatcher } from "@/lib/aiProcessing/topicPastJobMatcher";
@@ -76,9 +76,8 @@ export default function ExperiencePage({
 
     try {
       // Get past jobs for processing
-      const { data } = await getApplicationAssociations({
+      const { data } = await getApplicationPastJobs({
         applicationId,
-        associationType: "PastJob",
       });
 
       if (!data || data.length === 0) {
@@ -309,9 +308,8 @@ export default function ExperiencePage({
           // Refresh past jobs data for next iteration so AI can see new qualifications
           if (i < job.topics.length - 1) {
             console.log("Refreshing past jobs data from database...");
-            const { data: refreshedData } = await getApplicationAssociations({
+            const { data: refreshedData } = await getApplicationPastJobs({
               applicationId,
-              associationType: "PastJob",
             });
             if (refreshedData && refreshedData.length > 0) {
               currentPastJobsData = refreshedData;
@@ -388,9 +386,8 @@ export default function ExperiencePage({
 
     try {
       // Fetch all past jobs
-      const { data } = await getApplicationAssociations({
+      const { data } = await getApplicationPastJobs({
         applicationId: applicationId,
-        associationType: "PastJob",
       });
 
       console.log("Fetched past jobs data:", data);
@@ -482,9 +479,8 @@ export default function ExperiencePage({
           console.log("Starting AI processing...");
 
           // Check if we already have qualifications for this application
-          const { data: existingData } = await getApplicationAssociations({
+          const { data: existingData } = await getApplicationPastJobs({
             applicationId,
-            associationType: "PastJob",
           });
 
           if (existingData && existingData.length > 0) {

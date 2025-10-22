@@ -1,205 +1,458 @@
 import { generateClient } from "aws-amplify/api";
-import { getModelFields, validateModelName } from "./modelUtils";
+import { buildQueryWithFragments } from "./graphqlFragments";
+import { validateAuth } from "../utils/authValidation";
+import { handleError } from "../utils/errorHandler";
+import {
+  validateAndSanitizeModelName,
+  validateAndSanitizeObject,
+  validateAndSanitizeArray,
+  sanitizeOrError,
+  sanitizeId,
+} from "../utils/validators";
+import {
+  getRetryConfigForOperation,
+  HTTP_STATUS,
+  RETRY_CONFIG,
+} from "../utils/constants";
+import { withRetry, withBatchRetry, RetryConfig } from "../utils/retry";
+import { ApiResponse } from "../utils/api";
 
-interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  statusCode: number;
+// Retry configuration for GraphQL operations
+const GRAPHQL_RETRY_CONFIG = getRetryConfigForOperation("write");
+
+function getFragmentForModel(modelName: string): string {
+  const fragmentMap: Record<string, string> = {
+    Application: "ApplicationFields",
+    Award: "AwardFields",
+    Education: "EducationFields",
+    Job: "JobDetailedFields",
+    Resume: "ResumeFields",
+    Topic: "TopicFields",
+    PastJob: "PastJobFields",
+    Qualification: "QualificationFields",
+    AwardApplication: "AwardApplicationFields",
+    EducationApplication: "EducationApplicationFields",
+    QualificationApplication: "QualificationApplicationFields",
+    PastJobApplication: "PastJobApplicationFields",
+    PastJobQualification: "PastJobApplicationFields",
+  };
+
+  return fragmentMap[modelName] || "";
 }
 
 /**
  * Generic function to create any model type in the database
+ * Now includes retry logic for transient failures
  *
  * @param {string} modelName - The name of the model to create (e.g., "Education", "PastJob")
  * @param {Object} input - The input object with the model's fields
  * @param {string} userId - Optional user ID to add to the record
+ * @param {RetryConfig} retryConfig - Optional custom retry configuration
  * @returns {Promise<ApiResponse>} - The API response with created record data
  */
 export async function createModelRecord(
   modelName: string,
   input: object,
-  userId?: string
+  userId?: string,
+  retryConfig?: RetryConfig
 ): Promise<ApiResponse> {
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
+  }
+
+  // Validate and sanitize model name
+  const modelResult = sanitizeOrError(validateAndSanitizeModelName(modelName));
+  if (!modelResult.success) return modelResult.error;
+  const sanitizedModelName = modelResult.sanitized;
+
+  // Validate and sanitize input object
+  const inputResult = sanitizeOrError(
+    validateAndSanitizeObject(input, "input", {
+      preserveFields: ["id", "createdAt", "updatedAt", "userId", "jobId"],
+      escapeHtml: false,
+      maxLength: 10000,
+    })
+  );
+  if (!inputResult.success) return inputResult.error;
+  const sanitizedInput = inputResult.sanitized;
+
   const client = generateClient();
 
   // Extract fields we don't want to include in the create operation
   const { createdAt, id, qualifications, updatedAt, ...filteredUpdateData } =
-    input as any;
+    sanitizedInput as any;
 
-  // Add userId to the input object if provided
+  // Add userId to the input object if provided, and sanitize it
   if (userId) {
-    filteredUpdateData.userId = userId;
-  }
-
-  // Validate the model name
-  try {
-    validateModelName(modelName);
-  } catch (error) {
-    return {
-      success: false,
-      error: `Invalid model name: ${modelName}`,
-      statusCode: 400,
-    };
+    filteredUpdateData.userId = sanitizeId(userId);
   }
 
   try {
-    // Create the GraphQL mutation query
-    const mutation = `
-      mutation Create${modelName}($input: Create${modelName}Input!) {
-        create${modelName}(input: $input) {
-          id
-          createdAt
-          updatedAt
-          ${getModelFields(modelName)}
+    const fragmentName = getFragmentForModel(sanitizedModelName);
+
+    // Create the GraphQL mutation query using fragments
+    const mutation = buildQueryWithFragments(`
+      mutation Create${sanitizedModelName}($input: Create${sanitizedModelName}Input!) {
+        create${sanitizedModelName}(input: $input) {
+          ${
+            fragmentName
+              ? `...${fragmentName}`
+              : `
+            id
+            createdAt
+            updatedAt
+          `
+          }
         }
       }
-    `;
+    `);
 
-    // Execute the GraphQL mutation
-    const createResult = await client.graphql({
-      query: mutation,
-      variables: {
-        input: filteredUpdateData,
-      },
-      authMode: "userPool",
-    });
+    const createResult = await withRetry(async () => {
+      return await client.graphql({
+        query: mutation,
+        variables: {
+          input: filteredUpdateData,
+        },
+        authMode: "userPool",
+      });
+    }, retryConfig || GRAPHQL_RETRY_CONFIG);
 
     // Verify successful creation
-    if ("data" in createResult && createResult.data?.[`create${modelName}`]) {
+    if (
+      "data" in createResult &&
+      createResult.data?.[`create${sanitizedModelName}`]
+    ) {
       return {
         success: true,
-        data: createResult.data[`create${modelName}`],
-        statusCode: 201,
+        data: createResult.data[`create${sanitizedModelName}`],
+        statusCode: HTTP_STATUS.CREATED,
       };
     } else {
       return {
         success: false,
-        error: `Failed to create ${modelName} record`,
-        statusCode: 500,
+        error: `Failed to create ${sanitizedModelName} record`,
+        statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
       };
     }
   } catch (error) {
-    console.error(`Error creating ${modelName} record:`, error);
+    const errorResult = handleError("create", sanitizedModelName, error);
     return {
       success: false,
-      error: `Failed to create ${modelName} record`,
-      statusCode: 500,
+      ...errorResult,
     };
   }
 }
 
 /**
  * Helper function for batch creation of multiple records of the same model type
+ * Now uses retry logic for individual items that fail with transient errors
  *
  * @param {string} modelName - The name of the model to create (e.g., "Education", "PastJob")
  * @param {Object[]} inputs - Array of input objects with model fields
  * @param {string} userId - Optional user ID to add to all records
+ * @param {RetryConfig} retryConfig - Optional custom retry configuration
  * @returns {Promise<ApiResponse<{created: any[], failed: {input: any, error: string}[]}>>} - API response with created records and any failures
  */
 export async function batchCreateModelRecords(
+  modelName: string,
+  inputs: object[],
+  userId?: string,
+  retryConfig?: RetryConfig
+): Promise<
+  ApiResponse<{ created: any[]; failed: { input: any; error: string }[] }>
+> {
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
+  }
+
+  // Validate and sanitize model name
+  const modelResult = sanitizeOrError(validateAndSanitizeModelName(modelName));
+  if (!modelResult.success) return modelResult.error;
+  const sanitizedModelName = modelResult.sanitized;
+
+  // Validate and sanitize inputs array
+  const inputsResult = sanitizeOrError(
+    validateAndSanitizeArray(inputs, "inputs", (input) => {
+      const sanitized = validateAndSanitizeObject(input, "input", {
+        preserveFields: ["id", "createdAt", "updatedAt", "userId", "jobId"],
+        escapeHtml: false,
+        maxLength: 10000,
+      });
+      return sanitized.isValid ? sanitized.sanitized : input;
+    })
+  );
+  if (!inputsResult.success) return inputsResult.error;
+  const sanitizedInputs = inputsResult.sanitized;
+
+  // Sanitize userId if provided
+  const sanitizedUserId = userId ? sanitizeId(userId) : undefined;
+
+  // Use batch retry utility for processing items
+  const { successful, failed } = await withBatchRetry(
+    sanitizedInputs,
+    async (input) => {
+      const result = await createModelRecordInternal(
+        sanitizedModelName,
+        input,
+        sanitizedUserId,
+        retryConfig
+      );
+
+      if (result.success && result.data) {
+        return result.data;
+      } else {
+        throw new Error(
+          result.error || `Failed to create ${sanitizedModelName} record`
+        );
+      }
+    },
+    retryConfig || GRAPHQL_RETRY_CONFIG
+  );
+
+  const created = successful;
+  const failedWithInputs = failed.map(({ item, error }) => ({
+    input: item,
+    error: error?.message || error?.error || String(error),
+  }));
+
+  // Determine overall success status
+  const hasCreated = created.length > 0;
+  const hasFailed = failedWithInputs.length > 0;
+  const allFailed = failedWithInputs.length === sanitizedInputs.length;
+
+  if (allFailed) {
+    return {
+      success: false,
+      error: `Failed to create all ${sanitizedInputs.length} ${sanitizedModelName} records`,
+      statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      data: { created, failed: failedWithInputs },
+    };
+  }
+
+  return {
+    success: hasCreated,
+    data: { created, failed: failedWithInputs },
+    statusCode: hasCreated
+      ? HTTP_STATUS.CREATED
+      : HTTP_STATUS.INTERNAL_SERVER_ERROR,
+    ...(hasFailed && {
+      error: `${failedWithInputs.length} of ${sanitizedInputs.length} ${sanitizedModelName} records failed to create`,
+    }),
+  };
+}
+
+/**
+ * Internal create function without auth check (for batch operations)
+ * Input is already sanitized by the calling function
+ * Now includes retry logic for transient failures
+ */
+async function createModelRecordInternal(
+  sanitizedModelName: string,
+  sanitizedInput: object,
+  sanitizedUserId?: string,
+  retryConfig?: RetryConfig
+): Promise<ApiResponse> {
+  const client = generateClient();
+
+  try {
+    const { createdAt, id, qualifications, updatedAt, ...filteredUpdateData } =
+      sanitizedInput as any;
+
+    if (sanitizedUserId) {
+      filteredUpdateData.userId = sanitizedUserId;
+    }
+
+    const fragmentName = getFragmentForModel(sanitizedModelName);
+
+    const mutation = buildQueryWithFragments(`
+      mutation Create${sanitizedModelName}($input: Create${sanitizedModelName}Input!) {
+        create${sanitizedModelName}(input: $input) {
+          ${
+            fragmentName
+              ? `...${fragmentName}`
+              : `
+            id
+            createdAt
+            updatedAt
+          `
+          }
+        }
+      }
+    `);
+
+    // Execute with retry logic
+    const createResult = await withRetry(async () => {
+      return await client.graphql({
+        query: mutation,
+        variables: {
+          input: filteredUpdateData,
+        },
+        authMode: "userPool",
+      });
+    }, retryConfig || GRAPHQL_RETRY_CONFIG);
+
+    if (
+      "data" in createResult &&
+      createResult.data?.[`create${sanitizedModelName}`]
+    ) {
+      return {
+        success: true,
+        data: createResult.data[`create${sanitizedModelName}`],
+        statusCode: HTTP_STATUS.CREATED,
+      };
+    } else {
+      return {
+        success: false,
+        error: `Failed to create ${sanitizedModelName} record`,
+        statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      };
+    }
+  } catch (error) {
+    const errorResult = handleError("create", sanitizedModelName, error);
+    return {
+      success: false,
+      ...errorResult,
+    };
+  }
+}
+
+/**
+ * Create multiple records with circuit breaker pattern
+ * Prevents cascading failures during high error rates
+ *
+ * @param {string} modelName - The name of the model to create
+ * @param {Object[]} inputs - Array of input objects with model fields
+ * @param {string} userId - Optional user ID to add to all records
+ * @returns {Promise<ApiResponse>} - API response with created records and failures
+ */
+export async function batchCreateWithCircuitBreaker(
   modelName: string,
   inputs: object[],
   userId?: string
 ): Promise<
   ApiResponse<{ created: any[]; failed: { input: any; error: string }[] }>
 > {
-  if (!Array.isArray(inputs) || inputs.length === 0) {
-    return {
-      success: false,
-      error: "Invalid input: inputs must be a non-empty array",
-      statusCode: 400,
-    };
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
   }
 
-  const created: any[] = [];
-  const failed: { input: any; error: string }[] = [];
+  // Validate and sanitize model name
+  const modelResult = sanitizeOrError(validateAndSanitizeModelName(modelName));
+  if (!modelResult.success) return modelResult.error;
+  const sanitizedModelName = modelResult.sanitized;
 
-  // Process each input sequentially to avoid overwhelming the API
-  for (const input of inputs) {
+  // Validate and sanitize inputs
+  const inputsResult = sanitizeOrError(
+    validateAndSanitizeArray(inputs, "inputs", (input) => {
+      const sanitized = validateAndSanitizeObject(input, "input", {
+        preserveFields: ["id", "createdAt", "updatedAt", "userId", "jobId"],
+        escapeHtml: false,
+        maxLength: 10000,
+      });
+      return sanitized.isValid ? sanitized.sanitized : input;
+    })
+  );
+  if (!inputsResult.success) return inputsResult.error;
+  const sanitizedInputs = inputsResult.sanitized;
+
+  const sanitizedUserId = userId ? sanitizeId(userId) : undefined;
+
+  const created: any[] = [];
+  const failed: Array<{ input: any; error: string }> = [];
+
+  // Process with aggressive retry for initial items
+  const aggressiveRetryConfig: RetryConfig = {
+    maxAttempts: RETRY_CONFIG.AGGRESSIVE_MAX_ATTEMPTS,
+    baseDelay: RETRY_CONFIG.AGGRESSIVE_BASE_DELAY,
+    maxDelay: RETRY_CONFIG.AGGRESSIVE_MAX_DELAY,
+  };
+
+  // After threshold failures, switch to conservative retry
+  let consecutiveFailures = 0;
+  const conservativeRetryConfig: RetryConfig = {
+    maxAttempts: RETRY_CONFIG.CONSERVATIVE_MAX_ATTEMPTS,
+    baseDelay: RETRY_CONFIG.CONSERVATIVE_BASE_DELAY,
+    maxDelay: RETRY_CONFIG.CONSERVATIVE_MAX_DELAY,
+  };
+
+  const failureThreshold = RETRY_CONFIG.BATCH_CONSECUTIVE_FAILURE_THRESHOLD;
+
+  for (const input of sanitizedInputs) {
     try {
-      const result = await createModelRecord(modelName, input, userId);
+      // Choose retry strategy based on recent failures
+      const retryConfig =
+        consecutiveFailures >= 3
+          ? conservativeRetryConfig
+          : aggressiveRetryConfig;
+
+      const result = await createModelRecordInternal(
+        sanitizedModelName,
+        input,
+        sanitizedUserId,
+        retryConfig
+      );
+
       if (result.success && result.data) {
         created.push(result.data);
+        consecutiveFailures = 0; // Reset on success
       } else {
+        consecutiveFailures++;
         failed.push({
           input,
-          error: result.error || `Failed to create ${modelName} record`,
+          error:
+            result.error || `Failed to create ${sanitizedModelName} record`,
         });
+
+        // If too many consecutive failures, stop processing
+        if (consecutiveFailures >= failureThreshold) {
+          console.error(
+            `Stopping batch creation after ${consecutiveFailures} consecutive failures`
+          );
+
+          // Add remaining items to failed list
+          const remainingIndex = sanitizedInputs.indexOf(input) + 1;
+          for (let i = remainingIndex; i < sanitizedInputs.length; i++) {
+            failed.push({
+              input: sanitizedInputs[i],
+              error: "Batch creation halted due to too many failures",
+            });
+          }
+          break;
+        }
       }
     } catch (error) {
-      console.error(`Failed to create ${modelName} record:`, error);
+      consecutiveFailures++;
+      const errorResult = handleError("create", sanitizedModelName, error);
       failed.push({
         input,
-        error: error instanceof Error ? error.message : String(error),
+        error: errorResult.error,
       });
     }
   }
 
-  // Determine overall success status
   const hasCreated = created.length > 0;
   const hasFailed = failed.length > 0;
-  const allFailed = failed.length === inputs.length;
+  const allFailed = failed.length === sanitizedInputs.length;
 
   if (allFailed) {
     return {
       success: false,
-      error: `Failed to create all ${inputs.length} ${modelName} records`,
-      statusCode: 500,
+      error: `Failed to create all ${sanitizedInputs.length} ${sanitizedModelName} records`,
+      statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
     };
   }
 
   return {
     success: hasCreated,
     data: { created, failed },
-    statusCode: hasCreated ? 201 : 500,
+    statusCode: hasCreated
+      ? HTTP_STATUS.CREATED
+      : HTTP_STATUS.INTERNAL_SERVER_ERROR,
     ...(hasFailed && {
-      error: `${failed.length} of ${inputs.length} ${modelName} records failed to create`,
+      error: `${failed.length} of ${sanitizedInputs.length} ${sanitizedModelName} records failed to create`,
     }),
   };
 }
-
-/**
- * Example usage:
- *
- * // Create a single education record
- * const educationResult = await createModelRecord("Education", {
- *   school: "University of Example",
- *   degree: "Bachelor of Science",
- *   major: "Computer Science",
- *   date: "2022-05-15",
- * }, "user123");
- *
- * if (educationResult.success && educationResult.data) {
- *   console.log("Created education record:", educationResult.data);
- * } else {
- *   console.error(`Error ${educationResult.statusCode}:`, educationResult.error);
- * }
- *
- * // Create multiple PastJob records
- * const batchJobsResult = await batchCreateModelRecords("PastJob", [
- *   {
- *     title: "Software Engineer",
- *     organization: "Tech Co",
- *     startDate: "2020-01-15",
- *     endDate: "2022-03-30",
- *   },
- *   {
- *     title: "Web Developer",
- *     organization: "Agency Inc",
- *     startDate: "2018-06-01",
- *     endDate: "2019-12-31",
- *   }
- * ], "user123");
- *
- * if (batchJobsResult.success && batchJobsResult.data) {
- *   const { created, failed } = batchJobsResult.data;
- *   console.log(`Successfully created ${created.length} job records:`, created);
- *
- *   if (failed.length > 0) {
- *     console.warn(`${failed.length} job records failed to create:`, failed);
- *   }
- * } else {
- *   console.error(`Error ${batchJobsResult.statusCode}:`, batchJobsResult.error);
- * }
- */

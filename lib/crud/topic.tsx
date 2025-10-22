@@ -1,98 +1,161 @@
 import { generateClient } from "aws-amplify/api";
-import { fetchAuthSession } from "aws-amplify/auth";
+import { buildQueryWithFragments } from "./graphqlFragments";
+import { validateAuth } from "../utils/authValidation";
+import { handleError } from "../utils/errorHandler";
 import { TopicType } from "../utils/responseSchemas";
+import {
+  validateAndSanitizeId,
+  validateAndSanitizeObject,
+  sanitizeOrError,
+  sanitizeString,
+  sanitizeStringArray,
+} from "../utils/validators";
+import {
+  getRetryConfigForOperation,
+  MATCHING_CONFIG,
+} from "../utils/constants";
+import { withRetry, RetryConfig } from "../utils/retry";
 
-interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  statusCode: number;
-}
-
+import { ApiResponse } from "../utils/api";
+const READ_RETRY_CONFIG = getRetryConfigForOperation("read");
+const WRITE_RETRY_CONFIG = getRetryConfigForOperation("write");
 export const createOrFindSimilarTopics = async ({
   topics,
   jobId,
+  retryConfig,
 }: {
   topics: TopicType[];
   jobId: string;
+  retryConfig?: RetryConfig;
 }): Promise<ApiResponse<{ topic: TopicType; isNew: boolean }[]>> => {
-  // Verify user is authenticated
-  try {
-    const session = await fetchAuthSession();
-    if (!session.tokens) {
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
+  }
+
+  // Validate that topics is a non-empty array
+  if (!Array.isArray(topics) || topics.length === 0) {
+    return {
+      success: false,
+      error: "Invalid topics: topics must be a non-empty array",
+      statusCode: 400,
+    };
+  }
+
+  // Validate and sanitize jobId
+  const jobIdResult = sanitizeOrError(validateAndSanitizeId(jobId, "jobId"));
+  if (!jobIdResult.success) return jobIdResult.error;
+  const sanitizedJobId = jobIdResult.sanitized;
+
+  // Sanitize each topic in the array
+  const sanitizedTopics: TopicType[] = [];
+  for (const topic of topics) {
+    // Validate topic structure
+    if (!topic || typeof topic !== "object") {
       return {
         success: false,
-        error: "No valid authentication session found",
-        statusCode: 401,
+        error: "Invalid topic: each topic must be an object",
+        statusCode: 400,
       };
     }
-  } catch (error) {
-    console.error("No user is signed in");
-    return {
-      success: false,
-      error: "Authentication required",
-      statusCode: 401,
-    };
-  }
 
-  // Validate required parameters
-  if (!topics || !Array.isArray(topics) || topics.length === 0) {
-    return {
-      success: false,
-      error: "topics array is required and must not be empty",
-      statusCode: 400,
-    };
-  }
+    // Sanitize topic object
+    const topicResult = validateAndSanitizeObject(topic, "topic", {
+      preserveFields: ["id", "createdAt", "updatedAt"],
+      escapeHtml: false,
+      maxLength: 5000,
+    });
+    if (!topicResult.isValid) {
+      return {
+        success: false,
+        error: `Invalid topic object: ${topicResult.error}`,
+        statusCode: 400,
+      };
+    }
 
-  // Validate jobId is provided
-  if (!jobId || typeof jobId !== "string" || jobId.trim() === "") {
-    return {
-      success: false,
-      error: "jobId is required and must be a non-empty string",
-      statusCode: 400,
-    };
-  }
+    const sanitizedTopic = topicResult.sanitized;
 
-  // Validate each topic has required fields
-  const invalidTopics = topics.filter(
-    (topic) =>
-      !topic.title ||
-      !topic.keywords ||
-      !Array.isArray(topic.keywords) ||
-      topic.keywords.length === 0
-  );
+    // Validate and sanitize required fields
+    if (!sanitizedTopic.title || typeof sanitizedTopic.title !== "string") {
+      return {
+        success: false,
+        error: "Each topic must have a title field",
+        statusCode: 400,
+      };
+    }
 
-  if (invalidTopics.length > 0) {
-    return {
-      success: false,
-      error: `${invalidTopics.length} topics are missing required fields (title, keywords)`,
-      statusCode: 400,
-    };
+    if (!sanitizedTopic.keywords || !Array.isArray(sanitizedTopic.keywords)) {
+      return {
+        success: false,
+        error: "Each topic must have a keywords array",
+        statusCode: 400,
+      };
+    }
+
+    // Sanitize title
+    const sanitizedTitle = sanitizeString(sanitizedTopic.title, {
+      escapeHtml: false,
+      maxLength: 300,
+    });
+
+    if (!sanitizedTitle || sanitizedTitle.length === 0) {
+      return {
+        success: false,
+        error: "Topic title cannot be empty",
+        statusCode: 400,
+      };
+    }
+
+    // Sanitize keywords array
+    const sanitizedKeywords = sanitizeStringArray(sanitizedTopic.keywords, {
+      escapeHtml: false,
+      maxLength: 100,
+    });
+
+    if (sanitizedKeywords.length === 0) {
+      return {
+        success: false,
+        error: "Topic keywords array cannot be empty",
+        statusCode: 400,
+      };
+    }
+
+    // Sanitize optional description
+    let sanitizedDescription = sanitizedTopic.description;
+    if (sanitizedDescription) {
+      sanitizedDescription = sanitizeString(sanitizedDescription, {
+        escapeHtml: false,
+        maxLength: 2000,
+      });
+    }
+
+    sanitizedTopics.push({
+      ...sanitizedTopic,
+      title: sanitizedTitle,
+      keywords: sanitizedKeywords,
+      description: sanitizedDescription,
+    });
   }
 
   const client = generateClient();
 
   try {
-    // First, list all topics to check for similarity - do this once for efficiency
-    const listResponse = await client.graphql({
-      query: `
-        query ListTopics {
-          listTopics {
-            items {
-              createdAt
-              description
-              id
-              importance
-              jobId
-              keywords
-              title
-              updatedAt
-            }
+    const listQuery = buildQueryWithFragments(`
+      query ListTopics {
+        listTopics {
+          items {
+            ...TopicFields
           }
         }
-      `,
-      authMode: "userPool",
-    });
+      }
+    `);
+
+    const listResponse = await withRetry(async () => {
+      return await client.graphql({
+        query: listQuery,
+        authMode: "userPool",
+      });
+    }, retryConfig || READ_RETRY_CONFIG);
 
     if (!("data" in listResponse)) {
       return {
@@ -107,14 +170,14 @@ export const createOrFindSimilarTopics = async ({
     const errors: string[] = [];
 
     // Process each topic sequentially
-    for (const topic of topics) {
+    for (const topic of sanitizedTopics) {
       try {
         // Check for similar topics - now we also consider jobId
         const similarTopic = findSimilarTopic(
           existingTopics,
           topic.title,
           topic.keywords,
-          jobId
+          sanitizedJobId
         );
 
         if (similarTopic) {
@@ -127,32 +190,28 @@ export const createOrFindSimilarTopics = async ({
         }
 
         // No similar topic found, create a new one with the jobId
-        const createResponse = await client.graphql({
-          query: `
-            mutation CreateTopic($input: CreateTopicInput!) {
-              createTopic(input: $input) {
-                createdAt
-                description
-                id
-                importance
-                jobId
-                keywords
-                title
-                updatedAt
-              }
+        const createMutation = buildQueryWithFragments(`
+          mutation CreateTopic($input: CreateTopicInput!) {
+            createTopic(input: $input) {
+              ...TopicFields
             }
-          `,
-          variables: {
-            input: {
-              description: topic.description,
-              importance: topic.importance,
-              jobId: jobId,
-              keywords: topic.keywords,
-              title: topic.title,
+          }
+        `);
+
+        const createResponse = await withRetry(async () => {
+          return await client.graphql({
+            query: createMutation,
+            variables: {
+              input: {
+                title: topic.title,
+                keywords: topic.keywords,
+                description: topic.description,
+                jobId: sanitizedJobId,
+              },
             },
-          },
-          authMode: "userPool",
-        });
+            authMode: "userPool",
+          });
+        }, retryConfig || WRITE_RETRY_CONFIG);
 
         if (!("data" in createResponse) || !createResponse.data.createTopic) {
           errors.push(`Failed to create topic: ${topic.title}`);
@@ -169,9 +228,9 @@ export const createOrFindSimilarTopics = async ({
           isNew: true,
         });
       } catch (error) {
-        console.error(`Error processing topic "${topic.title}":`, error);
+        const errorResult = handleError("process", "Topic", error);
         errors.push(
-          `Failed to process topic "${topic.title}": ${error instanceof Error ? error.message : String(error)}`
+          `Failed to process topic "${topic.title}": ${errorResult.error}`
         );
       }
     }
@@ -198,11 +257,15 @@ export const createOrFindSimilarTopics = async ({
       }),
     };
   } catch (error) {
-    console.error("Error creating or finding Topics:", error);
+    const errorResult = handleError(
+      "create or find",
+      "Topics",
+      error,
+      sanitizedJobId
+    );
     return {
       success: false,
-      error: `Failed to process topics: ${error instanceof Error ? error.message : String(error)}`,
-      statusCode: 500,
+      ...errorResult,
     };
   }
 };
@@ -213,63 +276,41 @@ export const createOrFindSimilarTopics = async ({
  * @returns An API response with an array of topics associated with the job
  */
 export const fetchTopicsByJobId = async (
-  jobId: string
+  jobId: string,
+  retryConfig?: RetryConfig
 ): Promise<ApiResponse<TopicType[]>> => {
-  // Verify user is authenticated
-  try {
-    const session = await fetchAuthSession();
-    if (!session.tokens) {
-      return {
-        success: false,
-        error: "No valid authentication session found",
-        statusCode: 401,
-      };
-    }
-  } catch (error) {
-    console.error("No user is signed in");
-    return {
-      success: false,
-      error: "Authentication required",
-      statusCode: 401,
-    };
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
   }
 
-  // Validate jobId
-  if (!jobId || typeof jobId !== "string" || jobId.trim() === "") {
-    return {
-      success: false,
-      error: "jobId is required and must be a non-empty string",
-      statusCode: 400,
-    };
-  }
+  // Validate and sanitize jobId
+  const jobIdResult = sanitizeOrError(validateAndSanitizeId(jobId, "jobId"));
+  if (!jobIdResult.success) return jobIdResult.error;
+  const sanitizedJobId = jobIdResult.sanitized;
 
   const client = generateClient();
 
   try {
-    // Query for topics with the specified jobId
-    const response = await client.graphql({
-      query: `
-        query GetTopicsByJobId($jobId: ID!) {
-          listTopics(filter: { jobId: { eq: $jobId } }) {
-            items {
-              createdAt
-              description
-              id
-              importance
-              jobId
-              keywords
-              title
-              updatedAt
-            }
+    const query = buildQueryWithFragments(`
+      query GetTopicsByJobId($jobId: ID!) {
+        listTopics(filter: { jobId: { eq: $jobId } }) {
+          items {
+            ...TopicFields
           }
         }
-      `,
-      variables: {
-        jobId,
-      },
-      authMode: "userPool",
-    });
+      }
+    `);
 
+    const response = await withRetry(async () => {
+      return await client.graphql({
+        query,
+        variables: {
+          jobId: sanitizedJobId,
+        },
+        authMode: "userPool",
+      });
+    }, retryConfig || READ_RETRY_CONFIG);
     if (!("data" in response)) {
       return {
         success: false,
@@ -282,15 +323,19 @@ export const fetchTopicsByJobId = async (
 
     return {
       success: true,
-      data: topics,
+      data: topics || [],
       statusCode: 200,
     };
   } catch (error) {
-    console.error(`Error fetching topics for job ${jobId}:`, error);
+    const errorResult = handleError(
+      "fetch",
+      "Topics for job",
+      error,
+      sanitizedJobId
+    );
     return {
       success: false,
-      error: `Failed to fetch topics for job ${jobId}: ${error instanceof Error ? error.message : String(error)}`,
-      statusCode: 500,
+      ...errorResult,
     };
   }
 };
@@ -337,7 +382,7 @@ function findSimilarTopic(
     const overlapPercentage = Math.min(overlapPercentage1, overlapPercentage2);
 
     // Check if overlap is at least 80%
-    if (overlapPercentage >= 0.8) {
+    if (overlapPercentage >= MATCHING_CONFIG.TOPIC_SIMILARITY_THRESHOLD) {
       return topic;
     }
   }

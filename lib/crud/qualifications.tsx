@@ -1,31 +1,40 @@
 import { generateClient } from "aws-amplify/api";
 import { buildQueryWithFragments } from "./graphqlFragments";
+import { validateAuth } from "../utils/authValidation";
+import { handleError } from "../utils/errorHandler";
+import {
+  validateAndSanitizeId,
+  validateAndSanitizeNonEmptyString,
+  validateAndSanitizeObject,
+  sanitizeOrError,
+  validateLimit,
+  validateOrError,
+} from "../utils/validators";
+import { withRetry, RetryConfig } from "../utils/retry";
 
-interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  statusCode: number;
-}
-
+import { QUERY_LIMITS, getRetryConfigForOperation } from "../utils/constants";
+import { ApiResponse } from "../utils/api";
+const DEFAULT_RETRY_CONFIG = getRetryConfigForOperation();
+const READ_RETRY_CONFIG = getRetryConfigForOperation("read");
+const WRITE_RETRY_CONFIG = getRetryConfigForOperation("write");
 /**
  * Fetch a single Qualification record with all its applications and jobs
  */
 export async function fetchQualificationWithApplicationsAndJobs(
-  qualificationId: string
+  qualificationId: string,
+  retryConfig?: RetryConfig
 ): Promise<ApiResponse<any>> {
-  if (
-    !qualificationId ||
-    typeof qualificationId !== "string" ||
-    qualificationId.trim() === ""
-  ) {
-    return {
-      success: false,
-      error:
-        "Invalid qualificationId: qualificationId must be a non-empty string",
-      statusCode: 400,
-    };
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
   }
+
+  // Validate and sanitize qualificationId
+  const qualIdResult = sanitizeOrError(
+    validateAndSanitizeId(qualificationId, "qualificationId")
+  );
+  if (!qualIdResult.success) return qualIdResult.error;
+  const sanitizedQualificationId = qualIdResult.sanitized;
 
   const client = generateClient();
 
@@ -66,11 +75,13 @@ export async function fetchQualificationWithApplicationsAndJobs(
       }
     `);
 
-    const result = await client.graphql({
-      query,
-      variables: { id: qualificationId },
-      authMode: "userPool",
-    });
+    const result = await withRetry(async () => {
+      return await client.graphql({
+        query,
+        variables: { id: sanitizedQualificationId },
+        authMode: "userPool",
+      });
+    }, retryConfig || READ_RETRY_CONFIG);
 
     if ("data" in result && result.data?.getQualification) {
       const qualification = result.data.getQualification;
@@ -101,21 +112,20 @@ export async function fetchQualificationWithApplicationsAndJobs(
     } else {
       return {
         success: false,
-        error: `Qualification with ID: ${qualificationId} not found`,
+        error: `Qualification with ID: ${sanitizedQualificationId} not found`,
         statusCode: 404,
       };
     }
   } catch (error) {
-    console.error(
-      "Error fetching Qualification with applications and jobs:",
-      error
+    const errorResult = handleError(
+      "fetch",
+      "Qualification with applications and jobs",
+      error,
+      sanitizedQualificationId
     );
     return {
       success: false,
-      error: `Failed to fetch Qualification with applications and jobs: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-      statusCode: 500,
+      ...errorResult,
     };
   }
 }
@@ -125,23 +135,32 @@ export async function fetchQualificationWithApplicationsAndJobs(
  */
 export async function fetchUserQualificationsWithApplicationsAndJobs(
   userId: string,
-  limit: number = 100,
-  nextToken?: string
+  limit: number = QUERY_LIMITS.DEFAULT_LIST_LIMIT,
+  nextToken?: string,
+  retryConfig?: RetryConfig
 ): Promise<ApiResponse<{ items: any[]; nextToken?: string }>> {
-  if (!userId || typeof userId !== "string" || userId.trim() === "") {
-    return {
-      success: false,
-      error: "Invalid userId: userId must be a non-empty string",
-      statusCode: 400,
-    };
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
   }
 
-  if (limit <= 0 || limit > 1000) {
-    return {
-      success: false,
-      error: "Invalid limit: limit must be between 1 and 1000",
-      statusCode: 400,
-    };
+  // Validate and sanitize userId
+  const userIdResult = sanitizeOrError(validateAndSanitizeId(userId, "userId"));
+  if (!userIdResult.success) return userIdResult.error;
+  const sanitizedUserId = userIdResult.sanitized;
+
+  // Validate limit
+  const limitValidation = validateOrError(validateLimit(limit));
+  if (limitValidation) return limitValidation;
+
+  // Sanitize nextToken if provided
+  let sanitizedNextToken = nextToken;
+  if (nextToken !== undefined && nextToken !== null) {
+    const tokenResult = sanitizeOrError(
+      validateAndSanitizeId(nextToken, "nextToken")
+    );
+    if (!tokenResult.success) return tokenResult.error;
+    sanitizedNextToken = tokenResult.sanitized;
   }
 
   const client = generateClient();
@@ -180,15 +199,17 @@ export async function fetchUserQualificationsWithApplicationsAndJobs(
       }
     `);
 
-    const result = await client.graphql({
-      query,
-      variables: {
-        filter: { userId: { eq: userId } },
-        limit,
-        nextToken,
-      },
-      authMode: "userPool",
-    });
+    const result = await withRetry(async () => {
+      return await client.graphql({
+        query,
+        variables: {
+          filter: { userId: { eq: sanitizedUserId } },
+          limit,
+          nextToken: sanitizedNextToken,
+        },
+        authMode: "userPool",
+      });
+    }, retryConfig || READ_RETRY_CONFIG);
 
     if ("data" in result && result.data?.listQualifications) {
       const { items, nextToken: responseNextToken } =
@@ -224,21 +245,20 @@ export async function fetchUserQualificationsWithApplicationsAndJobs(
     } else {
       return {
         success: false,
-        error: `No Qualifications found for user: ${userId}`,
+        error: `No Qualifications found for user: ${sanitizedUserId}`,
         statusCode: 404,
       };
     }
   } catch (error) {
-    console.error(
-      "Error fetching user Qualifications with applications and jobs:",
-      error
+    const errorResult = handleError(
+      "fetch",
+      "user Qualifications with applications and jobs",
+      error,
+      sanitizedUserId
     );
     return {
       success: false,
-      error: `Failed to fetch Qualifications for user: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-      statusCode: 500,
+      ...errorResult,
     };
   }
 }
@@ -248,23 +268,34 @@ export async function fetchUserQualificationsWithApplicationsAndJobs(
  */
 export async function fetchQualificationsForPastJob(
   pastJobId: string,
-  limit: number = 100,
-  nextToken?: string
+  limit: number = QUERY_LIMITS.DEFAULT_LIST_LIMIT,
+  nextToken?: string,
+  retryConfig?: RetryConfig
 ): Promise<ApiResponse<{ items: any[]; nextToken?: string }>> {
-  if (!pastJobId || typeof pastJobId !== "string" || pastJobId.trim() === "") {
-    return {
-      success: false,
-      error: "Invalid pastJobId: pastJobId must be a non-empty string",
-      statusCode: 400,
-    };
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
   }
 
-  if (limit <= 0 || limit > 1000) {
-    return {
-      success: false,
-      error: "Invalid limit: limit must be between 1 and 1000",
-      statusCode: 400,
-    };
+  // Validate and sanitize pastJobId
+  const pastJobIdResult = sanitizeOrError(
+    validateAndSanitizeId(pastJobId, "pastJobId")
+  );
+  if (!pastJobIdResult.success) return pastJobIdResult.error;
+  const sanitizedPastJobId = pastJobIdResult.sanitized;
+
+  // Validate limit
+  const limitValidation = validateOrError(validateLimit(limit));
+  if (limitValidation) return limitValidation;
+
+  // Sanitize nextToken if provided
+  let sanitizedNextToken = nextToken;
+  if (nextToken !== undefined && nextToken !== null) {
+    const tokenResult = sanitizeOrError(
+      validateAndSanitizeId(nextToken, "nextToken")
+    );
+    if (!tokenResult.success) return tokenResult.error;
+    sanitizedNextToken = tokenResult.sanitized;
   }
 
   const client = generateClient();
@@ -289,15 +320,17 @@ export async function fetchQualificationsForPastJob(
       }
     `);
 
-    const result = await client.graphql({
-      query,
-      variables: {
-        filter: { pastJobId: { eq: pastJobId } },
-        limit,
-        nextToken,
-      },
-      authMode: "userPool",
-    });
+    const result = await withRetry(async () => {
+      return await client.graphql({
+        query,
+        variables: {
+          filter: { pastJobId: { eq: sanitizedPastJobId } },
+          limit,
+          nextToken: sanitizedNextToken,
+        },
+        authMode: "userPool",
+      });
+    }, retryConfig || READ_RETRY_CONFIG);
 
     if ("data" in result && result.data?.listQualifications) {
       const { items, nextToken: responseNextToken } =
@@ -329,18 +362,20 @@ export async function fetchQualificationsForPastJob(
     } else {
       return {
         success: false,
-        error: `No Qualifications found for pastJob: ${pastJobId}`,
+        error: `No Qualifications found for pastJob: ${sanitizedPastJobId}`,
         statusCode: 404,
       };
     }
   } catch (error) {
-    console.error("Error fetching Qualifications for past job:", error);
+    const errorResult = handleError(
+      "fetch",
+      "Qualifications for past job",
+      error,
+      sanitizedPastJobId
+    );
     return {
       success: false,
-      error: `Failed to fetch Qualifications for past job: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-      statusCode: 500,
+      ...errorResult,
     };
   }
 }
@@ -350,23 +385,34 @@ export async function fetchQualificationsForPastJob(
  */
 export async function fetchQualificationsForTopic(
   topicId: string,
-  limit: number = 100,
-  nextToken?: string
+  limit: number = QUERY_LIMITS.DEFAULT_LIST_LIMIT,
+  nextToken?: string,
+  retryConfig?: RetryConfig
 ): Promise<ApiResponse<{ items: any[]; nextToken?: string }>> {
-  if (!topicId || typeof topicId !== "string" || topicId.trim() === "") {
-    return {
-      success: false,
-      error: "Invalid topicId: topicId must be a non-empty string",
-      statusCode: 400,
-    };
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
   }
 
-  if (limit <= 0 || limit > 1000) {
-    return {
-      success: false,
-      error: "Invalid limit: limit must be between 1 and 1000",
-      statusCode: 400,
-    };
+  // Validate and sanitize topicId
+  const topicIdResult = sanitizeOrError(
+    validateAndSanitizeId(topicId, "topicId")
+  );
+  if (!topicIdResult.success) return topicIdResult.error;
+  const sanitizedTopicId = topicIdResult.sanitized;
+
+  // Validate limit
+  const limitValidation = validateOrError(validateLimit(limit));
+  if (limitValidation) return limitValidation;
+
+  // Sanitize nextToken if provided
+  let sanitizedNextToken = nextToken;
+  if (nextToken !== undefined && nextToken !== null) {
+    const tokenResult = sanitizeOrError(
+      validateAndSanitizeId(nextToken, "nextToken")
+    );
+    if (!tokenResult.success) return tokenResult.error;
+    sanitizedNextToken = tokenResult.sanitized;
   }
 
   const client = generateClient();
@@ -398,15 +444,17 @@ export async function fetchQualificationsForTopic(
       }
     `);
 
-    const result = await client.graphql({
-      query,
-      variables: {
-        filter: { topicId: { eq: topicId } },
-        limit,
-        nextToken,
-      },
-      authMode: "userPool",
-    });
+    const result = await withRetry(async () => {
+      return await client.graphql({
+        query,
+        variables: {
+          filter: { topicId: { eq: sanitizedTopicId } },
+          limit,
+          nextToken: sanitizedNextToken,
+        },
+        authMode: "userPool",
+      });
+    }, retryConfig || READ_RETRY_CONFIG);
 
     if ("data" in result && result.data?.listQualifications) {
       const { items, nextToken: responseNextToken } =
@@ -438,18 +486,20 @@ export async function fetchQualificationsForTopic(
     } else {
       return {
         success: false,
-        error: `No Qualifications found for topic: ${topicId}`,
+        error: `No Qualifications found for topic: ${sanitizedTopicId}`,
         statusCode: 404,
       };
     }
   } catch (error) {
-    console.error("Error fetching Qualifications for topic:", error);
+    const errorResult = handleError(
+      "fetch",
+      "Qualifications for topic",
+      error,
+      sanitizedTopicId
+    );
     return {
       success: false,
-      error: `Failed to fetch Qualifications for topic: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-      statusCode: 500,
+      ...errorResult,
     };
   }
 }
@@ -457,29 +507,75 @@ export async function fetchQualificationsForTopic(
 /**
  * Create a new qualification
  */
-export async function createQualification(qualificationData: {
-  title: string;
-  description: string;
-  paragraph?: string;
-  question?: string;
-  userConfirmed?: boolean;
-  conversationThreadId?: string; // NEW FIELD
-  topicId: string;
-  userId: string;
-  pastJobId?: string;
-}): Promise<ApiResponse<any>> {
-  if (
-    !qualificationData.title ||
-    !qualificationData.description ||
-    !qualificationData.topicId ||
-    !qualificationData.userId
-  ) {
-    return {
-      success: false,
-      error:
-        "Missing required fields: title, description, topicId, and userId are required",
-      statusCode: 400,
-    };
+export async function createQualification(
+  qualificationData: {
+    title: string;
+    description: string;
+    paragraph?: string;
+    question?: string;
+    userConfirmed?: boolean;
+    conversationThreadId?: string;
+    topicId: string;
+    userId: string;
+    pastJobId?: string;
+  },
+  retryConfig?: RetryConfig
+): Promise<ApiResponse<any>> {
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
+  }
+
+  // Validate and sanitize the entire qualificationData object first
+  const dataResult = sanitizeOrError(
+    validateAndSanitizeObject(qualificationData, "qualificationData", {
+      preserveFields: ["id", "createdAt", "updatedAt"],
+      escapeHtml: false,
+      maxLength: 10000,
+    })
+  );
+  if (!dataResult.success) return dataResult.error;
+  const sanitizedData = dataResult.sanitized;
+
+  // Validate and sanitize required fields
+  const titleResult = sanitizeOrError(
+    validateAndSanitizeNonEmptyString(sanitizedData.title, "title", {
+      escapeHtml: false,
+      maxLength: 500,
+    })
+  );
+  if (!titleResult.success) return titleResult.error;
+
+  const descriptionResult = sanitizeOrError(
+    validateAndSanitizeNonEmptyString(
+      sanitizedData.description,
+      "description",
+      {
+        escapeHtml: false,
+        maxLength: 5000,
+      }
+    )
+  );
+  if (!descriptionResult.success) return descriptionResult.error;
+
+  const topicIdResult = sanitizeOrError(
+    validateAndSanitizeId(sanitizedData.topicId, "topicId")
+  );
+  if (!topicIdResult.success) return topicIdResult.error;
+
+  const userIdResult = sanitizeOrError(
+    validateAndSanitizeId(sanitizedData.userId, "userId")
+  );
+  if (!userIdResult.success) return userIdResult.error;
+
+  // Validate optional pastJobId if provided
+  let sanitizedPastJobId = sanitizedData.pastJobId;
+  if (sanitizedPastJobId) {
+    const pastJobIdResult = sanitizeOrError(
+      validateAndSanitizeId(sanitizedPastJobId, "pastJobId")
+    );
+    if (!pastJobIdResult.success) return pastJobIdResult.error;
+    sanitizedPastJobId = pastJobIdResult.sanitized;
   }
 
   const client = generateClient();
@@ -493,24 +589,25 @@ export async function createQualification(qualificationData: {
       }
     `);
 
-    const result = await client.graphql({
-      query: mutation,
-      variables: {
-        input: {
-          title: qualificationData.title,
-          description: qualificationData.description,
-          paragraph: qualificationData.paragraph || "",
-          question: qualificationData.question || "",
-          userConfirmed: qualificationData.userConfirmed || false,
-          conversationThreadId: qualificationData.conversationThreadId, // NEW FIELD
-          topicId: qualificationData.topicId,
-          userId: qualificationData.userId,
-          pastJobId: qualificationData.pastJobId,
+    const result = await withRetry(async () => {
+      return await client.graphql({
+        query: mutation,
+        variables: {
+          input: {
+            title: titleResult.sanitized,
+            description: descriptionResult.sanitized,
+            paragraph: sanitizedData.paragraph || "",
+            question: sanitizedData.question || "",
+            userConfirmed: sanitizedData.userConfirmed || false,
+            conversationThreadId: sanitizedData.conversationThreadId,
+            topicId: topicIdResult.sanitized,
+            userId: userIdResult.sanitized,
+            pastJobId: sanitizedPastJobId,
+          },
         },
-      },
-      authMode: "userPool",
-    });
-
+        authMode: "userPool",
+      });
+    }, retryConfig || WRITE_RETRY_CONFIG);
     if ("data" in result && result.data?.createQualification) {
       return {
         success: true,
@@ -525,17 +622,16 @@ export async function createQualification(qualificationData: {
       };
     }
   } catch (error) {
-    console.error("Error creating Qualification:", error);
+    const errorResult = handleError("create", "Qualification", error);
     return {
       success: false,
-      error: `Failed to create Qualification: ${error instanceof Error ? error.message : String(error)}`,
-      statusCode: 500,
+      ...errorResult,
     };
   }
 }
 
 /**
- * Update an existing qualification - UPDATED to include conversationThreadId
+ * Update an existing qualification
  */
 export async function updateQualification(
   qualificationId: string,
@@ -545,25 +641,36 @@ export async function updateQualification(
     paragraph?: string;
     question?: string;
     userConfirmed?: boolean;
-    conversationThreadId?: string; // NEW FIELD
+    conversationThreadId?: string;
     topicId?: string;
     pastJobId?: string;
-  }
+  },
+  retryConfig?: RetryConfig
 ): Promise<ApiResponse<any>> {
-  if (
-    !qualificationId ||
-    typeof qualificationId !== "string" ||
-    qualificationId.trim() === ""
-  ) {
-    return {
-      success: false,
-      error:
-        "Invalid qualificationId: qualificationId must be a non-empty string",
-      statusCode: 400,
-    };
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
   }
 
-  if (!updates || Object.keys(updates).length === 0) {
+  // Validate and sanitize qualificationId
+  const qualIdResult = sanitizeOrError(
+    validateAndSanitizeId(qualificationId, "qualificationId")
+  );
+  if (!qualIdResult.success) return qualIdResult.error;
+  const sanitizedQualificationId = qualIdResult.sanitized;
+
+  // Validate and sanitize updates object
+  const updatesResult = sanitizeOrError(
+    validateAndSanitizeObject(updates, "updates", {
+      preserveFields: [],
+      escapeHtml: false,
+      maxLength: 10000,
+    })
+  );
+  if (!updatesResult.success) return updatesResult.error;
+  const sanitizedUpdates = updatesResult.sanitized;
+
+  if (!sanitizedUpdates || Object.keys(sanitizedUpdates).length === 0) {
     return {
       success: false,
       error: "At least one field to update is required",
@@ -582,16 +689,18 @@ export async function updateQualification(
       }
     `);
 
-    const result = await client.graphql({
-      query: mutation,
-      variables: {
-        input: {
-          id: qualificationId,
-          ...updates,
+    const result = await withRetry(async () => {
+      return await client.graphql({
+        query: mutation,
+        variables: {
+          input: {
+            id: sanitizedQualificationId,
+            ...sanitizedUpdates,
+          },
         },
-      },
-      authMode: "userPool",
-    });
+        authMode: "userPool",
+      });
+    }, retryConfig || WRITE_RETRY_CONFIG);
 
     if ("data" in result && result.data?.updateQualification) {
       return {
@@ -607,11 +716,15 @@ export async function updateQualification(
       };
     }
   } catch (error) {
-    console.error("Error updating Qualification:", error);
+    const errorResult = handleError(
+      "update",
+      "Qualification",
+      error,
+      sanitizedQualificationId
+    );
     return {
       success: false,
-      error: `Failed to update Qualification: ${error instanceof Error ? error.message : String(error)}`,
-      statusCode: 500,
+      ...errorResult,
     };
   }
 }
@@ -620,20 +733,20 @@ export async function updateQualification(
  * Delete a qualification
  */
 export async function deleteQualification(
-  qualificationId: string
+  qualificationId: string,
+  retryConfig?: RetryConfig
 ): Promise<ApiResponse<any>> {
-  if (
-    !qualificationId ||
-    typeof qualificationId !== "string" ||
-    qualificationId.trim() === ""
-  ) {
-    return {
-      success: false,
-      error:
-        "Invalid qualificationId: qualificationId must be a non-empty string",
-      statusCode: 400,
-    };
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
   }
+
+  // Validate and sanitize qualificationId
+  const qualIdResult = sanitizeOrError(
+    validateAndSanitizeId(qualificationId, "qualificationId")
+  );
+  if (!qualIdResult.success) return qualIdResult.error;
+  const sanitizedQualificationId = qualIdResult.sanitized;
 
   const client = generateClient();
 
@@ -646,13 +759,15 @@ export async function deleteQualification(
       }
     `);
 
-    const result = await client.graphql({
-      query: mutation,
-      variables: {
-        input: { id: qualificationId },
-      },
-      authMode: "userPool",
-    });
+    const result = await withRetry(async () => {
+      return await client.graphql({
+        query: mutation,
+        variables: {
+          input: { id: sanitizedQualificationId },
+        },
+        authMode: "userPool",
+      });
+    }, retryConfig || DEFAULT_RETRY_CONFIG);
 
     if ("data" in result && result.data?.deleteQualification) {
       return {
@@ -668,11 +783,15 @@ export async function deleteQualification(
       };
     }
   } catch (error) {
-    console.error("Error deleting Qualification:", error);
+    const errorResult = handleError(
+      "delete",
+      "Qualification",
+      error,
+      sanitizedQualificationId
+    );
     return {
       success: false,
-      error: `Failed to delete Qualification: ${error instanceof Error ? error.message : String(error)}`,
-      statusCode: 500,
+      ...errorResult,
     };
   }
 }
