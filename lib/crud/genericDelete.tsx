@@ -1,13 +1,24 @@
 import { generateClient } from "aws-amplify/api";
-import { validateModelName } from "./modelUtils";
-
-interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  statusCode: number;
-}
-
+import { buildQueryWithFragments } from "./graphqlFragments";
+import { validateAuth } from "../utils/authValidation";
+import { handleError } from "../utils/errorHandler";
+import {
+  validateAndSanitizeModelName,
+  validateAndSanitizeId,
+  validateAndSanitizeIdArray,
+  validateAndSanitizeObject,
+  sanitizeOrError,
+  validateBatchSize,
+  validateOrError,
+} from "../utils/validators";
+import {
+  HTTP_STATUS,
+  BATCH_CONFIG,
+  getRetryConfigForOperation,
+} from "../utils/constants";
+import { withRetry, withBatchRetry, RetryConfig } from "../utils/retry";
+import { ApiResponse } from "../utils/api";
+const DEFAULT_RETRY_CONFIG = getRetryConfigForOperation();
 /**
  * Generic function to delete any model type from the database
  *
@@ -17,181 +28,228 @@ interface ApiResponse<T = any> {
  */
 export async function deleteModelRecord(
   modelName: string,
-  id: string
+  id: string,
+  retryConfig?: RetryConfig
 ): Promise<ApiResponse> {
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
+  }
+
+  // Validate and sanitize model name
+  const modelResult = sanitizeOrError(validateAndSanitizeModelName(modelName));
+  if (!modelResult.success) return modelResult.error;
+  const sanitizedModelName = modelResult.sanitized;
+
+  // Validate and sanitize ID
+  const idResult = sanitizeOrError(validateAndSanitizeId(id, "id"));
+  if (!idResult.success) return idResult.error;
+  const sanitizedId = idResult.sanitized;
+
   const client = generateClient();
 
-  // Validate the model name
   try {
-    validateModelName(modelName);
-  } catch (error) {
-    return {
-      success: false,
-      error: `Invalid model name: ${modelName}`,
-      statusCode: 400,
-    };
-  }
-
-  // Validate the ID
-  if (!id || typeof id !== "string" || id.trim() === "") {
-    return {
-      success: false,
-      error: "Invalid ID: ID must be a non-empty string",
-      statusCode: 400,
-    };
-  }
-
-  try {
-    // Create the GraphQL mutation query
-    const mutation = `
-      mutation Delete${modelName}($input: Delete${modelName}Input!) {
-        delete${modelName}(input: $input) {
+    // Create the GraphQL mutation query using fragments
+    const mutation = buildQueryWithFragments(`
+      mutation Delete${sanitizedModelName}($input: Delete${sanitizedModelName}Input!) {
+        delete${sanitizedModelName}(input: $input) {
           id
           createdAt
           updatedAt
         }
       }
-    `;
+    `);
 
     // Execute the GraphQL mutation
-    const deleteResult = await client.graphql({
-      query: mutation,
-      variables: {
-        input: { id },
-      },
-      authMode: "userPool",
-    });
+    const deleteResult = await withRetry(async () => {
+      return await client.graphql({
+        query: mutation,
+        variables: {
+          input: { id: sanitizedId },
+        },
+        authMode: "userPool",
+      });
+    }, retryConfig || DEFAULT_RETRY_CONFIG);
 
     // Verify successful deletion
-    if ("data" in deleteResult && deleteResult.data?.[`delete${modelName}`]) {
+    if (
+      "data" in deleteResult &&
+      deleteResult.data?.[`delete${sanitizedModelName}`]
+    ) {
       return {
         success: true,
-        data: deleteResult.data[`delete${modelName}`],
+        data: deleteResult.data[`delete${sanitizedModelName}`],
         statusCode: 200,
       };
     } else {
       return {
         success: false,
-        error: `${modelName} record with ID: ${id} not found or could not be deleted`,
-        statusCode: 404,
+        error: `${sanitizedModelName} record with ID: ${sanitizedId} not found or could not be deleted`,
+        statusCode: HTTP_STATUS.NOT_FOUND,
       };
     }
   } catch (error) {
-    console.error(`Error deleting ${modelName} record:`, error);
-
-    // Check if it's a "not found" error
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    if (
-      errorMessage.toLowerCase().includes("not found") ||
-      errorMessage.toLowerCase().includes("does not exist")
-    ) {
-      return {
-        success: false,
-        error: `${modelName} record with ID: ${id} not found`,
-        statusCode: 404,
-      };
-    }
-
+    const errorResult = handleError(
+      "delete",
+      sanitizedModelName,
+      error,
+      sanitizedId
+    );
     return {
       success: false,
-      error: `Failed to delete ${modelName} record with ID: ${id}`,
-      statusCode: 500,
+      ...errorResult,
     };
   }
 }
 
-/**
- * Helper function for batch deletion of multiple records of the same model type
- *
- * @param {string} modelName - The name of the model to delete (e.g., "Education", "PastJob")
- * @param {string[]} ids - Array of IDs to delete
- * @returns {Promise<ApiResponse<{deleted: any[], failed: {id: string, error: string}[]}>>} - API response with deleted records and any failures
- */
 export async function batchDeleteModelRecords(
   modelName: string,
-  ids: string[]
+  ids: string[],
+  retryConfig?: RetryConfig // ✅ Add optional retry config
 ): Promise<
   ApiResponse<{ deleted: any[]; failed: { id: string; error: string }[] }>
 > {
-  if (!Array.isArray(ids) || ids.length === 0) {
-    return {
-      success: false,
-      error: "Invalid input: ids must be a non-empty array",
-      statusCode: 400,
-    };
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
   }
 
-  // Validate all IDs first
-  const invalidIds = ids.filter(
-    (id) => !id || typeof id !== "string" || id.trim() === ""
-  );
-  if (invalidIds.length > 0) {
-    return {
-      success: false,
-      error: `Invalid IDs found: ${invalidIds.length} empty or invalid IDs`,
-      statusCode: 400,
-    };
-  }
+  // Validate and sanitize model name
+  const modelResult = sanitizeOrError(validateAndSanitizeModelName(modelName));
+  if (!modelResult.success) return modelResult.error;
+  const sanitizedModelName = modelResult.sanitized;
 
-  const deleted: any[] = [];
-  const failed: { id: string; error: string }[] = [];
+  // Validate and sanitize IDs array
+  const idsResult = sanitizeOrError(validateAndSanitizeIdArray(ids, "ids"));
+  if (!idsResult.success) return idsResult.error;
+  const sanitizedIds = idsResult.sanitized;
 
-  // Process each ID sequentially to avoid overwhelming the API
-  for (const id of ids) {
-    try {
-      const result = await deleteModelRecord(modelName, id);
+  const { successful, failed } = await withBatchRetry(
+    sanitizedIds,
+    async (id) => {
+      const result = await deleteModelRecordInternal(sanitizedModelName, id);
+
       if (result.success && result.data) {
-        deleted.push(result.data);
+        return result.data;
       } else {
-        failed.push({
-          id,
-          error: result.error || `Failed to delete ${modelName} record`,
-        });
+        throw new Error(
+          result.error || `Failed to delete ${sanitizedModelName} record`
+        );
       }
-    } catch (error) {
-      console.error(`Failed to delete ${modelName} with ID ${id}:`, error);
-      failed.push({
-        id,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
+    },
+    retryConfig || DEFAULT_RETRY_CONFIG
+  );
+
+  // ✅ Map withBatchRetry results to expected format
+  const deleted = successful;
+  const failedWithDetails = failed.map(({ item, error }) => ({
+    id: item,
+    error: error?.message || String(error),
+  }));
 
   // Determine overall success status
   const hasDeleted = deleted.length > 0;
-  const hasFailed = failed.length > 0;
-  const allFailed = failed.length === ids.length;
+  const hasFailed = failedWithDetails.length > 0;
+  const allFailed = failedWithDetails.length === sanitizedIds.length;
 
   if (allFailed) {
     return {
       success: false,
-      error: `Failed to delete all ${ids.length} ${modelName} records`,
+      error: `Failed to delete all ${sanitizedIds.length} ${sanitizedModelName} records`,
       statusCode: 500,
     };
   }
 
   return {
     success: hasDeleted,
-    data: { deleted, failed },
+    data: { deleted, failed: failedWithDetails },
     statusCode: hasDeleted ? 200 : 500,
     ...(hasFailed && {
-      error: `${failed.length} of ${ids.length} ${modelName} records failed to delete`,
+      error: `${failedWithDetails.length} of ${sanitizedIds.length} ${sanitizedModelName} records failed to delete`,
     }),
   };
 }
 
 /**
+ * Internal delete function without auth check (for batch operations)
+ * This prevents double authentication checks in batch operations
+ * ID is already sanitized by the calling function
+ */
+async function deleteModelRecordInternal(
+  sanitizedModelName: string,
+  sanitizedId: string,
+  retryConfig?: RetryConfig
+): Promise<ApiResponse> {
+  const client = generateClient();
+
+  try {
+    // Create the GraphQL mutation query using fragments
+    const mutation = buildQueryWithFragments(`
+      mutation Delete${sanitizedModelName}($input: Delete${sanitizedModelName}Input!) {
+        delete${sanitizedModelName}(input: $input) {
+          id
+          createdAt
+          updatedAt
+        }
+      }
+    `);
+
+    // Execute the GraphQL mutation
+    const deleteResult = await withRetry(async () => {
+      return await client.graphql({
+        query: mutation,
+        variables: {
+          input: { id: sanitizedId },
+        },
+        authMode: "userPool",
+      });
+    }, retryConfig || DEFAULT_RETRY_CONFIG);
+    // Verify successful deletion
+    if (
+      "data" in deleteResult &&
+      deleteResult.data?.[`delete${sanitizedModelName}`]
+    ) {
+      return {
+        success: true,
+        data: deleteResult.data[`delete${sanitizedModelName}`],
+        statusCode: 200,
+      };
+    } else {
+      return {
+        success: false,
+        error: `${sanitizedModelName} record with ID: ${sanitizedId} not found or could not be deleted`,
+        statusCode: HTTP_STATUS.NOT_FOUND,
+      };
+    }
+  } catch (error) {
+    const errorResult = handleError(
+      "delete",
+      sanitizedModelName,
+      error,
+      sanitizedId
+    );
+    return {
+      success: false,
+      ...errorResult,
+    };
+  }
+}
+
+/**
  * Core function for bulk deletion with optional filtering
  * This is the unified implementation used by both deleteAllModelRecords and deleteAllUserModelRecords
+ * Filter object is already sanitized by calling function
  */
 async function bulkDeleteRecords(
-  modelName: string,
-  filter: any = null,
-  batchSize: number = 50,
-  logContext: string = ""
+  sanitizedModelName: string,
+  sanitizedFilter: any = null,
+  batchSize: number = BATCH_CONFIG.DEFAULT_BATCH_SIZE,
+  logContext: string = "",
+  retryConfig?: RetryConfig
 ): Promise<
   ApiResponse<{ deletedCount: number; errors: { id: string; error: string }[] }>
 > {
+  // NOTE: Auth check is done at the public function level before calling this internal function
   const client = generateClient();
 
   let deletedCount = 0;
@@ -199,44 +257,47 @@ async function bulkDeleteRecords(
   let nextToken: string | null = null;
 
   try {
-    console.log(`Starting deletion of ${modelName} records${logContext}...`);
+    console.log(
+      `Starting deletion of ${sanitizedModelName} records${logContext}...`
+    );
 
     do {
       // Build the appropriate query based on whether we have a filter
-      const listQuery = filter
-        ? `
-          query List${modelName}s($filter: Model${modelName}FilterInput, $limit: Int, $nextToken: String) {
-            list${modelName}s(filter: $filter, limit: $limit, nextToken: $nextToken) {
+      const listQuery = sanitizedFilter
+        ? buildQueryWithFragments(`
+          query List${sanitizedModelName}s($filter: Model${sanitizedModelName}FilterInput, $limit: Int, $nextToken: String) {
+            list${sanitizedModelName}s(filter: $filter, limit: $limit, nextToken: $nextToken) {
               items {
                 id
               }
               nextToken
             }
           }
-        `
-        : `
-          query List${modelName}s($limit: Int, $nextToken: String) {
-            list${modelName}s(limit: $limit, nextToken: $nextToken) {
+        `)
+        : buildQueryWithFragments(`
+          query List${sanitizedModelName}s($limit: Int, $nextToken: String) {
+            list${sanitizedModelName}s(limit: $limit, nextToken: $nextToken) {
               items {
                 id
               }
               nextToken
             }
           }
-        `;
+        `);
 
-      const variables = filter
-        ? { filter, limit: batchSize, nextToken }
+      const variables = sanitizedFilter
+        ? { filter: sanitizedFilter, limit: batchSize, nextToken }
         : { limit: batchSize, nextToken };
 
-      const listResult: any = await client.graphql({
-        query: listQuery,
-        variables,
-        authMode: "userPool",
-      });
-
+      const listResult: any = await withRetry(async () => {
+        return await client.graphql({
+          query: listQuery,
+          variables,
+          authMode: "userPool",
+        });
+      }, retryConfig || DEFAULT_RETRY_CONFIG);
       if ("data" in listResult && listResult.data) {
-        const listData = (listResult.data as any)[`list${modelName}s`];
+        const listData = (listResult.data as any)[`list${sanitizedModelName}s`];
         if (listData) {
           const items = listData.items;
           nextToken = listData.nextToken;
@@ -248,14 +309,19 @@ async function bulkDeleteRecords(
           // Delete each record in the current batch
           for (const item of items) {
             try {
-              const deleteResult = await deleteModelRecord(modelName, item.id);
+              // Use internal function to avoid auth check for each item
+              // IDs from database are already trusted
+              const deleteResult = await deleteModelRecordInternal(
+                sanitizedModelName,
+                item.id
+              );
               if (deleteResult.success) {
                 deletedCount++;
 
                 // Log progress for large operations
-                if (deletedCount % 25 === 0) {
+                if (deletedCount % BATCH_CONFIG.PROGRESS_LOG_INTERVAL === 0) {
                   console.log(
-                    `Deleted ${deletedCount} ${modelName} records${logContext} so far...`
+                    `Deleted ${deletedCount} ${sanitizedModelName} records${logContext} so far...`
                   );
                 }
               } else {
@@ -265,13 +331,15 @@ async function bulkDeleteRecords(
                 });
               }
             } catch (error) {
-              console.error(
-                `Failed to delete ${modelName} with ID ${item.id}:`,
-                error
+              const errorResult = handleError(
+                "delete",
+                sanitizedModelName,
+                error,
+                item.id
               );
               errors.push({
                 id: item.id,
-                error: error instanceof Error ? error.message : String(error),
+                error: errorResult.error,
               });
             }
           }
@@ -279,14 +347,14 @@ async function bulkDeleteRecords(
       } else {
         return {
           success: false,
-          error: `Failed to list ${modelName} records${logContext}`,
+          error: `Failed to list ${sanitizedModelName} records${logContext}`,
           statusCode: 500,
         };
       }
     } while (nextToken);
 
     console.log(
-      `Deletion complete: ${deletedCount} ${modelName} records deleted${logContext}`
+      `Deletion complete: ${deletedCount} ${sanitizedModelName} records deleted${logContext}`
     );
 
     if (errors.length > 0) {
@@ -297,7 +365,7 @@ async function bulkDeleteRecords(
     const hasErrors = errors.length > 0;
 
     return {
-      success: hasDeleted || !hasErrors, // Success if we deleted something OR if there were no errors (even if nothing to delete)
+      success: hasDeleted || !hasErrors,
       data: {
         deletedCount,
         errors,
@@ -308,14 +376,14 @@ async function bulkDeleteRecords(
       }),
     };
   } catch (error) {
-    console.error(
-      `Error during bulk deletion of ${modelName} records${logContext}:`,
+    const errorResult = handleError(
+      "delete",
+      `${sanitizedModelName} records${logContext}`,
       error
     );
     return {
       success: false,
-      error: `Failed to delete ${modelName} records${logContext}: ${error instanceof Error ? error.message : String(error)}`,
-      statusCode: 500,
+      ...errorResult,
     };
   }
 }
@@ -332,10 +400,15 @@ async function bulkDeleteRecords(
 export async function deleteAllModelRecords(
   modelName: string,
   confirmDelete: boolean = false,
-  batchSize: number = 50
+  batchSize: number = BATCH_CONFIG.DEFAULT_BATCH_SIZE
 ): Promise<
   ApiResponse<{ deletedCount: number; errors: { id: string; error: string }[] }>
 > {
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
+  }
+
   // Safety check - require explicit confirmation
   if (!confirmDelete) {
     return {
@@ -345,27 +418,16 @@ export async function deleteAllModelRecords(
     };
   }
 
-  // Validate the model name
-  try {
-    validateModelName(modelName);
-  } catch (error) {
-    return {
-      success: false,
-      error: `Invalid model name: ${modelName}`,
-      statusCode: 400,
-    };
-  }
+  // Validate and sanitize model name
+  const modelResult = sanitizeOrError(validateAndSanitizeModelName(modelName));
+  if (!modelResult.success) return modelResult.error;
+  const sanitizedModelName = modelResult.sanitized;
 
-  // Validate batch size
-  if (batchSize <= 0 || batchSize > 1000) {
-    return {
-      success: false,
-      error: "Batch size must be between 1 and 1000",
-      statusCode: 400,
-    };
-  }
+  // Validate batch size (no sanitization needed for numbers)
+  const batchSizeValidation = validateOrError(validateBatchSize(batchSize));
+  if (batchSizeValidation) return batchSizeValidation;
 
-  return bulkDeleteRecords(modelName, null, batchSize);
+  return bulkDeleteRecords(sanitizedModelName, null, batchSize);
 }
 
 /**
@@ -382,10 +444,15 @@ export async function deleteAllUserModelRecords(
   modelName: string,
   userId: string,
   confirmDelete: boolean = false,
-  batchSize: number = 50
+  batchSize: number = BATCH_CONFIG.DEFAULT_BATCH_SIZE
 ): Promise<
   ApiResponse<{ deletedCount: number; errors: { id: string; error: string }[] }>
 > {
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
+  }
+
   // Safety check - require explicit confirmation
   if (!confirmDelete) {
     return {
@@ -395,39 +462,24 @@ export async function deleteAllUserModelRecords(
     };
   }
 
-  // Validate the model name
-  try {
-    validateModelName(modelName);
-  } catch (error) {
-    return {
-      success: false,
-      error: `Invalid model name: ${modelName}`,
-      statusCode: 400,
-    };
-  }
+  // Validate and sanitize model name
+  const modelResult = sanitizeOrError(validateAndSanitizeModelName(modelName));
+  if (!modelResult.success) return modelResult.error;
+  const sanitizedModelName = modelResult.sanitized;
 
-  // Validate userId
-  if (!userId || typeof userId !== "string" || userId.trim() === "") {
-    return {
-      success: false,
-      error: "Invalid userId: userId must be a non-empty string",
-      statusCode: 400,
-    };
-  }
+  // Validate and sanitize userId
+  const userIdResult = sanitizeOrError(validateAndSanitizeId(userId, "userId"));
+  if (!userIdResult.success) return userIdResult.error;
+  const sanitizedUserId = userIdResult.sanitized;
 
-  // Validate batch size
-  if (batchSize <= 0 || batchSize > 1000) {
-    return {
-      success: false,
-      error: "Batch size must be between 1 and 1000",
-      statusCode: 400,
-    };
-  }
+  // Validate batch size (no sanitization needed for numbers)
+  const batchSizeValidation = validateOrError(validateBatchSize(batchSize));
+  if (batchSizeValidation) return batchSizeValidation;
 
-  const filter = { userId: { eq: userId } };
-  const logContext = ` for user ${userId}`;
+  const filter = { userId: { eq: sanitizedUserId } };
+  const logContext = ` for user ${sanitizedUserId}`;
 
-  return bulkDeleteRecords(modelName, filter, batchSize, logContext);
+  return bulkDeleteRecords(sanitizedModelName, filter, batchSize, logContext);
 }
 
 /**
@@ -445,11 +497,16 @@ export async function deleteFilteredModelRecords(
   modelName: string,
   filter: any,
   confirmDelete: boolean = false,
-  batchSize: number = 50,
+  batchSize: number = BATCH_CONFIG.DEFAULT_BATCH_SIZE,
   description: string = "filtered records"
 ): Promise<
   ApiResponse<{ deletedCount: number; errors: { id: string; error: string }[] }>
 > {
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
+  }
+
   // Safety check - require explicit confirmation
   if (!confirmDelete) {
     return {
@@ -459,99 +516,43 @@ export async function deleteFilteredModelRecords(
     };
   }
 
-  // Validate the model name
-  try {
-    validateModelName(modelName);
-  } catch (error) {
-    return {
-      success: false,
-      error: `Invalid model name: ${modelName}`,
-      statusCode: 400,
-    };
-  }
+  // Validate and sanitize model name
+  const modelResult = sanitizeOrError(validateAndSanitizeModelName(modelName));
+  if (!modelResult.success) return modelResult.error;
+  const sanitizedModelName = modelResult.sanitized;
 
-  // Validate filter
-  if (!filter || typeof filter !== "object") {
-    return {
-      success: false,
-      error: "Invalid filter: filter must be a non-null object",
-      statusCode: 400,
-    };
-  }
+  // Validate and sanitize filter object
+  const filterResult = sanitizeOrError(
+    validateAndSanitizeObject(filter, "filter", {
+      preserveFields: [
+        "eq",
+        "ne",
+        "gt",
+        "lt",
+        "ge",
+        "le",
+        "contains",
+        "notContains",
+        "between",
+        "beginsWith",
+      ],
+      escapeHtml: false,
+      maxLength: 1000,
+    })
+  );
+  if (!filterResult.success) return filterResult.error;
+  const sanitizedFilter = filterResult.sanitized;
 
-  // Validate batch size
-  if (batchSize <= 0 || batchSize > 1000) {
-    return {
-      success: false,
-      error: "Batch size must be between 1 and 1000",
-      statusCode: 400,
-    };
-  }
+  // Validate batch size (no sanitization needed for numbers)
+  const batchSizeValidation = validateOrError(validateBatchSize(batchSize));
+  if (batchSizeValidation) return batchSizeValidation;
 
   const logContext = ` (${description})`;
 
-  return bulkDeleteRecords(modelName, filter, batchSize, logContext);
+  return bulkDeleteRecords(
+    sanitizedModelName,
+    sanitizedFilter,
+    batchSize,
+    logContext
+  );
 }
-
-/**
- * Example usage:
- *
- * // Delete a single education record
- * const deleteResult = await deleteModelRecord("Education", "abc123");
- * if (deleteResult.success && deleteResult.data) {
- *   console.log("Deleted education record:", deleteResult.data);
- * } else {
- *   console.error(`Error ${deleteResult.statusCode}:`, deleteResult.error);
- * }
- *
- * // Delete multiple PastJob records
- * const batchDeleteResult = await batchDeleteModelRecords("PastJob", ["job1", "job2", "job3"]);
- * if (batchDeleteResult.success && batchDeleteResult.data) {
- *   const { deleted, failed } = batchDeleteResult.data;
- *   console.log(`Successfully deleted ${deleted.length} job records:`, deleted);
- *   if (failed.length > 0) {
- *     console.warn(`${failed.length} job records failed to delete:`, failed);
- *   }
- * } else {
- *   console.error(`Error ${batchDeleteResult.statusCode}:`, batchDeleteResult.error);
- * }
- *
- * // Delete ALL Education records in the system (use with extreme caution!)
- * const allResult = await deleteAllModelRecords("Education", true);
- * if (allResult.success && allResult.data) {
- *   console.log(`Deleted ${allResult.data.deletedCount} education records`);
- * } else {
- *   console.error(`Error ${allResult.statusCode}:`, allResult.error);
- * }
- *
- * // Delete all PastJob records for a specific user (safer)
- * const userResult = await deleteAllUserModelRecords("PastJob", "user123", true);
- * if (userResult.success && userResult.data) {
- *   console.log(`Deleted ${userResult.data.deletedCount} past job records for user`);
- * } else {
- *   console.error(`Error ${userResult.statusCode}:`, userResult.error);
- * }
- *
- * // Delete records based on custom filter (most flexible)
- * const customResult = await deleteFilteredModelRecords(
- *   "Education",
- *   {
- *     and: [
- *       { userId: { eq: "user123" } },
- *       { school: { contains: "University" } }
- *     ]
- *   },
- *   true,
- *   25,
- *   "university education records for user123"
- * );
- * if (customResult.success && customResult.data) {
- *   console.log(`Deleted ${customResult.data.deletedCount} filtered records`);
- * }
- *
- * // Safety check - this will return an error response
- * const safetyResult = await deleteAllModelRecords("Education", false);
- * if (!safetyResult.success) {
- *   console.log("Safety check prevented accidental deletion:", safetyResult.error);
- * }
- */

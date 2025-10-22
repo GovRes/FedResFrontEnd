@@ -1,12 +1,18 @@
 import { generateClient } from "aws-amplify/api";
-
-interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  statusCode: number;
-}
-
+import { buildQueryWithFragments } from "./graphqlFragments";
+import { validateAuth } from "../utils/authValidation";
+import { handleError } from "../utils/errorHandler";
+import {
+  validateAndSanitizeId,
+  validateAndSanitizeNonEmptyString,
+  validateAndSanitizeObject,
+  sanitizeOrError,
+} from "../utils/validators";
+import { getRetryConfigForOperation } from "../utils/constants";
+import { withRetry, RetryConfig } from "../utils/retry";
+import { ApiResponse } from "../utils/api";
+const READ_RETRY_CONFIG = getRetryConfigForOperation("read");
+const WRITE_RETRY_CONFIG = getRetryConfigForOperation("write");
 /**
  * Retrieves a job by its usaJobsId
  *
@@ -14,47 +20,51 @@ interface ApiResponse<T = any> {
  * @returns {Promise<ApiResponse>} - The API response with status code and data/error
  */
 export async function getJobByUsaJobsId(
-  usaJobsId: string
+  usaJobsId: string,
+  retryConfig?: RetryConfig
 ): Promise<ApiResponse> {
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
+  }
+
+  // Validate and sanitize usaJobsId
+  const usaJobsIdResult = sanitizeOrError(
+    validateAndSanitizeNonEmptyString(usaJobsId, "usaJobsId", {
+      escapeHtml: false,
+      maxLength: 200,
+    })
+  );
+  if (!usaJobsIdResult.success) return usaJobsIdResult.error;
+  const sanitizedUsaJobsId = usaJobsIdResult.sanitized;
+
   const client = generateClient();
 
   try {
-    const query = `
+    const query = buildQueryWithFragments(`
       query GetJobByUsaJobsId($usaJobsId: String!) {
         listJobs(filter: {usaJobsId: {eq: $usaJobsId}}) {
           items {
-            id
-            createdAt
-            updatedAt
-            agencyDescription
-            department
-            duties
-            evaluationCriteria
-            qualificationsSummary
-            questionnaire
-            requiredDocuments
-            title
+            ...JobDetailedFields
             topics {
-                items {
-                id
-                jobId
-                keywords
-                title
-                }
+              items {
+                ...TopicFields
+              }
             }
-            usaJobsId
           }
         }
       }
-    `;
+    `);
 
-    const result = await client.graphql({
-      query,
-      variables: {
-        usaJobsId,
-      },
-      authMode: "userPool",
-    });
+    const result = await withRetry(async () => {
+      return await client.graphql({
+        query,
+        variables: {
+          usaJobsId: sanitizedUsaJobsId,
+        },
+        authMode: "userPool",
+      });
+    }, retryConfig || READ_RETRY_CONFIG);
 
     // Check if we found a job with that usaJobsId
     if ("data" in result && result.data?.listJobs?.items?.length > 0) {
@@ -74,39 +84,84 @@ export async function getJobByUsaJobsId(
 
     return {
       success: false,
-      error: `Job with usaJobsId: ${usaJobsId} not found`,
+      error: `Job with usaJobsId: ${sanitizedUsaJobsId} not found`,
       statusCode: 404,
     };
   } catch (error) {
-    console.error("Error in getJobByUsaJobsId:", error);
+    const errorResult = handleError(
+      "fetch",
+      "Job by usaJobsId",
+      error,
+      sanitizedUsaJobsId
+    );
     return {
       success: false,
-      error: "Failed to fetch job by usaJobsId",
-      statusCode: 500,
+      ...errorResult,
     };
   }
 }
+
 /**
  * Creates a new Job record or retrieves an existing one with the same usaJobsId
  *
  * @param {Object} jobData - The job data to create
  * @returns {Promise<ApiResponse>} - The API response with created or retrieved job record
  */
-export async function createOrGetJob(jobData: {
-  agencyDescription?: string;
-  department?: string;
-  duties?: string;
-  evaluationCriteria?: string;
-  qualificationsSummary?: string;
-  requiredDocuments?: string;
-  title: string;
-  usaJobsId: string;
-}): Promise<ApiResponse> {
+export async function createOrGetJob(
+  jobData: {
+    agencyDescription?: string;
+    department?: string;
+    duties?: string;
+    evaluationCriteria?: string;
+    qualificationsSummary?: string;
+    requiredDocuments?: string;
+    title: string;
+    usaJobsId: string;
+  },
+  retryConfig?: RetryConfig
+): Promise<ApiResponse> {
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
+  }
+
+  // Validate and sanitize jobData object
+  const jobDataResult = sanitizeOrError(
+    validateAndSanitizeObject(jobData, "jobData", {
+      preserveFields: ["id", "createdAt", "updatedAt"],
+      escapeHtml: false,
+      maxLength: 50000, // Jobs can have long descriptions
+    })
+  );
+  if (!jobDataResult.success) return jobDataResult.error;
+  const sanitizedJobData = jobDataResult.sanitized;
+
+  // Validate required fields after sanitization
+  const titleResult = sanitizeOrError(
+    validateAndSanitizeNonEmptyString(sanitizedJobData.title, "title", {
+      escapeHtml: false,
+      maxLength: 500,
+    })
+  );
+  if (!titleResult.success) return titleResult.error;
+  const sanitizedTitle = titleResult.sanitized;
+
+  const usaJobsIdResult = sanitizeOrError(
+    validateAndSanitizeNonEmptyString(sanitizedJobData.usaJobsId, "usaJobsId", {
+      escapeHtml: false,
+      maxLength: 200,
+    })
+  );
+  if (!usaJobsIdResult.success) return usaJobsIdResult.error;
+  const sanitizedUsaJobsId = usaJobsIdResult.sanitized;
+
   const client = generateClient();
 
   try {
     // First, check if a job with this usaJobsId already exists
-    const existingJobResult = await getJobByUsaJobsId(jobData.usaJobsId);
+    // Use internal function to avoid double auth check
+    const existingJobResult =
+      await getJobByUsaJobsIdInternal(sanitizedUsaJobsId);
 
     if (existingJobResult.success && existingJobResult.data) {
       return existingJobResult;
@@ -116,50 +171,47 @@ export async function createOrGetJob(jobData: {
 
     // Extract fields we don't want to include in the create operation
     const { createdAt, id, updatedAt, topics, ...filteredJobData } =
-      jobData as any;
+      sanitizedJobData as any;
 
-    // Create the GraphQL mutation query
-    const mutation = `
+    // Update with sanitized required fields
+    filteredJobData.title = sanitizedTitle;
+    filteredJobData.usaJobsId = sanitizedUsaJobsId;
+
+    const mutation = buildQueryWithFragments(`
       mutation CreateJob($input: CreateJobInput!) {
         createJob(input: $input) {
-          id
-          createdAt
-          updatedAt
-          agencyDescription
-          department
-          duties
-          evaluationCriteria
-          qualificationsSummary
-          questionnaire
-          requiredDocuments
-          title
+          ...JobDetailedFields
           topics {
-                items {
-                id
-                jobId
-                keywords
-                title
-                }
+            items {
+              ...TopicFields
             }
-          usaJobsId
+          }
         }
       }
-    `;
+    `);
 
     // Execute the GraphQL mutation
-    const createResult = await client.graphql({
-      query: mutation,
-      variables: {
-        input: filteredJobData,
-      },
-      authMode: "userPool",
-    });
+    const createResult = await withRetry(async () => {
+      return await client.graphql({
+        query: mutation,
+        variables: {
+          input: filteredJobData,
+        },
+        authMode: "userPool",
+      });
+    }, retryConfig || WRITE_RETRY_CONFIG);
 
     // Verify successful creation
     if ("data" in createResult && createResult.data?.createJob) {
+      // Flatten topics structure for consistency
+      const createdJob = {
+        ...createResult.data.createJob,
+        topics: createResult.data.createJob.topics?.items || [],
+      };
+
       return {
         success: true,
-        data: createResult.data.createJob,
+        data: createdJob,
         statusCode: 201,
       };
     } else {
@@ -170,57 +222,57 @@ export async function createOrGetJob(jobData: {
       };
     }
   } catch (error) {
-    console.error("Error in createOrGetJob:", error);
+    const errorResult = handleError("create or retrieve", "Job", error);
     return {
       success: false,
-      error: "Failed to create or retrieve Job record",
-      statusCode: 500,
+      ...errorResult,
     };
   }
 }
+
 /**
- * Example usage:
+ * Get job by application ID
  *
- * const jobResult = await createOrGetJob({
- *   agencyDescription: "Department of Example",
- *   department: "Example Agency",
- *   duties: "Various duties...",
- *   evaluationCriteria: "Will be evaluated based on...",
- *   qualificationsSummary: "Must have experience in...",
- *   requiredDocuments: "Resume, cover letter...",
- *   title: "Software Engineer",
- *   usaJobsId: "ABC12345"
- * });
- *
- * if (jobResult.success) {
- *   console.log("Job:", jobResult.data);
- * } else {
- *   console.error(`Error ${jobResult.statusCode}:`, jobResult.error);
- * }
+ * @param {string} applicationId - The application ID
+ * @returns {Promise<ApiResponse>} - The API response with job data
  */
 export async function getJobByApplicationId(
-  applicationId: string
+  applicationId: string,
+  retryConfig?: RetryConfig
 ): Promise<ApiResponse> {
+  const authCheck = await validateAuth();
+  if (!authCheck.success) {
+    return authCheck as ApiResponse;
+  }
+
+  // Validate and sanitize applicationId
+  const appIdResult = sanitizeOrError(
+    validateAndSanitizeId(applicationId, "applicationId")
+  );
+  if (!appIdResult.success) return appIdResult.error;
+  const sanitizedApplicationId = appIdResult.sanitized;
+
   const client = generateClient();
 
   try {
-    // First, get the application to find its jobId
-    const getApplicationQuery = `
-        query GetApplication($applicationId: ID!) {
-          getApplication(id: $applicationId) {
-            id
-            jobId
-          }
+    const getApplicationQuery = buildQueryWithFragments(`
+      query GetApplication($applicationId: ID!) {
+        getApplication(id: $applicationId) {
+          id
+          jobId
         }
-      `;
+      }
+    `);
 
-    const applicationResult = await client.graphql({
-      query: getApplicationQuery,
-      variables: {
-        applicationId: applicationId,
-      },
-      authMode: "userPool",
-    });
+    const applicationResult = await withRetry(async () => {
+      return await client.graphql({
+        query: getApplicationQuery,
+        variables: {
+          applicationId: sanitizedApplicationId,
+        },
+        authMode: "userPool",
+      });
+    }, retryConfig || READ_RETRY_CONFIG);
 
     if (
       "data" in applicationResult &&
@@ -228,42 +280,35 @@ export async function getJobByApplicationId(
     ) {
       const jobId = applicationResult.data.getApplication.jobId;
 
-      // Now get the job using the jobId
-      const getJobQuery = `
-          query GetJob($jobId: ID!) {
-            getJob(id: $jobId) {
-              id
-              createdAt
-              updatedAt
-              agencyDescription
-              department
-              duties
-              evaluationCriteria
-              qualificationsSummary
-              questionnaire
-              requiredDocuments
-              title
-              topics {
-                items {
-                id
-                jobId
-                keywords
-                title
-                }
-            }
-              usaJobsId
+      // Sanitize the jobId returned from the database
+      const jobIdResult = sanitizeOrError(
+        validateAndSanitizeId(jobId, "jobId")
+      );
+      if (!jobIdResult.success) return jobIdResult.error;
+      const sanitizedJobId = jobIdResult.sanitized;
+
+      const getJobQuery = buildQueryWithFragments(`
+        query GetJob($jobId: ID!) {
+          getJob(id: $jobId) {
+            ...JobDetailedFields
+            topics {
+              items {
+                ...TopicFields
+              }
             }
           }
-        `;
+        }
+      `);
 
-      const jobResult = await client.graphql({
-        query: getJobQuery,
-        variables: {
-          jobId: jobId,
-        },
-        authMode: "userPool",
-      });
-
+      const jobResult = await withRetry(async () => {
+        return await client.graphql({
+          query: getJobQuery,
+          variables: {
+            jobId: sanitizedJobId,
+          },
+          authMode: "userPool",
+        });
+      }, retryConfig || READ_RETRY_CONFIG);
       if ("data" in jobResult && jobResult.data?.getJob) {
         // Flatten the topics.items into a topics array
         const job = jobResult.data.getJob;
@@ -282,15 +327,90 @@ export async function getJobByApplicationId(
 
     return {
       success: false,
-      error: `Job not found for application ID: ${applicationId}`,
+      error: `Job not found for application ID: ${sanitizedApplicationId}`,
       statusCode: 404,
     };
   } catch (error) {
-    console.error("Error in getJobByApplicationId:", error);
+    const errorResult = handleError(
+      "fetch",
+      "Job by application",
+      error,
+      sanitizedApplicationId
+    );
     return {
       success: false,
-      error: "Failed to fetch job by application ID",
-      statusCode: 500,
+      ...errorResult,
+    };
+  }
+}
+
+/**
+ * Internal function to get job by usaJobsId without auth check (for internal use)
+ * usaJobsId is already sanitized by the calling function
+ */
+async function getJobByUsaJobsIdInternal(
+  sanitizedUsaJobsId: string,
+  retryConfig?: RetryConfig
+): Promise<ApiResponse> {
+  const client = generateClient();
+
+  try {
+    const query = buildQueryWithFragments(`
+      query GetJobByUsaJobsId($usaJobsId: String!) {
+        listJobs(filter: {usaJobsId: {eq: $usaJobsId}}) {
+          items {
+            ...JobDetailedFields
+            topics {
+              items {
+                ...TopicFields
+              }
+            }
+          }
+        }
+      }
+    `);
+
+    const result = await withRetry(async () => {
+      return await client.graphql({
+        query,
+        variables: {
+          usaJobsId: sanitizedUsaJobsId,
+        },
+        authMode: "userPool",
+      });
+    }, retryConfig || READ_RETRY_CONFIG);
+
+    // Check if we found a job with that usaJobsId
+    if ("data" in result && result.data?.listJobs?.items?.length > 0) {
+      // Flatten the topics.items into a topics array
+      const job = result.data.listJobs.items[0];
+      const flattenedJob = {
+        ...job,
+        topics: job.topics?.items || [],
+      };
+
+      return {
+        success: true,
+        data: flattenedJob,
+        statusCode: 200,
+      };
+    }
+
+    return {
+      success: false,
+      error: `Job with usaJobsId: ${sanitizedUsaJobsId} not found`,
+      statusCode: 404,
+    };
+  } catch (error) {
+    const errorResult = handleError(
+      "fetch",
+      "Job by usaJobsId",
+      error,
+      sanitizedUsaJobsId
+    );
+    return {
+      success: false,
+      ...errorResult,
     };
   }
 }

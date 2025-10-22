@@ -101,7 +101,6 @@ export default function EducationForm({
         name="gpa"
         register={register}
         schema={educationFormSchema}
-        type="number"
         placeholder="e.g., 3.5"
       />
       <GenericFieldWithLabel
