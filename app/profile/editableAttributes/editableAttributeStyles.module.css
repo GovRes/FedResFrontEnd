@@ -44,13 +44,13 @@ button[type="submit"].submitButton:hover {
 
 .cancelButton {
   background-color: var(--red-light);
-  border: 1px solid var(--red-dark);
+  border: 1px solid var(--highlight-2);
   border-radius: 4px;
-  color: var(--red-med);
+  color: var(--highlight-1);
   display: flex;
   align-items: center;
 }
 .cancelButton:hover {
-  color: var(--red-dark);
+  color: var(--highlight-2);
   background-color: var(--white);
 }

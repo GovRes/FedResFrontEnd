@@ -1,6 +1,6 @@
 .banner {
   color: var(--white);
-  background-color: var(--red-med);
+  background-color: var(--highlight-1);
   font-family: var(--header-font);
   font-size: 3rem;
   padding: 0.35em;

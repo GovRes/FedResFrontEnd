@@ -5,7 +5,7 @@
   }
 }
 .navLink {
-  color: var(--red-med);
+  color: var(--contrast);
   font-family: var(--header-font);
   font-size: 1.75rem;
   font-weight: var(--font-semi-bold);
@@ -16,7 +16,7 @@
 }
 
 .navToggle {
-  color: var(--red-med);
+  color: var(--contrast);
   cursor: pointer;
   font-size: 1.5rem;
   @media (min-width: 1024px) {
@@ -31,7 +31,6 @@
 }
 
 .navCta {
-  background-color: var(--blue-dark);
   border: none;
   border-radius: 4px;
   color: var(--white);
@@ -53,7 +52,7 @@
 }
 
 .navLogo {
-  color: var(--red-med);
+  color: var(--contrast);
   transition: color 0.4s;
   font-family: var(--header-font);
   font-size: 4.2rem;
@@ -61,7 +60,6 @@
 
 .navMenu {
   backdrop-filter: blur(16px);
-  background-color: var(--blue-dark);
   display: flex;
   height: 100%;
   justify-content: space-between;

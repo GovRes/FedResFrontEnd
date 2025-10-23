@@ -129,7 +129,7 @@
 
 .checkboxWrapper.negative input[type="checkbox"]:checked + label {
   padding-left: 1em;
-  color: var(--red-dark);
+  color: var(--highlight-2);
 }
 .checkboxWrapper.negative input[type="checkbox"]:checked + label:before {
   top: 0;
@@ -140,7 +140,7 @@
 }
 .checkboxWrapper.negative input[type="radio"]:checked + label {
   padding-left: 1em;
-  color: var(--red-dark);
+  color: var(--highlight-2);
 }
 .checkboxWrapper.negative input[type="radio"]:checked + label:before {
   top: 0;
