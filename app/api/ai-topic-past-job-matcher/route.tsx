@@ -1,9 +1,9 @@
-// Fixed parsing logic with proper input handling
+// Optimized for batch processing with increased timeouts
 import OpenAI from "openai";
 import { type NextRequest } from "next/server";
 
 export const runtime = "nodejs";
-export const maxDuration = 20;
+export const maxDuration = 60; // Increased from 20 to 60 seconds for batch processing
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
@@ -17,14 +17,14 @@ export async function POST(req: NextRequest) {
 
   try {
     // gpt-4o-mini has a 128k token context window, which is roughly 100k+ characters
-    // We can safely send much larger inputs. Let's limit to 50k characters to be safe.
-    const inputText = data.input.substring(0, 50000);
+    // We can safely send much larger inputs. Let's limit to 80k characters for batch processing.
+    const inputText = data.input.substring(0, 80000);
 
-    if (data.input.length > 50000) {
+    if (data.input.length > 80000) {
       console.warn(
         "Input was truncated from",
         data.input.length,
-        "to 50000 characters"
+        "to 80000 characters"
       );
     }
 
@@ -36,13 +36,13 @@ export async function POST(req: NextRequest) {
             role: "user",
             content: `${inputText}
 
-Return valid JSON: {"pastJobs": [job_objects_with_qualifications]}`,
+Return valid JSON: {"pastJobs": [job_objects_with_qualifications_for_all_topics]}`,
           },
         ],
-        max_tokens: 2000, // Increased from 1000 to allow for more complete responses
+        max_tokens: 4000, // Increased from 2000 to 4000 to handle batch responses
         temperature: 0.1,
       },
-      { timeout: 15000 }
+      { timeout: 50000 } // Increased from 15000 to 50000 (50 seconds)
     );
 
     const content = completion.choices?.[0]?.message?.content || "";
@@ -95,6 +95,20 @@ Return valid JSON: {"pastJobs": [job_objects_with_qualifications]}`,
     });
   } catch (error) {
     console.error("API Error:", error);
-    return new Response(JSON.stringify({ pastJobs: [] }), { status: 200 });
+
+    // Check if it's a timeout error
+    if (error instanceof Error && error.message.includes("timeout")) {
+      console.error("Request timed out - consider further optimization");
+    }
+
+    return new Response(
+      JSON.stringify({
+        pastJobs: [],
+        error: error instanceof Error ? error.message : "Unknown error",
+      }),
+      {
+        status: 200,
+      }
+    );
   }
 }
