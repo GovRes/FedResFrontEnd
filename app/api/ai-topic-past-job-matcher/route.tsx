@@ -19,22 +19,52 @@ export async function POST(req: NextRequest) {
   console.log("Received input length:", data.input?.length || 0);
 
   try {
-    // Claude Sonnet 4 has 200K token context window
-    // Can easily handle 95KB+ input with no truncation
     const inputText = data.input;
 
     console.log(`Processing ${inputText.length} characters with Claude`);
 
     const message = await client.messages.create({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 4000,
-      temperature: 0.1,
+      max_tokens: 4096,
+      temperature: 0.0,
       messages: [
         {
           role: "user",
           content: `${inputText}
 
-Return ONLY valid JSON with no markdown formatting: {"pastJobs": [job_objects_with_qualifications]}`,
+CRITICAL FORMATTING REQUIREMENTS:
+1. Return ONLY the NEW qualifications you are adding - DO NOT return existing qualifications
+2. DO NOT return the complete past jobs array - only return new matches
+3. Return valid JSON with no markdown, no explanations
+4. All text fields must properly escape special characters:
+   - Replace " with \\"
+   - Replace \\ with \\\\
+   - Replace newlines with \\n
+   - Replace tabs with \\t
+
+Return format:
+{
+  "newQualifications": [
+    {
+      "pastJobId": "uuid-of-the-job-this-qualification-belongs-to",
+      "qualification": {
+        "id": "",
+        "topic": {COMPLETE_EXACT_COPY_OF_PROVIDED_TOPIC_OBJECT},
+        "description": "",
+        "title": "title based on topic",
+        "paragraph": "",
+        "userConfirmed": false,
+        "question": "question connecting this qualification to the specific job"
+      }
+    }
+  ]
+}
+
+IMPORTANT:
+- Only include NEW qualifications where the topic UUID is NOT already in the job's existing qualifications
+- Each object in the array must have both pastJobId and qualification fields
+- The qualification object should follow the exact structure shown above
+- If no new qualifications are found, return {"newQualifications": []}`,
         },
       ],
     });
@@ -45,50 +75,105 @@ Return ONLY valid JSON with no markdown formatting: {"pastJobs": [job_objects_wi
       throw new Error("Unexpected response type");
     }
 
-    const responseText = content.text;
+    let responseText = content.text.trim();
 
     console.log("=== CLAUDE RESPONSE ===");
     console.log("Length:", responseText.length, "characters");
-    console.log("Preview:", responseText.substring(0, 200));
+    console.log("Starts with:", responseText.substring(0, 100));
+    console.log(
+      "Ends with:",
+      responseText.substring(Math.max(0, responseText.length - 100))
+    );
     console.log("=======================");
 
-    // Parse JSON response
+    // More aggressive cleaning
     let parsed;
+    let parseSuccess = false;
+
+    // Step 1: Try direct parse
     try {
-      // Try direct parse
       parsed = JSON.parse(responseText);
       console.log("✅ Direct parse succeeded");
-    } catch (parseError) {
+      parseSuccess = true;
+    } catch (e) {
       console.log("⚠️ Direct parse failed, trying cleanup...");
+    }
 
-      // Remove markdown code blocks if present
-      let cleanContent = responseText
-        .replace(/```json\n?/g, "")
-        .replace(/```\n?/g, "")
-        .trim();
-
+    // Step 2: Remove markdown
+    if (!parseSuccess) {
       try {
-        parsed = JSON.parse(cleanContent);
-        console.log("✅ Parse succeeded after markdown removal");
-      } catch (cleanError) {
-        // Try to extract JSON from response
-        const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          try {
-            parsed = JSON.parse(jsonMatch[0]);
-            console.log("✅ Extraction parse succeeded");
-          } catch (extractError) {
-            console.error("❌ All parsing attempts failed");
-            parsed = { pastJobs: [] };
-          }
-        } else {
-          console.error("❌ No JSON found in response");
-          parsed = { pastJobs: [] };
-        }
+        responseText = responseText
+          .replace(/```json\n?/g, "")
+          .replace(/```\n?/g, "")
+          .trim();
+        parsed = JSON.parse(responseText);
+        console.log("✅ Markdown removal succeeded");
+        parseSuccess = true;
+      } catch (e) {
+        console.log("⚠️ Markdown removal didn't help");
       }
     }
 
-    console.log("Final result:", parsed.pastJobs?.length || 0, "jobs returned");
+    // Step 3: Extract JSON object
+    if (!parseSuccess) {
+      try {
+        const match = responseText.match(/(\{[\s\S]*\})/);
+        if (match) {
+          parsed = JSON.parse(match[1]);
+          console.log("✅ JSON extraction succeeded");
+          parseSuccess = true;
+        }
+      } catch (e) {
+        console.log("⚠️ JSON extraction failed");
+      }
+    }
+
+    // Step 4: Try fixing common issues
+    if (!parseSuccess) {
+      try {
+        // Fix common issues: trailing commas, unescaped quotes in specific patterns
+        let fixed = responseText
+          .replace(/,\s*}/g, "}") // Remove trailing commas before }
+          .replace(/,\s*]/g, "]") // Remove trailing commas before ]
+          .replace(/"\s*\n\s*"/g, '", "'); // Fix newlines between properties
+
+        parsed = JSON.parse(fixed);
+        console.log("✅ Fixed common JSON issues");
+        parseSuccess = true;
+      } catch (e) {
+        console.log("⚠️ Common fixes didn't work");
+      }
+    }
+
+    // Step 5: Log detailed error and give up
+    if (!parseSuccess) {
+      console.error("❌ All parsing attempts failed");
+      console.error("Response length:", responseText.length);
+      console.error("First 1000 chars:", responseText.substring(0, 1000));
+      console.error(
+        "Last 1000 chars:",
+        responseText.substring(Math.max(0, responseText.length - 1000))
+      );
+
+      // Save the problematic response for debugging
+      console.error("=== FULL RESPONSE FOR DEBUGGING ===");
+      console.error(responseText);
+      console.error("=== END FULL RESPONSE ===");
+
+      parsed = { newQualifications: [] };
+    }
+
+    const qualCount = parsed.newQualifications?.length || 0;
+    console.log("Final result:", qualCount, "new qualifications returned");
+
+    if (qualCount > 0) {
+      // Group by job for logging
+      const byJob = parsed.newQualifications.reduce((acc: any, item: any) => {
+        acc[item.pastJobId] = (acc[item.pastJobId] || 0) + 1;
+        return acc;
+      }, {});
+      console.log("New qualifications by job:", byJob);
+    }
 
     return new Response(JSON.stringify(parsed), {
       status: 200,
@@ -104,7 +189,7 @@ Return ONLY valid JSON with no markdown formatting: {"pastJobs": [job_objects_wi
 
     return new Response(
       JSON.stringify({
-        pastJobs: [],
+        newQualifications: [],
         error: error instanceof Error ? error.message : "Unknown error",
       }),
       {

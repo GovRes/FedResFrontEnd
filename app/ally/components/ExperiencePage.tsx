@@ -20,6 +20,16 @@ interface ExperiencePageProps {
   type: "PastJob" | "Volunteer";
 }
 
+// Interface for the new API response format
+interface NewQualificationItem {
+  pastJobId: string;
+  qualification: QualificationType;
+}
+
+interface TopicMatcherResponse {
+  newQualifications: NewQualificationItem[];
+}
+
 export default function ExperiencePage({
   currentStepId,
   type,
@@ -108,234 +118,146 @@ export default function ExperiencePage({
         `AI matching all ${totalTopics} topics to your experience...`
       );
 
-      // Call AI once with ALL topics
-      const topicMatcherData = await topicPastJobMatcher({
-        topics: job.topics, // Pass ALL topics at once
+      // Call AI once with ALL topics - returns only NEW qualifications
+      const topicMatcherResponse = (await topicPastJobMatcher({
+        topics: job.topics,
         pastJobs: data,
-      });
+      })) as TopicMatcherResponse;
 
-      console.log(`AI batch response received:`, topicMatcherData);
+      console.log(`AI batch response received:`, topicMatcherResponse);
 
-      // Extract past jobs from response
-      let matchedJobs: PastJobType[] = [];
-      if (topicMatcherData && typeof topicMatcherData === "object") {
-        if (Array.isArray(topicMatcherData)) {
-          matchedJobs = topicMatcherData;
-        } else if (topicMatcherData.pastJobs) {
-          matchedJobs = topicMatcherData.pastJobs;
-        }
-      }
+      // Extract new qualifications from response
+      const newQualifications = topicMatcherResponse?.newQualifications || [];
 
       console.log(
-        `AI matched ${matchedJobs.length} jobs across ${totalTopics} topics`
+        `AI returned ${newQualifications.length} new qualifications to create`
       );
 
-      // Process each matched job
+      if (newQualifications.length === 0) {
+        console.log("No new qualifications to create");
+        return;
+      }
+
+      // Process each new qualification
       setLoadingText("Creating qualifications from AI matches...");
 
-      for (const matchedJob of matchedJobs) {
-        if (!matchedJob.id || !matchedJob.qualifications?.length) {
-          console.log(`Skipping job - no ID or qualifications`);
-          continue;
-        }
+      // Group qualifications by job for logging
+      const qualsByJob = newQualifications.reduce(
+        (acc: Record<string, number>, item) => {
+          acc[item.pastJobId] = (acc[item.pastJobId] || 0) + 1;
+          return acc;
+        },
+        {}
+      );
+      console.log("New qualifications by job:", qualsByJob);
 
-        // Get the current state of this job from the database
+      for (const { pastJobId, qualification: qual } of newQualifications) {
+        // Find the job this qualification belongs to
         const currentJobState = data.find(
-          (job: PastJobType) => job.id === matchedJob.id
+          (job: PastJobType) => job.id === pastJobId
         );
 
         if (!currentJobState) {
-          console.warn(`Could not find job ${matchedJob.id} in current data`);
+          console.warn(`Could not find job ${pastJobId} in current data`);
           continue;
         }
 
-        // Get all existing topic IDs for this job from the database
-        const existingTopicIds = new Set(
-          (currentJobState.qualifications || [])
-            .map((q: QualificationType) => q.topic?.id)
-            .filter(Boolean)
-        );
+        // CRITICAL: Only use topic.id from the topic object (should be a UUID)
+        const topicId = qual.topic?.id;
 
-        console.log(
-          `Job "${matchedJob.title}" has ${existingTopicIds.size} existing qualifications`
-        );
-        console.log(`Existing topic IDs:`, Array.from(existingTopicIds));
+        if (!topicId || topicId.trim() === "") {
+          console.error(`❌ Skipping qualification - missing topic.id`);
+          continue;
+        }
 
-        // Filter out qualifications for topics that already exist in the database
-        const newQualifications = matchedJob.qualifications.filter(
-          (qual: QualificationType) => {
-            const qualTopicId = qual.topic?.id;
-
-            if (!qualTopicId) {
-              console.log(
-                `❌ Skipping qualification - no topic.id in topic object`
-              );
-              return false;
-            }
-
-            // Validate it looks like a UUID
-            if (qualTopicId.length < 20 || !qualTopicId.includes("-")) {
-              console.log(
-                `❌ Skipping qualification - topic.id doesn't look like UUID: "${qualTopicId}"`
-              );
-              return false;
-            }
-
-            if (existingTopicIds.has(qualTopicId)) {
-              console.log(
-                `⚠️  DUPLICATE DETECTED: Topic "${qual.topic?.title}" (${qualTopicId}) already exists, skipping`
-              );
-              return false;
-            }
-
-            console.log(
-              `✅ NEW qualification: "${qual.topic?.title}" (${qualTopicId})`
-            );
-            return true;
-          }
-        );
-
-        if (newQualifications.length === 0) {
-          console.log(
-            `No new qualifications needed for job "${matchedJob.title}"`
+        // Validate it's a UUID format
+        if (topicId.length < 20 || !topicId.includes("-")) {
+          console.error(
+            `❌ Skipping qualification - topic.id "${topicId}" is not a UUID`
           );
           continue;
         }
 
-        console.log(
-          `Creating ${newQualifications.length} NEW qualifications for job "${matchedJob.title}"`
-        );
-
-        // Create the qualifications
-        const createdQualifications: QualificationType[] = [];
-
-        for (const qual of newQualifications) {
-          // CRITICAL: Only use topic.id from the topic object (should be a UUID)
-          const topicId = qual.topic?.id;
-
-          if (!topicId || topicId.trim() === "") {
-            console.error(`❌ Skipping qualification - missing topic.id`);
-            continue;
-          }
-
-          // Validate it's a UUID format
-          if (topicId.length < 20 || !topicId.includes("-")) {
-            console.error(
-              `❌ Skipping qualification - topic.id "${topicId}" is not a UUID`
-            );
-            continue;
-          }
-
-          if (!qual.title || qual.title.trim() === "") {
-            console.error(`❌ Skipping qualification - missing title`);
-            continue;
-          }
-
-          const newQualData = {
-            title: qual.title.trim(),
-            description:
-              qual.description?.trim() ||
-              "This qualification demonstrates relevant experience.",
-            paragraph: qual.paragraph?.trim() || "",
-            question: qual.question?.trim() || "",
-            topicId: topicId,
-            pastJobId: matchedJob.id,
-            userId: userId,
-            userConfirmed: false,
-          };
-
-          console.log("Creating qualification:", {
-            title: newQualData.title,
-            topicId: newQualData.topicId,
-            pastJobId: newQualData.pastJobId,
-          });
-
-          try {
-            const { data: createdQual, error: createError } =
-              await createQualification(newQualData);
-
-            if (createError) {
-              console.error("Failed to create qualification:", createError);
-              continue;
-            }
-
-            if (createdQual) {
-              console.log(`✅ Created qualification: ${createdQual.title}`);
-              createdQualifications.push(createdQual);
-              allQualificationsToAssociate.push(createdQual);
-            }
-          } catch (createError) {
-            console.error("Exception creating qualification:", createError);
-            continue;
-          }
+        if (!qual.title || qual.title.trim() === "") {
+          console.error(`❌ Skipping qualification - missing title`);
+          continue;
         }
 
-        // Update the past job's qualifications field
-        if (createdQualifications.length > 0) {
-          const updatedQualifications = [
-            ...(currentJobState.qualifications || []),
-            ...createdQualifications,
-          ];
+        const newQualData = {
+          title: qual.title.trim(),
+          description:
+            qual.description?.trim() ||
+            "This qualification demonstrates relevant experience.",
+          paragraph: qual.paragraph?.trim() || "",
+          question: qual.question?.trim() || "",
+          topicId: topicId,
+          pastJobId: pastJobId,
+          userId: userId,
+          userConfirmed: false,
+        };
 
-          const qualificationIds = updatedQualifications
-            .map((q) => q.id)
-            .filter((id): id is string => id !== undefined && id !== null);
+        console.log("Creating qualification:", {
+          title: newQualData.title,
+          topicId: newQualData.topicId,
+          pastJobId: newQualData.pastJobId,
+          jobTitle: currentJobState.title,
+        });
 
-          console.log(
-            `Updating job ${matchedJob.id} with ${qualificationIds.length} total qualifications`
-          );
+        try {
+          const { data: createdQual, error: createError } =
+            await createQualification(newQualData);
 
-          try {
-            await updatePastJobWithQualifications(
-              matchedJob.id,
-              qualificationIds
-            );
-            console.log(
-              `✅ Updated job "${matchedJob.title}" with new qualifications`
-            );
-          } catch (updateError) {
-            console.error(
-              `Failed to update job ${matchedJob.id}:`,
-              updateError
-            );
+          if (createError) {
+            console.error("Error creating qualification:", createError);
+            continue;
           }
+
+          if (!createdQual) {
+            console.error("No qualification data returned from create");
+            continue;
+          }
+
+          console.log(`✅ Created qualification: ${createdQual.title}`);
+          allQualificationsToAssociate.push(createdQual);
+        } catch (error) {
+          console.error("Exception creating qualification:", error);
         }
       }
 
       // Associate all created qualifications with the application
       if (allQualificationsToAssociate.length > 0) {
+        setLoadingText("Associating qualifications with application...");
         console.log(
           `Associating ${allQualificationsToAssociate.length} qualifications with application`
         );
 
         const qualificationIds = allQualificationsToAssociate
           .map((q) => q.id)
-          .filter((id): id is string => id !== undefined && id !== null);
+          .filter((id): id is string => Boolean(id));
 
-        if (qualificationIds.length > 0) {
-          try {
-            await associateItemsWithApplication({
-              applicationId,
-              items: qualificationIds,
-              associationType: "Qualification",
-            });
-            console.log(
-              `✅ Associated ${qualificationIds.length} qualifications with application`
-            );
-          } catch (associateError) {
-            console.error(
-              "Failed to associate qualifications:",
-              associateError
-            );
-          }
+        const associationResult = await associateItemsWithApplication({
+          applicationId,
+          items: qualificationIds,
+          associationType: "Qualification",
+        });
+
+        if (associationResult.error) {
+          console.error(
+            "Error associating qualifications:",
+            associationResult.error
+          );
+        } else {
+          console.log(
+            `✅ Successfully associated ${qualificationIds.length} qualifications with application`
+          );
         }
       }
 
       console.log(
-        `\n=== AI Processing Complete: Created ${allQualificationsToAssociate.length} total qualifications ===\n`
+        `\n=== BATCH Processing Complete: ${allQualificationsToAssociate.length} qualifications created ===\n`
       );
     } catch (error) {
-      console.error("AI processing failed:", error);
+      console.error("Error in AI processing:", error);
       throw error;
     }
   }
