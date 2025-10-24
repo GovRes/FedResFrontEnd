@@ -15,7 +15,7 @@ export const topicPastJobMatcher = async ({
   // Validate topics array
   if (!topics || !Array.isArray(topics) || topics.length === 0) {
     console.error("❌ TOPICS ARRAY IS INVALID!");
-    return [];
+    return { newQualifications: [] };
   }
 
   console.log(
@@ -64,9 +64,11 @@ Please identify which past jobs are most relevant to EACH topic in the array abo
     console.log(res);
     console.log("=== END RAW BATCH RESPONSE ===");
 
-    return res.pastJobs || [];
+    // Return the entire response object which contains newQualifications
+    // The calling code (ExperiencePage.tsx) will extract newQualifications from it
+    return res;
   } catch (error) {
     console.error("Batch topic matching failed:", error);
-    return [];
+    return { newQualifications: [] };
   }
 };

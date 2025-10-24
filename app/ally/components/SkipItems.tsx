@@ -20,6 +20,7 @@ export default function SkipItems({
   const router = useRouter();
   const { applicationId, completeStep, steps } = useApplication();
   async function skipItems() {
+    console.log(`skipping ${currentStepId}`);
     navigateToNextIncompleteStep({
       steps,
       router,
