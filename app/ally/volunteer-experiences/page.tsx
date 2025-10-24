@@ -38,7 +38,7 @@ export default function volunteersPage() {
   return (
     <InitialReview
       currentStepId="past-jobs"
-      itemType="PastJob"
+      itemType="VolunteerExperience"
       localItems={localVolunteers}
       setLocalItems={setLocalVolunteers}
     />
